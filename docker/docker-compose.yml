@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  aether-mail-inference:
+    build:
+      context: .
+      dockerfile: aether-mail-inference.Dockerfile
+    container_name: aether-mail-inference
+    network_mode: none          # AIR-GAPPED — geen internet
+    volumes:
+      - ./models:/models:ro
+    environment:
+      - OLLAMA_URL=http://host.docker.internal:11434  # alleen als Ollama op host draait
+    restart: unless-stopped
+
+  aether-supplier-crawler:
+    build:
+      context: .
+      dockerfile: aether-supplier-crawler.Dockerfile
+    container_name: aether-supplier-crawler
+    # Beperkte network: alleen naar allowlist domains (via proxy of firewall)
+    restart: unless-stopped
+
+  medusa:
+    image: medusajs/medusa:latest
+    ports:
+      - "9000:9000"
+    environment:
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/medusa
+    depends_on:
+      - postgres
+    volumes:
+      - ../backend/medusa:/app
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: medusa
+    ports:
+      - "5432:5432"
