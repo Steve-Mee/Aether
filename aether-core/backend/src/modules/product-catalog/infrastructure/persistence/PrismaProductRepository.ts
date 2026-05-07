@@ -26,6 +26,7 @@ export class PrismaProductRepository implements ProductRepository {
         name: product.name,
         description: product.description,
         slug: product.slug,
+        price: 0,
         status: product.status,
       },
     });
@@ -39,6 +40,7 @@ export class PrismaProductRepository implements ProductRepository {
         name: product.name,
         description: product.description,
         slug: product.slug,
+        price: 0,
         status: product.status,
       },
     });

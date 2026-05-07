@@ -21,7 +21,6 @@ export class PrismaSupplierRepository implements SupplierRepository {
       data: {
         name: supplier.name,
         website: supplier.website,
-        status: supplier.status,
       },
     });
     return this.toDomain(created);
@@ -39,17 +38,16 @@ export class PrismaSupplierRepository implements SupplierRepository {
       where: { sku: product.sku },
       update: {
         currentPrice: product.currentPrice,
-        stockLevel: product.stockLevel,
-        lastChecked: new Date(),
+        stock: product.stockLevel,
+        lastUpdated: new Date(),
       },
       create: {
         supplierId: product.supplierId,
         name: product.name,
         sku: product.sku,
         currentPrice: product.currentPrice,
-        currency: product.currency,
-        stockLevel: product.stockLevel,
-        lastChecked: new Date(),
+        stock: product.stockLevel,
+        lastUpdated: new Date(),
       },
     });
     return this.toProductDomain(saved);
@@ -60,7 +58,7 @@ export class PrismaSupplierRepository implements SupplierRepository {
       prismaSupplier.id,
       prismaSupplier.name,
       prismaSupplier.website,
-      prismaSupplier.status,
+      'active',
       prismaSupplier.createdAt
     );
   }
@@ -72,9 +70,9 @@ export class PrismaSupplierRepository implements SupplierRepository {
       prismaProduct.name,
       prismaProduct.sku,
       prismaProduct.currentPrice,
-      prismaProduct.currency,
-      prismaProduct.stockLevel,
-      prismaProduct.lastChecked
+      'EUR',
+      prismaProduct.stock,
+      prismaProduct.lastUpdated
     );
   }
 }

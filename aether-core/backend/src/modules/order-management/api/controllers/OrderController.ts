@@ -6,13 +6,13 @@ import { UpdateOrderStatusUseCase } from '../../application/use-cases/UpdateOrde
 
 const prisma = new PrismaClient();
 const orderRepository = new PrismaOrderRepository(prisma);
-const createOrderUseCase = new CreateOrderUseCase(orderRepository);
+const createOrderUseCase = new CreateOrderUseCase();
 const updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderRepository);
 
 export class OrderController {
   async createOrder(req: Request, res: Response) {
     try {
-      const { customerId, items, currency } = req.body;
+      const { customerId, items } = req.body;
 
       if (!customerId || !items || !Array.isArray(items)) {
         return res.status(400).json({ error: 'customerId and items are required' });
@@ -21,7 +21,6 @@ export class OrderController {
       const order = await createOrderUseCase.execute({
         customerId,
         items,
-        currency
       });
 
       res.status(201).json(order);

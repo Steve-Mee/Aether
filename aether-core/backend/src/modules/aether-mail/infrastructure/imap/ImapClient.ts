@@ -1,5 +1,5 @@
 import Imap from 'imap';
-import { simpleParser } from 'mailparser';
+import { ParsedMail, simpleParser } from 'mailparser';
 import { EventEmitter } from 'events';
 
 export class ImapClient extends EventEmitter {
@@ -42,22 +42,30 @@ export class ImapClient extends EventEmitter {
     this.imap.connect();
   }
 
+  private async parseMessageStream(stream: NodeJS.ReadableStream): Promise<ParsedMail> {
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as string));
+    }
+    return simpleParser(Buffer.concat(chunks));
+  }
+
   async fetchUnseenEmails(): Promise<any[]> {
     return new Promise((resolve, reject) => {
-      this.imap.openBox('INBOX', true, (err, box) => {
+      this.imap.openBox('INBOX', true, (err: Error | null) => {
         if (err) return reject(err);
 
-        this.imap.search(['UNSEEN'], (err, results) => {
+        this.imap.search(['UNSEEN'], (err: Error | null, results: number[]) => {
           if (err) return reject(err);
           if (!results.length) return resolve([]);
 
           const fetch = this.imap.fetch(results, { bodies: '' });
           const emails: any[] = [];
 
-          fetch.on('message', (msg) => {
-            msg.on('body', async (stream) => {
+          fetch.on('message', (msg: any) => {
+            msg.on('body', async (stream: NodeJS.ReadableStream) => {
               try {
-                const parsed = await simpleParser(stream);
+                const parsed = await this.parseMessageStream(stream);
                 emails.push({
                   from: parsed.from?.text,
                   subject: parsed.subject,

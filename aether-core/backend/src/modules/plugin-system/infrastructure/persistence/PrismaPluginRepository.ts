@@ -6,62 +6,58 @@ export class PrismaPluginRepository implements PluginRepository {
   constructor(private prisma: PrismaClient) {}
 
   async findAll(): Promise<Plugin[]> {
-    const records = await this.prisma.plugin.findMany();
-    return records.map(this.mapToEntity);
+    const rows = await this.prisma.plugin.findMany();
+    return rows.map((row) => this.toDomain(row));
   }
 
   async findById(id: string): Promise<Plugin | null> {
-    const record = await this.prisma.plugin.findUnique({ where: { id } });
-    return record ? this.mapToEntity(record) : null;
+    const row = await this.prisma.plugin.findUnique({ where: { id } });
+    return row ? this.toDomain(row) : null;
   }
 
   async findByName(name: string): Promise<Plugin | null> {
-    const record = await this.prisma.plugin.findFirst({ where: { name } });
-    return record ? this.mapToEntity(record) : null;
+    const row = await this.prisma.plugin.findUnique({ where: { name } });
+    return row ? this.toDomain(row) : null;
   }
 
   async save(plugin: Plugin): Promise<Plugin> {
-    const record = await this.prisma.plugin.create({
+    const created = await this.prisma.plugin.create({
       data: {
-        id: plugin.id,
         name: plugin.name,
         version: plugin.version,
-        description: plugin.description,
-        author: plugin.author,
-        status: plugin.status,
-        config: plugin.config,
-      }
+        enabled: plugin.status === 'active',
+      },
     });
-    return this.mapToEntity(record);
+    return this.toDomain(created);
   }
 
   async update(plugin: Plugin): Promise<Plugin> {
-    const record = await this.prisma.plugin.update({
+    const updated = await this.prisma.plugin.update({
       where: { id: plugin.id },
       data: {
-        status: plugin.status,
-        config: plugin.config,
-        updatedAt: new Date()
-      }
+        name: plugin.name,
+        version: plugin.version,
+        enabled: plugin.status === 'active',
+      },
     });
-    return this.mapToEntity(record);
+    return this.toDomain(updated);
   }
 
   async delete(id: string): Promise<void> {
     await this.prisma.plugin.delete({ where: { id } });
   }
 
-  private mapToEntity(record: any): Plugin {
+  private toDomain(row: { id: string; name: string; version: string; enabled: boolean; createdAt: Date }): Plugin {
     return new Plugin(
-      record.id,
-      record.name,
-      record.version,
-      record.description,
-      record.author,
-      record.status,
-      record.config,
-      record.createdAt,
-      record.updatedAt
+      row.id,
+      row.name,
+      row.version,
+      '',
+      '',
+      row.enabled ? 'active' : 'inactive',
+      {},
+      row.createdAt,
+      row.createdAt
     );
   }
 }

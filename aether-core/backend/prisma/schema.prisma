@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -12,12 +13,13 @@ model Product {
   name        String
   description String?
   slug        String    @unique
+  price       Float
+  stock       Int       @default(0)
   status      String    @default("active")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   variants    ProductVariant[]
-  collections CollectionProduct[]
 }
 
 model ProductVariant {
@@ -31,36 +33,6 @@ model ProductVariant {
   product   Product @relation(fields: [productId], references: [id])
 }
 
-model Collection {
-  id        String    @id @default(cuid())
-  name      String
-  slug      String    @unique
-  createdAt DateTime  @default(now())
-
-  products  CollectionProduct[]
-}
-
-model CollectionProduct {
-  collectionId String
-  productId    String
-  position     Int     @default(0)
-
-  collection   Collection @relation(fields: [collectionId], references: [id])
-  product      Product    @relation(fields: [productId], references: [id])
-
-  @@id([collectionId, productId])
-}
-
-model Customer {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  firstName String?
-  lastName  String?
-  createdAt DateTime @default(now())
-
-  orders    Order[]
-}
-
 model Order {
   id          String   @id @default(cuid())
   customerId  String
@@ -69,7 +41,6 @@ model Order {
   currency    String   @default("EUR")
   createdAt   DateTime @default(now())
 
-  customer    Customer @relation(fields: [customerId], references: [id])
   items       OrderItem[]
 }
 
@@ -89,6 +60,115 @@ model EmailMessage {
   subject   String?
   body      String?
   status    String   @default("received")
-  riskLevel String?
   createdAt DateTime @default(now())
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  website   String
+  createdAt DateTime @default(now())
+
+  products  SupplierProduct[]
+}
+
+model SupplierProduct {
+  id          String @id @default(cuid())
+  supplierId  String
+  name        String
+  sku         String  @unique
+  currentPrice Float
+  stock       Int
+  lastUpdated DateTime @default(now())
+
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+}
+
+model Decision {
+  id        String   @id @default(cuid())
+  type      String
+  result    String
+  createdAt DateTime @default(now())
+}
+
+model Command {
+  id        String   @id @default(cuid())
+  command   String
+  result    String?
+  createdAt DateTime @default(now())
+}
+
+model Forecast {
+  id          String   @id @default(cuid())
+  productId   String
+  prediction  String
+  confidence  Float
+  createdAt   DateTime @default(now())
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  orderId   String
+  amount    Float
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+}
+
+model Fulfillment {
+  id        String   @id @default(cuid())
+  orderId   String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+}
+
+model Plugin {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  version   String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Insight {
+  id        String   @id @default(cuid())
+  type      String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model PhysicalLocation {
+  id        String   @id @default(cuid())
+  name      String
+  type      String
+  createdAt DateTime @default(now())
+}
+
+model MerchantShare {
+  id          String   @id @default(cuid())
+  merchantId  String
+  percentage  Float
+  createdAt   DateTime @default(now())
+}
+
+model Negotiation {
+  id          String   @id @default(cuid())
+  customerAgentId String
+  merchantAgentId String
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+}
+
+model Agent {
+  id        String   @id @default(cuid())
+  type      String
+  name      String
+  createdAt DateTime @default(now())
+}
+
+model Offer {
+  id            String   @id @default(cuid())
+  negotiationId String
+  price         Float
+  conditions    String?
+  createdAt     DateTime @default(now())
 }

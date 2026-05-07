@@ -22,7 +22,6 @@ export class PrismaEmailRepository implements EmailRepository {
         subject: email.subject,
         body: email.body,
         status: email.status,
-        riskLevel: email.riskLevel,
       },
     });
     return this.toDomain(created);
@@ -33,7 +32,6 @@ export class PrismaEmailRepository implements EmailRepository {
       where: { id: email.id },
       data: {
         status: email.status,
-        riskLevel: email.riskLevel,
       },
     });
     return this.toDomain(updated);
@@ -46,7 +44,7 @@ export class PrismaEmailRepository implements EmailRepository {
       prismaEmail.subject,
       prismaEmail.body,
       prismaEmail.status,
-      prismaEmail.riskLevel,
+      prismaEmail.riskLevel ?? null,
       prismaEmail.createdAt
     );
   }

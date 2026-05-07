@@ -10,11 +10,19 @@
 **/.turbo/
 **/.cache/
 **/.vite/
+**/*.tsbuildinfo
 
 ## Environment and secrets
 **/.env
 **/.env.*
 !**/.env.example
+docker-compose.override.yml
+
+## Local databases and Prisma runtime artifacts
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/.prisma/
 
 ## Logs
 **/*.log
