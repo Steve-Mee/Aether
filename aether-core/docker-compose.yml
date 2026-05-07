@@ -5,9 +5,9 @@ services:
     image: postgres:15-alpine
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: aether_core
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-aether_core}
     ports:
       - "5432:5432"
     volumes:
@@ -20,9 +20,9 @@ services:
     ports:
       - "9000:9000"
     environment:
-      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/aether_core?schema=public"
-      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
-      NODE_ENV: development
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/aether_core?schema=public}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL_DOCKER:-http://host.docker.internal:11434}
+      NODE_ENV: ${NODE_ENV:-development}
     depends_on:
       - postgres
     volumes:
@@ -36,7 +36,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: "http://localhost:9000"
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:9000}
     depends_on:
       - backend
     volumes:
