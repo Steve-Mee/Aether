@@ -26,7 +26,7 @@ Every merchant — from solo entrepreneur to enterprise — succeeds with **mini
 - First AI module: **AETHER Mail v0.5** (local LLM unified inbox)
 - Supplier Intelligence Agent v0.5 (sandboxed monitoring + auto-sync)
 - AI-Native Admin Command Center v0.5 (natural language + real-time insights)
-- >85% test coverage • <200ms p95 response time • Working PoC with 3 test merchants
+- '>85% test coverage • <200ms p95 response time • Working PoC with 3 test merchants
 
 **Ready for Phase 2** (deep AI integration + Autonomous Operations Agent).
 
