@@ -1,1 +1,1 @@
-smarter inventory agent
+perfected inventory agent

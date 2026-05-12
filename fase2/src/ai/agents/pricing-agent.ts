@@ -1,1 +1,1 @@
-smarter pricing agent
+perfected pricing agent
