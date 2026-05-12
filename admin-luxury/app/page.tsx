@@ -1,1 +1,1 @@
-import the updated version with the link to /approval-queue
+updated with navigation to new sections
