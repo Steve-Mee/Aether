@@ -1,1 +1,1 @@
-Improved Decision Engine
+improved decision engine
