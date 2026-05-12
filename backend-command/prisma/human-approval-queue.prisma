@@ -1,0 +1,16 @@
+// Add to your prisma/schema.prisma
+model HumanApprovalQueue {
+  id            String   @id @default(uuid())
+  actionId      String   @unique
+  merchantId    String
+  actionType    String
+  payload       Json
+  confidence    Float
+  riskLevel     String
+  status        String   @default("PENDING")
+  approvedBy    String?
+  approvedAt    DateTime?
+  rejectionReason String?
+  createdAt     DateTime @default(now())
+  @@index([merchantId, status])
+}
