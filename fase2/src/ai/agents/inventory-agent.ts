@@ -1,1 +1,1 @@
-perfected inventory agent
+final inventory agent
