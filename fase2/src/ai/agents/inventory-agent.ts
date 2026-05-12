@@ -1,1 +1,1 @@
-Inventory Agent
+smarter inventory agent
