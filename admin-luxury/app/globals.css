@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --font-geist-sans: 'Geist', system-ui, sans-serif; }
+
+body { font-family: var(--font-geist-sans); background: #050505; color: #F5F5F5; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #1F1F1F; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #C5A46E; }
+
+.aether-card { background: #111111; border: 1px solid #1F1F1F; transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1); }
+.aether-card:hover { border-color: #C5A46E; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); transform: translateY(-1px); }
+
+.aether-btn { transition: all 0.15s cubic-bezier(0.23, 1, 0.32, 1); }
+.aether-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.2); }
+.aether-btn:active { transform: scale(0.985); }
+
+.ai-pulse { animation: ai-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes ai-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
