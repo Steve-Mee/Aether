@@ -1,1 +1,1 @@
-full luxurious Mail Inbox
+Mail Inbox with real mutation

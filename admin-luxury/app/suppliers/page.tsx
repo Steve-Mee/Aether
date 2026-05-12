@@ -1,1 +1,1 @@
-full luxurious Supplier Diffs page
+Supplier Diffs with real mutation
