@@ -1,92 +1,94 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
-
-// Import all 14 modules
-import productCatalogRouter from './modules/product-catalog';
-import aetherMailRouter from './modules/aether-mail';
-import supplierIntelligenceRouter from './modules/supplier-intelligence';
-import autonomousOperationsRouter from './modules/autonomous-operations';
-import adminCommandBarRouter from './modules/admin-command-bar';
-import predictiveCommerceRouter from './modules/predictive-commerce';
-import selfEvolvingRouter from './modules/self-evolving-codebase';
-import orderManagementRouter from './modules/order-management';
-import agenticCommerceRouter from './modules/agentic-commerce';
-import inventoryPricingRouter from './modules/inventory-pricing';
-import pluginSystemRouter from './modules/plugin-system';
-import hiveMindRouter from './modules/zero-knowledge-hive-mind';
-import physicalDigitalRouter from './modules/physical-digital-symbiosis';
-import merchantCoOwnershipRouter from './modules/merchant-co-ownership';
-
-dotenv.config();
-
-const app = express();
-const prisma = new PrismaClient();
-
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    version: '0.5.0',
-    modules: [
-      'product-catalog', 
-      'aether-mail', 
-      'supplier-intelligence', 
-      'autonomous-operations', 
-      'admin-command-bar', 
-      'predictive-commerce',
-      'self-evolving-codebase',
-      'order-management',
-      'agentic-commerce',
-      'inventory-pricing',
-      'plugin-system',
-      'zero-knowledge-hive-mind',
-      'physical-digital-symbiosis',
-      'merchant-co-ownership',
-    ]
-  });
-});
-
-// Mount all modules
-app.use('/api/products', productCatalogRouter);
-app.use('/api/emails', aetherMailRouter);
-app.use('/api/suppliers', supplierIntelligenceRouter);
-app.use('/api/autonomous', autonomousOperationsRouter);
-app.use('/api/admin', adminCommandBarRouter);
-app.use('/api/predictive', predictiveCommerceRouter);
-app.use('/api/self-evolving', selfEvolvingRouter);
-app.use('/api/orders', orderManagementRouter);
-app.use('/api/agentic', agenticCommerceRouter);
-app.use('/api/inventory', inventoryPricingRouter);
-app.use('/api/plugins', pluginSystemRouter);
-app.use('/api/hive-mind', hiveMindRouter);
-app.use('/api/physical', physicalDigitalRouter);
-app.use('/api/co-ownership', merchantCoOwnershipRouter);
+import axios from 'axios';
+import { createApp, VERSION } from './app';
+import { disconnectPrisma } from './shared/prisma/client';
+import { logger } from './shared/logging/logger';
+import { initOtelSdk, shutdownOtelSdk } from './shared/observability/otelBootstrap';
+import { imapPollingService } from './modules/aether-mail/infrastructure/imap/ImapPollingService';
+import { monitorSupplierJob } from './modules/supplier-intelligence/infrastructure/jobs/MonitorSupplierJob';
+import { federatedHiveJob } from './modules/zero-knowledge-hive-mind/infrastructure/jobs/FederatedHiveJobScheduler';
+import { getOperatingMetrics } from './shared/truth/operatingMetricsService';
+import { processEventOutbox } from './bootstrap/compositionRoot';
 
 const PORT = process.env.PORT || 9000;
+const DEFAULT_TENANT = process.env.AETHER_DEFAULT_TENANT ?? 'tenant_default';
 
-app.listen(PORT, () => {
-  console.log(`🚀 AETHER Core v0.5.0 running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🛍️  Products:      http://localhost:${PORT}/api/products`);
-  console.log(`📧 Emails:        http://localhost:${PORT}/api/emails`);
-  console.log(`🏭 Suppliers:     http://localhost:${PORT}/api/suppliers`);
-  console.log(`🤖 Autonomous:    http://localhost:${PORT}/api/autonomous`);
-  console.log(`🧠 Admin + AI:    http://localhost:${PORT}/api/admin`);
-  console.log(`📈 Predictive:    http://localhost:${PORT}/api/predictive`);
-  console.log(`🧬 Self-Evolving: http://localhost:${PORT}/api/self-evolving`);
-  console.log(`📦 Orders:        http://localhost:${PORT}/api/orders`);
-  console.log(`🤝 Agentic:       http://localhost:${PORT}/api/agentic`);
-  console.log(`📦 Inventory:     http://localhost:${PORT}/api/inventory`);
-  console.log(`🔌 Plugins:       http://localhost:${PORT}/api/plugins`);
-  console.log(`🧠 Hive Mind:     http://localhost:${PORT}/api/hive-mind`);
-  console.log(`🏪 Physical:      http://localhost:${PORT}/api/physical`);
-  console.log(`💰 Co-Ownership:  http://localhost:${PORT}/api/co-ownership`);
-});
+initOtelSdk();
+
+async function assertOllamaReachable(): Promise<void> {
+  const baseUrl = process.env.OLLAMA_BASE_URL;
+  if (!baseUrl) return;
+  try {
+    const response = await axios.get(`${baseUrl.replace(/\/$/, '')}/api/tags`, { timeout: 10000 });
+    logger.info('ollama_health_ok', { models: response.data?.models?.length ?? 0, baseUrl });
+  } catch (error) {
+    logger.error('ollama_health_failed', {
+      baseUrl,
+      message: error instanceof Error ? error.message : String(error),
+      hint: 'Ensure ollama service is running on the internal docker network',
+    });
+    if (process.env.NODE_ENV === 'production' || process.env.REQUIRE_OLLAMA === 'true') {
+      process.exit(1);
+    }
+  }
+}
+
+async function maybeStartEcosystemJobs(): Promise<void> {
+  if (process.env.ECOSYSTEM_JOBS_ENABLED !== 'true') {
+    logger.info('ecosystem_jobs_skipped', {
+      reason: 'Set ECOSYSTEM_JOBS_ENABLED=true after core reliability gates pass',
+    });
+    return;
+  }
+
+  try {
+    const metrics = await getOperatingMetrics(DEFAULT_TENANT);
+    if (metrics.tenantSafetyScore >= 0.99 && metrics.rollbackSuccessRate >= 0.95) {
+      federatedHiveJob.start();
+      logger.info('ecosystem_jobs_started', {
+        jobs: ['federatedHiveJob'],
+        tenantSafetyScore: metrics.tenantSafetyScore,
+        rollbackSuccessRate: metrics.rollbackSuccessRate,
+      });
+    } else {
+      logger.warn('ecosystem_jobs_blocked_by_metrics', {
+        tenantSafetyScore: metrics.tenantSafetyScore,
+        rollbackSuccessRate: metrics.rollbackSuccessRate,
+        required: { tenantSafetyScore: 0.99, rollbackSuccessRate: 0.95 },
+      });
+    }
+  } catch (error) {
+    logger.error('ecosystem_jobs_metrics_check_failed', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+async function startServer(): Promise<void> {
+  await assertOllamaReachable();
+  const app = createApp();
+
+  const server = app.listen(PORT, () => {
+    logger.info('aether_core_started', { port: PORT, version: VERSION });
+    void processEventOutbox().then((count) => {
+      if (count > 0) logger.info('event_outbox_replayed', { count });
+    });
+    void imapPollingService.start();
+    monitorSupplierJob.start();
+    void maybeStartEcosystemJobs();
+  });
+
+  process.on('SIGTERM', async () => {
+    imapPollingService.stop();
+    monitorSupplierJob.stop();
+    federatedHiveJob.stop();
+    server.close(async () => {
+      await shutdownOtelSdk();
+      await disconnectPrisma();
+      process.exit(0);
+    });
+  });
+}
+
+void startServer();
+
+export {};

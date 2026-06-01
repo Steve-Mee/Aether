@@ -20,7 +20,9 @@ export class ImapClient extends EventEmitter {
       host: config.host,
       port: config.port,
       tls: config.tls,
-      tlsOptions: { rejectUnauthorized: false },
+      tlsOptions: {
+        rejectUnauthorized: process.env.IMAP_TLS_REJECT_UNAUTHORIZED !== 'false',
+      },
     });
 
     this.imap.once('ready', () => {
@@ -61,25 +63,33 @@ export class ImapClient extends EventEmitter {
 
           const fetch = this.imap.fetch(results, { bodies: '' });
           const emails: any[] = [];
+          const pending: Promise<void>[] = [];
 
           fetch.on('message', (msg: any) => {
-            msg.on('body', async (stream: NodeJS.ReadableStream) => {
-              try {
-                const parsed = await this.parseMessageStream(stream);
-                emails.push({
-                  from: parsed.from?.text,
-                  subject: parsed.subject,
-                  body: parsed.text || parsed.html,
-                  date: parsed.date,
-                });
-              } catch (e) {
-                console.error('Failed to parse email:', e);
-              }
+            const bodyPromise = new Promise<void>((res) => {
+              msg.on('body', async (stream: NodeJS.ReadableStream) => {
+                try {
+                  const parsed = await this.parseMessageStream(stream);
+                  emails.push({
+                    from: parsed.from?.text,
+                    subject: parsed.subject,
+                    body: parsed.text || parsed.html,
+                    date: parsed.date,
+                    messageId: parsed.messageId,
+                  });
+                } catch (e) {
+                  console.error('Failed to parse email:', e);
+                } finally {
+                  res();
+                }
+              });
             });
+            pending.push(bodyPromise);
           });
 
+          fetch.once('error', reject);
           fetch.once('end', () => {
-            resolve(emails);
+            void Promise.all(pending).then(() => resolve(emails)).catch(reject);
           });
         });
       });

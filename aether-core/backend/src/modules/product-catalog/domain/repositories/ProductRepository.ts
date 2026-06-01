@@ -1,10 +1,10 @@
 import { Product } from '../entities/Product';
 
 export interface ProductRepository {
-  findAll(): Promise<Product[]>;
-  findById(id: string): Promise<Product | null>;
-  findBySlug(slug: string): Promise<Product | null>;
-  create(product: Product): Promise<Product>;
-  update(product: Product): Promise<Product>;
-  delete(id: string): Promise<void>;
+  findAll(tenantId: string): Promise<Product[]>;
+  findById(id: string, tenantId: string): Promise<Product | null>;
+  findBySlug(slug: string, tenantId: string): Promise<Product | null>;
+  create(product: Product, tenantId: string, extras?: { price?: number; stock?: number }): Promise<Product>;
+  update(product: Product, tenantId: string): Promise<Product>;
+  delete(id: string, tenantId: string): Promise<void>;
 }

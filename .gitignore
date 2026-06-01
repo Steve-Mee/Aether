@@ -12,6 +12,16 @@
 **/.vite/
 **/*.tsbuildinfo
 
+## Playwright / E2E (keep *-snapshots/ in repo for CI baselines)
+**/test-results/
+**/playwright-report/
+**/blob-report/
+**/playwright/.cache/
+
+## Local CI debug logs (not release artifacts)
+test-ci-out*.txt
+**/test-ci-output.txt
+
 ## Environment and secrets
 **/.env
 **/.env.*

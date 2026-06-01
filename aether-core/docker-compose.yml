@@ -7,39 +7,112 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-aether_core}
     ports:
-      - "5432:5432"
+      # Host 15432 avoids conflict with native Windows PostgreSQL (often on 5432/5433)
+      - "15432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - aether_internal
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - aether_internal
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    restart: unless-stopped
+    ports:
+      - "4318:4318"
+      - "16686:16686"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - aether_internal
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    command: sh -c "npm install && npx prisma generate && npm run dev"
     ports:
       - "9000:9000"
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/aether_core?schema=public}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL_DOCKER:-http://host.docker.internal:11434}
+      DATABASE_URL: ${DATABASE_URL_DOCKER:-postgresql://postgres:postgres@postgres:5432/aether_core?schema=public}
+      AETHER_API_KEY: ${AETHER_API_KEY}
+      AETHER_DEFAULT_TENANT: ${AETHER_DEFAULT_TENANT:-tenant_default}
+      HIVE_MIND_SALT: ${HIVE_MIND_SALT}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL_DOCKER:-http://ollama:11434}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4318/v1/traces}
+      SUPPLIER_WORKER_URL: ${SUPPLIER_WORKER_URL:-http://supplier-worker:8090}
       NODE_ENV: ${NODE_ENV:-development}
     depends_on:
       - postgres
+      - redis
+      - jaeger
+      - supplier-worker
+      - ollama
     volumes:
+      - ./docs:/docs:ro
       - ./backend:/app
       - /app/node_modules
+    networks:
+      - aether_internal
+
+  supplier-worker:
+    image: node:20-alpine
+    restart: unless-stopped
+    working_dir: /app
+    command: node scripts/supplier-worker-server.mjs
+    ports:
+      - "8090:8090"
+    environment:
+      SUPPLIER_WORKER_PORT: "8090"
+      SUPPLIER_ALLOWLIST: ${SUPPLIER_ALLOWLIST:-example.com}
+    volumes:
+      - .:/app
+    networks:
+      - aether_internal
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    # Internal-only: backend reaches ollama via http://ollama:11434 — no host port publish
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - aether_internal
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    command: sh -c "npm install && npm run dev -- --host"
     ports:
       - "5173:5173"
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:9000}
+      VITE_AETHER_API_KEY: ${VITE_AETHER_API_KEY}
+      VITE_AETHER_TENANT: ${VITE_AETHER_TENANT:-tenant_default}
     depends_on:
       - backend
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    networks:
+      - aether_internal
+
+networks:
+  aether_internal:
+    driver: bridge
 
 volumes:
   postgres_data:
+  redis_data:
+  ollama_data:

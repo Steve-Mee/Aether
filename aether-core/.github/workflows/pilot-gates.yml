@@ -1,0 +1,73 @@
+name: AETHER Pilot Gates
+
+# Manual or scheduled pilot validation — not on every PR (requires real/staging pilot data).
+on:
+  workflow_dispatch:
+    inputs:
+      pilot_tenant:
+        description: Pilot tenant ID
+        required: true
+        default: tenant_default
+      strict_mail:
+        description: Fail if mail Gate 8 not met (STRICT_PILOT)
+        type: boolean
+        default: false
+      check_causal:
+        description: Enforce causal pilot DB checks (PILOT_CAUSAL)
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 8 * * 1'
+
+jobs:
+  pilot-metrics:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aether-core/backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aether_core
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aether_core?schema=public
+      AETHER_API_KEY: ci-test-key
+      PILOT_TENANT_ID: ${{ github.event.inputs.pilot_tenant || 'tenant_default' }}
+      AETHER_DEFAULT_TENANT: ${{ github.event.inputs.pilot_tenant || 'tenant_default' }}
+      STRICT_PILOT: ${{ github.event.inputs.strict_mail == 'true' && 'true' || '' }}
+      PILOT_CAUSAL: ${{ github.event.inputs.check_causal == 'true' && 'true' || '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: aether-core/backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Migrate database
+        run: npx prisma migrate deploy
+
+      - name: Pilot metrics check (DB)
+        working-directory: aether-core
+        run: node scripts/pilot-metrics-check.js
+
+      - name: Truth review with DB metrics
+        working-directory: aether-core
+        run: node scripts/truth-review.js

@@ -4,16 +4,10 @@ import { AgenticController } from './api/controllers/AgenticController';
 const router = Router();
 const controller = new AgenticController();
 
-// Start a new negotiation (Customer Agent makes first offer)
-router.post('/negotiation/start', controller.startNegotiation.bind(controller));
-
-// Respond to an offer (Merchant Agent or Customer Agent)
-router.post('/negotiation/:id/respond', controller.respondToOffer.bind(controller));
-
-// Get negotiation status
-router.get('/negotiation/:id', controller.getNegotiation.bind(controller));
-
-// Get all active negotiations
-router.get('/negotiations', controller.getActiveNegotiations.bind(controller));
+router.post('/negotiation/start', ...controller.startNegotiation);
+router.post('/negotiation/:id/respond', ...controller.respondToOffer);
+router.get('/negotiation/:id', ...controller.getNegotiation);
+router.get('/negotiations', ...controller.getActiveNegotiations);
+router.get('/negotiations/metrics', ...controller.getNegotiationMetrics);
 
 export default router;

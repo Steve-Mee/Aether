@@ -1,77 +1,77 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { PrismaOrderRepository } from '../../infrastructure/persistence/PrismaOrderRepository';
-import { CreateOrderUseCase } from '../../application/use-cases/CreateOrderUseCase';
-import { UpdateOrderStatusUseCase } from '../../application/use-cases/UpdateOrderStatusUseCase';
+import { getCompositionRoot } from '../../../../bootstrap/compositionRoot';
+import { requireOperator, requireViewer } from '../../../../shared/security/rbac';
+import { z } from 'zod';
+import { validateBody } from '../../../../shared/security/validate';
 
-const prisma = new PrismaClient();
-const orderRepository = new PrismaOrderRepository(prisma);
-const createOrderUseCase = new CreateOrderUseCase();
-const updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderRepository);
+const createSchema = z.object({
+  customerId: z.string().min(1),
+  items: z.array(
+    z.object({
+      productId: z.string().min(1),
+      quantity: z.number().int().positive(),
+      price: z.number().nonnegative(),
+    })
+  ).min(1),
+});
+
+const statusSchema = z.object({ status: z.string().min(1) });
 
 export class OrderController {
-  async createOrder(req: Request, res: Response) {
-    try {
-      const { customerId, items } = req.body;
-
-      if (!customerId || !items || !Array.isArray(items)) {
-        return res.status(400).json({ error: 'customerId and items are required' });
+  createOrder = [
+    requireOperator,
+    validateBody(createSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const { createOrder } = getCompositionRoot();
+        const order = await createOrder.execute({
+          ...req.body,
+          tenantId: req.tenantId!,
+        });
+        res.status(201).json(order);
+      } catch {
+        res.status(500).json({ error: 'Failed to create order' });
       }
+    },
+  ];
 
-      const order = await createOrderUseCase.execute({
-        customerId,
-        items,
-      });
-
-      res.status(201).json(order);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Failed to create order' });
-    }
-  }
-
-  async getOrder(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const order = await orderRepository.findById(id);
-
+  getOrder = [
+    requireViewer,
+    async (req: Request, res: Response) => {
+      const { orderRepository } = getCompositionRoot();
+      const order = await orderRepository.findById(req.params.id, req.tenantId!);
       if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
+        res.status(404).json({ error: 'Order not found' });
+        return;
       }
-
       res.json(order);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch order' });
-    }
-  }
+    },
+  ];
 
-  async getAllOrders(req: Request, res: Response) {
-    try {
-      const orders = await orderRepository.findAll();
+  getAllOrders = [
+    requireViewer,
+    async (req: Request, res: Response) => {
+      const { orderRepository } = getCompositionRoot();
+      const orders = await orderRepository.findAll(req.tenantId!);
       res.json(orders);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch orders' });
-    }
-  }
+    },
+  ];
 
-  async updateStatus(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-
-      if (!status) {
-        return res.status(400).json({ error: 'status is required' });
-      }
-
-      const order = await updateOrderStatusUseCase.execute(id, status);
-
+  updateStatus = [
+    requireOperator,
+    validateBody(statusSchema),
+    async (req: Request, res: Response) => {
+      const { updateOrderStatus } = getCompositionRoot();
+      const order = await updateOrderStatus.execute(
+        req.params.id,
+        req.body.status,
+        req.tenantId!
+      );
       if (!order) {
-        return res.status(404).json({ error: 'Order not found' });
+        res.status(404).json({ error: 'Order not found' });
+        return;
       }
-
       res.json(order);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to update order status' });
-    }
-  }
+    },
+  ];
 }

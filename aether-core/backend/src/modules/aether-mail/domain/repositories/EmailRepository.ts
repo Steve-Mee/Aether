@@ -1,8 +1,22 @@
 import { EmailMessage } from '../entities/EmailMessage';
 
 export interface EmailRepository {
-  findAll(): Promise<EmailMessage[]>;
-  findById(id: string): Promise<EmailMessage | null>;
-  create(email: EmailMessage): Promise<EmailMessage>;
-  update(email: EmailMessage): Promise<EmailMessage>;
+  findAll(tenantId: string): Promise<EmailMessage[]>;
+  findById(id: string, tenantId: string): Promise<EmailMessage | null>;
+  findByMessageId?(messageId: string, tenantId: string): Promise<EmailMessage | null>;
+  create(
+    email: EmailMessage,
+    meta?: { tenantId: string; category?: string; confidence?: number; messageId?: string }
+  ): Promise<EmailMessage>;
+  update(
+    email: EmailMessage,
+    data?: {
+      status?: string;
+      riskLevel?: string;
+      category?: string;
+      confidence?: number;
+      draftReply?: string;
+      sentAt?: Date;
+    }
+  ): Promise<EmailMessage>;
 }

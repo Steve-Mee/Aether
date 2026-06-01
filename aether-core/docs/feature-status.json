@@ -1,0 +1,34 @@
+{
+  "version": "0.8.1",
+  "updatedAt": "2026-05-31",
+  "claimPolicy": "No feature marked implemented without runtime evidence, automated test, and CI gate.",
+  "features": {
+    "product-catalog": { "status": "live", "label": "Product catalog CRUD" },
+    "order-management": { "status": "live", "label": "Order management" },
+    "aether-mail": { "status": "partial", "label": "AETHER Mail v1 (LlmInferencePort + approval execute)" },
+    "supplier-intelligence": { "status": "live", "label": "Supplier Intelligence v1" },
+    "admin-command-bar": { "status": "partial", "label": "Admin Command Center v1" },
+    "auth-rbac": { "status": "live", "label": "Auth / RBAC / tenant" },
+    "payment-fulfillment": { "status": "partial", "label": "Payment fulfillment" },
+    "autonomous-operations": { "status": "live", "label": "Autonomous operations" },
+    "predictive-commerce": { "status": "experimental", "label": "Predictive commerce" },
+    "self-evolving": { "status": "partial", "label": "Self-evolving codebase" },
+    "agentic-commerce": { "status": "partial", "label": "Agentic commerce" },
+    "hive-mind": { "status": "partial", "label": "Hive mind" },
+    "physical-digital": { "status": "partial", "label": "Physical-digital" },
+    "co-ownership": { "status": "partial", "label": "Merchant co-ownership" },
+    "feature-flags": { "status": "live", "label": "Feature flags" },
+    "outcomes": { "status": "partial", "label": "Attribution / outcome billing" },
+    "orchestration": { "status": "partial", "label": "AI orchestration layer" },
+    "event-bus": { "status": "live", "label": "Event bus" },
+    "approvals-audit": { "status": "live", "label": "Approvals & audit (resolve executes actions)" },
+    "frontend-admin": { "status": "live", "label": "Frontend admin UI" },
+    "ci-quality": { "status": "live", "label": "CI quality gates" },
+    "prisma-migrations": { "status": "live", "label": "Prisma schema / migrations" }
+  },
+  "phases": {
+    "fase3": { "status": "partial", "label": "Orchestration + Outcome productization" },
+    "fase4": { "status": "partial", "label": "Radical autonomy" },
+    "fase5": { "status": "partial", "label": "Ecosystem expansion" }
+  }
+}

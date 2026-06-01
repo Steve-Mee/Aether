@@ -1,0 +1,176 @@
+name: AETHER Core CI
+
+on:
+  push:
+    paths:
+      - 'aether-core/**'
+  pull_request:
+    paths:
+      - 'aether-core/**'
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aether-core/backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aether_core
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      stripe-mock:
+        image: stripe/stripe-mock:latest
+        ports:
+          - 12111:12111
+
+      ollama:
+        image: ollama/ollama:latest
+        ports:
+          - 11434:11434
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aether_core?schema=public
+      AETHER_API_KEY: ci-test-key
+      AETHER_DEFAULT_TENANT: tenant_default
+      NODE_ENV: test
+      CI: 'true'
+      OLLAMA_BASE_URL: http://localhost:11434
+      OLLAMA_CONTRACT_TEST: 'true'
+      STRIPE_SECRET_KEY: sk_test_ci_mock
+      STRIPE_API_HOST: localhost
+      STRIPE_API_PORT: '12111'
+      STRIPE_API_PROTOCOL: http
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: aether-core/backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers (supplier scrape CI)
+        run: npx playwright install chromium
+
+      - name: Supplier hash identity unit test
+        run: npm test -- --testPathPattern=supplierIdentity
+
+      - name: Supplier Playwright scrape integration
+        run: npm test -- --testPathPattern=supplierScrape.integration
+
+      - name: Stripe mock integration test
+        run: npm test -- --testPathPattern=stripeIntegration
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Wait for Ollama and pull model
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:11434/api/tags; then break; fi
+            sleep 2
+          done
+          curl -sf -X POST http://localhost:11434/api/pull -d '{"name":"llama3.2"}' || true
+
+      - name: Ollama contract test
+        run: npm test -- --testPathPattern=ollamaContract --runInBand
+
+      - name: Lint (typecheck)
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Mail approval E2E (DB-backed, mandatory gate)
+        run: npm test -- --testPathPattern=mail-approval.e2e --runInBand
+
+      - name: Webhook boundary and supplier auth tests
+        run: npm test -- --testPathPattern="webhookBoundary|supplierWebhook" --runInBand
+
+      - name: Mail Ollama path E2E (mocked classifier)
+        run: npm test -- --testPathPattern=mail-ollama.e2e --runInBand
+
+      - name: Webhook tenant binding test
+        run: npm test -- --testPathPattern=webhookTenant --runInBand
+
+      - name: Architecture and self-evolving safety gates
+        run: npm test -- --testPathPattern="architecture|decisionContract|SupplierDecisionEngine" --runInBand
+
+      - name: Test with coverage
+        run: npm run test:ci
+
+      - name: Tenant isolation test
+        run: npm test -- --testPathPattern=tenantIsolation --runInBand
+
+      - name: Truth review (weekly gate)
+        working-directory: aether-core
+        run: node scripts/truth-review.js
+
+      - name: Runtime validation (API smoke)
+        working-directory: aether-core
+        run: node scripts/validate-runtime.js
+
+      - name: Validate DoD / truth sync (release blocker)
+        working-directory: aether-core
+        run: node scripts/validate-dod.js
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aether-core/frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: aether-core/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify UI copy (zero-placeholder)
+        run: npm run verify:copy
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:9000
+          VITE_AETHER_API_KEY: ci-test-key
+          VITE_AETHER_TENANT: tenant_default
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Visual regression smoke
+        run: npm run test:visual
+        env:
+          CI: true
+          VITE_API_URL: http://localhost:9000
+          VITE_AETHER_API_KEY: ci-test-key
+          VITE_AETHER_TENANT: tenant_default

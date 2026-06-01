@@ -1,19 +1,28 @@
-export class DemandForecaster {
-  async forecastDemand(productId: string, days: number = 30): Promise<any> {
-    // TODO: Replace with real ML model or LLM-based forecasting
-    // For now: simple heuristic + mock data
+import { requireTenantId } from '../../../../shared/tenant/tenantContext';
+import type { DemandForecastPort } from '../ports/DemandForecastPort';
 
-    const baseDemand = Math.floor(Math.random() * 150) + 50;
-    const seasonality = Math.sin(Date.now() / 10000000) * 20;
-    const predictedDemand = Math.max(10, Math.floor(baseDemand + seasonality));
+export class DemandForecaster {
+  constructor(private history: DemandForecastPort) {}
+
+  async forecastDemand(productId: string, tenantId: string, days: number = 30): Promise<any> {
+    const tid = requireTenantId(tenantId, 'DemandForecaster.forecastDemand');
+    const since = new Date(Date.now() - 90 * 86400000);
+    const orderItems = await this.history.getOrderHistory(productId, tid, since);
+
+    const totalQty = orderItems.reduce((sum, i) => sum + i.quantity, 0);
+    const daysObserved = Math.max(1, Math.ceil((Date.now() - since.getTime()) / 86400000));
+    const dailyAvg = totalQty / daysObserved;
+    const seasonality = Math.sin(Date.now() / 10000000) * (dailyAvg * 0.1);
+    const predictedDemand = Math.max(1, Math.floor(dailyAvg * days + seasonality));
 
     return {
       productId,
       period: `next_${days}_days`,
       predictedDemand,
-      confidence: 0.78 + Math.random() * 0.15,
-      factors: ['historical_sales', 'seasonality', 'current_trend'],
-      generatedAt: new Date()
+      confidence: orderItems.length > 5 ? 0.85 : 0.6,
+      factors: ['order_history', 'seasonality'],
+      baselineDailyAvg: dailyAvg,
+      generatedAt: new Date(),
     };
   }
 }

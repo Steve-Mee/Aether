@@ -1,4 +1,9 @@
 # AETHER Master Roadmap v1.0
+
+> **Runtime truth:** This document is **vision and planning**, not deployment truth.  
+> For what is actually running today, use [`aether-core/docs/runtime-charter.md`](aether-core/docs/runtime-charter.md), [`truth-matrix.md`](aether-core/docs/truth-matrix.md), and [`feature-status.json`](aether-core/docs/feature-status.json).  
+> **LangGraph / Medusa / CrewAI** references below describe target architecture — **not implemented** in `aether-core` (orchestration is in-process `Orchestrator` + Ollama).
+
 **Het objectief beste zelf-lerende, zelf-evoluerende en markt-bewuste AI-e-commerce organisme ter wereld**
 
 **Versie:** 1.0  

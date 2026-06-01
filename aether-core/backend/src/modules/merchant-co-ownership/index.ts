@@ -4,16 +4,9 @@ import { MerchantCoOwnershipController } from './api/controllers/MerchantCoOwner
 const router = Router();
 const controller = new MerchantCoOwnershipController();
 
-// Issue merchant ownership shares
-router.post('/shares', controller.issueShares.bind(controller));
-
-// Get merchant's ownership
-router.get('/shares/:merchantId', controller.getMerchantShares.bind(controller));
-
-// Distribute revenue
-router.post('/revenue/distribute', controller.distributeRevenue.bind(controller));
-
-// List marketplace listings (AETHER Economy)
-router.get('/marketplace', controller.getMarketplaceListings.bind(controller));
+router.post('/shares', ...controller.issueShares);
+router.get('/shares/:merchantId', ...controller.getMerchantShares);
+router.get('/marketplace', ...controller.getMarketplaceListings);
+router.post('/marketplace', ...controller.createMarketplaceListing);
 
 export default router;

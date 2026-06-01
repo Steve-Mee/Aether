@@ -7,8 +7,8 @@ export class QueryInsightsUseCase {
     private aggregationService: AggregationService
   ) {}
 
-  async execute(category: string, metric: string): Promise<any> {
-    const insights = await this.repository.getInsightsByCategory(category);
+  async execute(category: string, metric: string, tenantId: string): Promise<any> {
+    const insights = await this.repository.getInsightsByCategory(category, tenantId);
     const filtered = insights.filter(i => i.metric === metric);
 
     if (filtered.length < 5) {

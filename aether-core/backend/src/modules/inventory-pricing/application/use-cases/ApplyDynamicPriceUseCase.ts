@@ -7,9 +7,14 @@ export class ApplyDynamicPriceUseCase {
     private repo: InventoryRepository
   ) {}
 
-  async execute(productId: string, basePrice: number, reason: string = 'AUTOMATIC'): Promise<number> {
-    const optimalPrice = await this.engine.calculateOptimalPrice(productId, basePrice);
-    await this.engine.applyPriceChange(productId, optimalPrice, reason);
+  async execute(
+    tenantId: string,
+    productId: string,
+    basePrice: number,
+    reason: string = 'AUTOMATIC'
+  ): Promise<number> {
+    const optimalPrice = await this.engine.calculateOptimalPrice(tenantId, productId, basePrice);
+    await this.engine.applyPriceChange(tenantId, productId, optimalPrice, reason);
     return optimalPrice;
   }
 }

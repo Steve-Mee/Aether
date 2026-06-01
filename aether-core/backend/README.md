@@ -1,42 +1,45 @@
 # AETHER Core Backend
 
-The living, self-evolving AI e-commerce organism.
+Modular AI-native commerce API. See [../docs/truth-matrix.md](../docs/truth-matrix.md) for feature status.
 
-## Quick Start
+## Modules (17)
 
-1. Copy `.env.example` to `.env` and update your database URL
-2. Run `npm install`
-3. Run `npm run prisma:migrate`
-4. Run `npm run dev`
+Product catalog, orders, AETHER Mail, supplier intelligence, autonomous ops, admin command bar, predictive (experimental), self-evolving (experimental), agentic commerce, inventory/pricing (experimental), plugins (experimental), hive mind, physical-digital (experimental), co-ownership (experimental), payment/fulfillment, approvals, outcomes.
 
-Backend will be available at http://localhost:9000
-
-## Modules (15 total)
-
-- Product Catalog
-- AETHER Mail
-- Supplier Intelligence
-- Autonomous Operations
-- Admin Command Bar
-- Predictive Commerce
-- Self-Evolving Codebase
-- Order Management
-- Agentic Commerce
-- Inventory & Pricing
-- Plugin System
-- Zero-Knowledge Hive Mind
-- Physical-Digital Symbiosis
-- Merchant Co-Ownership
-- Payment + Fulfillment
+Mounted modules are listed on `GET /health`.
 
 ## Architecture
 
-Clean modular architecture with clear separation of concerns.
-Every module lives in `src/modules/[module-name]/`
+```
+api → application → domain ← infrastructure
+         ↓
+    shared/events, shared/security, ai/orchestrator
+```
 
-## Next Steps
+## Local development
 
-- Replace placeholder routers with real business logic
-- Connect modules together (e.g. Autonomous → Order Management)
-- Add real LLM integration (Ollama / vLLM)
-- Build the beautiful frontend (see ../frontend)
+Start Postgres (Docker):
+
+```bash
+cd .. && docker compose up -d postgres
+```
+
+Postgres listens on **host port 15432** so it does not clash with native Windows PostgreSQL (commonly on 5432 or 5433). Copy `backend/.env.example` to `../.env` (or run `npm run setup:env`) and run migrations:
+
+```bash
+npm install
+npm run prisma:migrate
+npm run dev
+```
+
+DB-backed E2E tests (`mail-approval.e2e.test.ts`) run when `CI=true` and `DATABASE_URL` points at the migrated database.
+
+All `/api/*` routes require `X-Aether-Api-Key`. Webhook routes use endpoint-specific signature or `X-Webhook-Secret` headers.
+
+## Validation
+
+Mutating JSON endpoints use Zod schemas. Webhook endpoints (`/api/payments/webhook/stripe`, `/api/suppliers/webhook`, `/api/payments/webhook`) validate via Stripe signature or shared secrets — not Zod body schemas.
+
+## Observability
+
+OpenTelemetry SDK starts via `src/shared/observability/otelBootstrap.ts`. Set `OTEL_EXPORTER_OTLP_ENDPOINT` for Jaeger/OTLP export; console exporter is used when unset.

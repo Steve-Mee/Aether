@@ -1,7 +1,8 @@
-import axios from 'axios';
+import { defaultOllamaInference } from '../../../../shared/ai/OllamaInferenceAdapter';
+import type { LlmInferencePort } from '../../../../shared/ai/LlmInferencePort';
 
 export class CommandParserService {
-  private ollamaUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+  constructor(private llm: LlmInferencePort = defaultOllamaInference) {}
 
   async parseCommand(naturalLanguage: string): Promise<any> {
     try {
@@ -16,36 +17,25 @@ Commando: "${naturalLanguage}"
 
 Antwoord alleen met geldige JSON, geen extra tekst.`;
 
-      const response = await axios.post(`${this.ollamaUrl}/api/generate`, {
-        model: "llama3.2", // of "mistral", "phi3", etc. afhankelijk van wat lokaal draait
-        prompt: prompt,
-        stream: false,
-        options: {
-          temperature: 0.1
-        }
-      });
-
-      const text = response.data.response;
-      // Probeer JSON te parsen uit de response
+      const text = await this.llm.generate({ prompt, temperature: 0.1 });
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
 
-      // Fallback als parsing mislukt
       return {
-        intent: "UNKNOWN",
+        intent: 'UNKNOWN',
         action: null,
         parameters: {},
-        confidence: 0.4
+        confidence: 0.4,
       };
     } catch (error) {
-      console.error("Ollama error:", error);
+      console.error('Ollama error:', error);
       return {
-        intent: "ERROR",
+        intent: 'ERROR',
         action: null,
-        parameters: { error: "Kon niet verbinden met lokale AI" },
-        confidence: 0
+        parameters: { error: 'Kon niet verbinden met lokale AI' },
+        confidence: 0,
       };
     }
   }

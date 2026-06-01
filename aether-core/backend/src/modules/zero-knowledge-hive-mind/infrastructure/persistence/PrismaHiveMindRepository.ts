@@ -1,14 +1,17 @@
 import { HiveMindRepository } from '../../domain/repositories/HiveMindRepository';
 import { Insight } from '../../domain/entities/Insight';
 import { PrismaClient } from '@prisma/client';
+import { requireTenantId } from '../../../../shared/tenant/tenantContext';
 
 export class PrismaHiveMindRepository implements HiveMindRepository {
-  private prisma = new PrismaClient();
+  constructor(private prisma: PrismaClient) {}
 
-  async submitInsight(insight: Insight): Promise<Insight> {
+  async submitInsight(insight: Insight, tenantId: string): Promise<Insight> {
+    const tid = requireTenantId(tenantId, 'PrismaHiveMindRepository.submitInsight');
     const created = await this.prisma.insight.create({
       data: {
         id: insight.id,
+        tenantId: tid,
         type: insight.category,
         content: JSON.stringify({
           merchantId: insight.merchantId,
@@ -19,43 +22,47 @@ export class PrismaHiveMindRepository implements HiveMindRepository {
           timestamp: insight.timestamp,
           zkProof: insight.zkProof,
         }),
-      }
+      },
     });
 
     return this.toDomain(created);
   }
 
-  async getInsightsByCategory(category: string): Promise<Insight[]> {
+  async getInsightsByCategory(category: string, tenantId: string): Promise<Insight[]> {
+    const tid = requireTenantId(tenantId, 'PrismaHiveMindRepository.getInsightsByCategory');
     const rows = await this.prisma.insight.findMany({
-      where: { type: category },
+      where: { type: category, tenantId: tid },
       orderBy: { createdAt: 'desc' },
     });
     return rows.map((row) => this.toDomain(row));
   }
 
-  async getAggregatedInsights(category: string, metric: string): Promise<any> {
-    // For now, simple aggregation in service layer
-    return this.getInsightsByCategory(category);
+  async getAggregatedInsights(
+    category: string,
+    _metric: string,
+    tenantId: string
+  ): Promise<Insight[]> {
+    return this.getInsightsByCategory(category, tenantId);
   }
 
   private toDomain(row: { id: string; type: string; content: string; createdAt: Date }): Insight {
     const parsed = this.parseContent(row.content);
     return {
       id: row.id,
-      merchantId: parsed.merchantId ?? 'unknown',
+      merchantId: String(parsed.merchantId ?? 'unknown'),
       category: (row.type as Insight['category']) ?? 'trend',
-      metric: parsed.metric ?? 'unknown',
-      value: parsed.value ?? 0,
-      sampleSize: parsed.sampleSize ?? 0,
-      confidence: parsed.confidence ?? 0,
-      timestamp: parsed.timestamp ? new Date(parsed.timestamp) : row.createdAt,
-      zkProof: parsed.zkProof,
+      metric: String(parsed.metric ?? 'unknown'),
+      value: Number(parsed.value ?? 0),
+      sampleSize: Number(parsed.sampleSize ?? 0),
+      confidence: Number(parsed.confidence ?? 0),
+      timestamp: parsed.timestamp ? new Date(String(parsed.timestamp)) : row.createdAt,
+      zkProof: parsed.zkProof != null ? String(parsed.zkProof) : undefined,
     };
   }
 
-  private parseContent(content: string): Record<string, any> {
+  private parseContent(content: string): Record<string, unknown> {
     try {
-      return JSON.parse(content);
+      return JSON.parse(content) as Record<string, unknown>;
     } catch {
       return {};
     }

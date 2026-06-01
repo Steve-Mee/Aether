@@ -5,8 +5,8 @@ import { PriceAdjustment } from '../../domain/entities/PriceAdjustment';
 export class DynamicPricingEngine {
   constructor(private repo: InventoryRepository) {}
 
-  async calculateOptimalPrice(productId: string, basePrice: number): Promise<number> {
-    const rule = await this.repo.getPricingRule(productId);
+  async calculateOptimalPrice(tenantId: string, productId: string, basePrice: number): Promise<number> {
+    const rule = await this.repo.getPricingRule(tenantId, productId);
     if (!rule || !rule.isActive) return basePrice;
 
     let price = basePrice;
@@ -30,17 +30,22 @@ export class DynamicPricingEngine {
     return Math.round(price * 100) / 100;
   }
 
-  async applyPriceChange(productId: string, newPrice: number, reason: string): Promise<void> {
+  async applyPriceChange(
+    tenantId: string,
+    productId: string,
+    newPrice: number,
+    reason: string
+  ): Promise<void> {
     const adjustment = new PriceAdjustment(
       crypto.randomUUID(),
       productId,
-      0, // old price would come from DB in real impl
+      0,
       newPrice,
       reason,
       new Date(),
       'SYSTEM'
     );
 
-    await this.repo.logPriceAdjustment(adjustment);
+    await this.repo.logPriceAdjustment(tenantId, adjustment);
   }
 }

@@ -1,12 +1,78 @@
+@import './styles/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+    --card: 240 6% 10%;
+    --card-foreground: 0 0% 98%;
+    --primary: 263 70% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 4% 58%;
+    --accent: 263 70% 58%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 4% 20%;
+    --input: 240 4% 16%;
+    --ring: 263 70% 58%;
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
 body {
-  font-family: 'Inter', system_ui, sans-serif;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+*:focus-visible {
+  outline: none;
 }
 
 .glass {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(20px);
+}
+
+.command-center-canvas {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsl(263 70% 58% / 0.06), transparent),
+    hsl(var(--background));
+}
+
+.panel-surface {
+  background: hsl(var(--surface-panel) / 0.55);
+  backdrop-filter: blur(12px);
+}
+
+.divider-subtle {
+  border-color: hsl(var(--border) / 0.25);
+}
+
+.command-center-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  gap: 0;
+}
+
+.insight-card-shadow {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03), 0 4px 24px rgba(0, 0, 0, 0.25);
 }

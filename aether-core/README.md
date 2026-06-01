@@ -1,70 +1,103 @@
-# AETHER Core — Technical Setup
+# AETHER Core — Production Execution Baseline
 
-This is the official technical foundation for **AETHER Core v1**.
+**This repository (`aether-core/`) is the only deployment source of truth.**
+
+Canonical execution charter: [`docs/runtime-charter.md`](docs/runtime-charter.md)
+
+Reference materials in `../Project/` are archived specs and demos — not shipped.
 
 ## Quick Start
 
-### 1. Prerequisites
-- Node.js 20+
-- PostgreSQL (or use Docker)
-- Git
-
-### 2. Installation
-
 ```bash
-# Clone or copy this folder
-cd aether-core
-
-# Install dependencies
+cd aether-core/backend
 npm install
-
-# Setup environment
-cp .env.example .env
-
-# Start database (with Docker)
-docker-compose up -d
-
-# Generate Prisma client & run migrations
-npm run prisma:generate
+npm run setup:env          # generates secure keys in ../.env
+cd ..
+docker compose up -d postgres   # Postgres on localhost:15432 (avoids native Windows PG on 5432)
+cd backend
 npm run prisma:migrate
-
-# Start development server
+npm run prisma:seed
 npm run dev
 ```
 
-### 3. Project Structure
+Backend: http://localhost:9000  
+Frontend: `cd frontend && npm install && npm run dev` → http://localhost:5173
+
+## API keys (self-managed)
+
+AETHER uses **your own** API keys — not from Stripe, Google, or any external provider.
+
+| Variable | Purpose |
+|----------|---------|
+| `AETHER_API_KEY` | Backend auth (`X-Aether-Api-Key` header) |
+| `VITE_AETHER_API_KEY` | Frontend sends the same key to the API |
+| `HIVE_MIND_SALT` | Cryptographic salt for Hive Mind anonymization |
+
+Generate them automatically:
+
+```bash
+cd aether-core/backend
+npm run setup:env          # creates ../.env if missing
+npm run setup:env -- --force   # regenerate secrets
+```
+
+Both frontend and backend read from `aether-core/.env`.
+
+## Project Structure
 
 ```
-src/
-├── modules/                 # All business modules
-│   ├── product-catalog/
-│   ├── order-management/
-│   ├── aether-mail/
-│   └── ...
-├── ai/                      # AI Layer (agents, context, decision engine)
-├── api/                     # REST + GraphQL endpoints
-├── domain/                  # Shared domain logic
-└── index.ts                 # Entry point
+aether-core/
+├── scripts/generate-env.js   # Secret generator for setup
+├── backend/src/
+│   ├── modules/          # Domain modules (DDD layers)
+│   ├── shared/           # Auth, events, logging, prisma
+│   └── ai/               # Orchestration, attribution
+├── frontend/src/         # Merchant admin UI
+└── docs/                 # truth-matrix, release-gates
 ```
 
-### 4. Available Scripts
+## Authentication
 
-| Command                | Description                     |
-|------------------------|---------------------------------|
-| `npm run dev`          | Start development server        |
-| `npm run build`        | Build for production            |
-| `npm run prisma:migrate` | Run database migrations       |
-| `npm run prisma:studio` | Open Prisma Studio             |
-| `npm test`             | Run tests                       |
+Requests require headers:
+- `X-Aether-Api-Key` — value from `AETHER_API_KEY` in `.env`
+- `X-Aether-Tenant-Id` (optional; defaults to `AETHER_DEFAULT_TENANT`)
 
-### 5. Next Steps
+## Scripts
 
-1. Start with **Fase 1** from the roadmap
-2. Implement the first module: `product-catalog`
-3. Add your first AI agent in `src/ai/agents/`
+| Command | Location | Description |
+|---------|----------|-------------|
+| `npm run setup:env` | backend/ | Generate `.env` secrets |
+| `npm run dev` | backend/ | API server |
+| `npm run build` | backend/ | Compile TypeScript |
+| `npm test` | backend/ | Jest tests |
+| `npm run prisma:seed` | backend/ | Default tenant + sample products |
+| `npm run dev` | frontend/ | Vite admin UI |
 
----
+## Documentation
 
-**AETHER Core** — Built for the future of autonomous commerce.
+- [Truth Matrix](./docs/truth-matrix.md) — feature status vs code
+- [Release Gates](./docs/release-gates.md) — ship criteria (no green checkbox without CI proof)
+- [Roadmap Alignment](./docs/roadmap-alignment.md)
 
-**Merchant Success First. Local AI First. Modulair. Uitbreidbaar.**
+Run `npm run validate:dod` from `backend/` before release — CI enforces this automatically.  
+Run `node scripts/truth-review.js` weekly for claim vs runtime alignment.
+
+### Pilot gates (Gate 8)
+
+- Runbook: [`docs/pilot-runbook.md`](./docs/pilot-runbook.md)
+- Weekly DB metrics: `npm run pilot:metrics` (requires `DATABASE_URL`, `PILOT_TENANT_ID`)
+- Snapshot log row: `npm run pilot:snapshot` (requires running API + `AETHER_API_KEY`)
+- Mail exit validation: `PILOT_RELEASE=true npm run validate:dod`
+- Causal exit validation: `PILOT_CAUSAL=true npm run validate:dod`
+- CI workflow: `.github/workflows/pilot-gates.yml` (manual / weekly schedule)
+- Commerce integration tests locally: `RUN_COMMERCE_INTEGRATION=true npm test -- commerce.integration`
+- Staging mail Gate 8 dry-run: `SEED_PILOT_MAIL_DEMO=true npm run pilot:seed-demo` (see [`docs/pilot-runbook.md`](./docs/pilot-runbook.md) §0)
+
+## Environment (security & ecosystem)
+
+| Variable | Purpose |
+|----------|---------|
+| `AETHER_TEST_AUTH_BYPASS` | `true` only in isolated RBAC unit tests — never in production |
+| `ECOSYSTEM_JOBS_ENABLED` | `true` to start federated hive jobs after core reliability gates pass |
+
+**Merchant Success First. Local AI First. Radical honesty.**

@@ -1,5 +1,9 @@
 # AETHER v1.1 — Complete Achievement Summary
 
+> **ARCHIVE — NOT RUNTIME TRUTH**  
+> Deployment status: [`aether-core/docs/runtime-charter.md`](../../aether-core/docs/runtime-charter.md) and [`first-principles-audit-2026-05-31.md`](../../aether-core/docs/first-principles-audit-2026-05-31.md).  
+> Claims below (e.g. Sprint 1–7 complete, air-gapped, ZK-SNARK) are investor-era narrative, not verified in `aether-core/`.
+
 **Datum:** 5 mei 2026  
 **Tijd:** 12:26 CEST  
 **Status:** Funding secured. Volledig klaar om te bouwen.

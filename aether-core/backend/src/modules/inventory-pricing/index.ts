@@ -4,8 +4,8 @@ import { InventoryController } from './api/controllers/InventoryController';
 const router = Router();
 const controller = new InventoryController();
 
-router.post('/stock', controller.updateStock.bind(controller));
-router.post('/price', controller.applyDynamicPrice.bind(controller));
-router.get('/low-stock', controller.getLowStock.bind(controller));
+router.post('/stock', ...controller.updateStock);
+router.post('/price', ...controller.applyDynamicPrice);
+router.get('/low-stock', ...controller.getLowStock);
 
 export default router;

@@ -8,12 +8,15 @@ export class RegisterPluginUseCase {
     private pluginRegistry: PluginRegistry
   ) {}
 
-  async execute(pluginData: {
-    name: string;
-    version: string;
-    description: string;
-    author: string;
-  }): Promise<Plugin> {
+  async execute(
+    pluginData: {
+      name: string;
+      version: string;
+      description: string;
+      author: string;
+    },
+    tenantId: string
+  ): Promise<Plugin> {
     const plugin = new Plugin(
       crypto.randomUUID(),
       pluginData.name,
@@ -22,6 +25,6 @@ export class RegisterPluginUseCase {
       pluginData.author
     );
 
-    return await this.pluginRegistry.registerPlugin(plugin);
+    return await this.pluginRegistry.registerPlugin(plugin, tenantId);
   }
 }

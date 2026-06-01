@@ -6,21 +6,22 @@ import { SupplierRepository } from '../../domain/repositories/SupplierRepository
 export class PrismaSupplierRepository implements SupplierRepository {
   constructor(private prisma: PrismaClient) {}
 
-  async findAll(): Promise<Supplier[]> {
-    const suppliers = await this.prisma.supplier.findMany();
-    return suppliers.map(s => this.toDomain(s));
+  async findAll(tenantId: string): Promise<Supplier[]> {
+    const suppliers = await this.prisma.supplier.findMany({ where: { tenantId } });
+    return suppliers.map((s) => this.toDomain(s));
   }
 
-  async findById(id: string): Promise<Supplier | null> {
-    const supplier = await this.prisma.supplier.findUnique({ where: { id } });
+  async findById(id: string, tenantId: string): Promise<Supplier | null> {
+    const supplier = await this.prisma.supplier.findFirst({ where: { id, tenantId } });
     return supplier ? this.toDomain(supplier) : null;
   }
 
-  async create(supplier: Supplier): Promise<Supplier> {
+  async create(data: { name: string; website: string; tenantId: string }): Promise<Supplier> {
     const created = await this.prisma.supplier.create({
       data: {
-        name: supplier.name,
-        website: supplier.website,
+        name: data.name,
+        website: data.website,
+        tenantId: data.tenantId,
       },
     });
     return this.toDomain(created);
@@ -30,12 +31,14 @@ export class PrismaSupplierRepository implements SupplierRepository {
     const products = await this.prisma.supplierProduct.findMany({
       where: { supplierId },
     });
-    return products.map(p => this.toProductDomain(p));
+    return products.map((p) => this.toProductDomain(p));
   }
 
   async saveProduct(product: SupplierProduct): Promise<SupplierProduct> {
     const saved = await this.prisma.supplierProduct.upsert({
-      where: { sku: product.sku },
+      where: {
+        supplierId_sku: { supplierId: product.supplierId, sku: product.sku },
+      },
       update: {
         currentPrice: product.currentPrice,
         stock: product.stockLevel,
@@ -53,7 +56,12 @@ export class PrismaSupplierRepository implements SupplierRepository {
     return this.toProductDomain(saved);
   }
 
-  private toDomain(prismaSupplier: any): Supplier {
+  private toDomain(prismaSupplier: {
+    id: string;
+    name: string;
+    website: string;
+    createdAt: Date;
+  }): Supplier {
     return new Supplier(
       prismaSupplier.id,
       prismaSupplier.name,
@@ -63,7 +71,15 @@ export class PrismaSupplierRepository implements SupplierRepository {
     );
   }
 
-  private toProductDomain(prismaProduct: any): SupplierProduct {
+  private toProductDomain(prismaProduct: {
+    id: string;
+    supplierId: string;
+    name: string;
+    sku: string;
+    currentPrice: number;
+    stock: number;
+    lastUpdated: Date;
+  }): SupplierProduct {
     return new SupplierProduct(
       prismaProduct.id,
       prismaProduct.supplierId,

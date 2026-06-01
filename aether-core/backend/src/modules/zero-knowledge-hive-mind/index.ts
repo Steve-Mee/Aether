@@ -4,10 +4,7 @@ import { HiveMindController } from './api/controllers/HiveMindController';
 const router = Router();
 const controller = new HiveMindController();
 
-// Submit anonymous insight
-router.post('/insights', controller.submitInsight.bind(controller));
-
-// Get aggregated insights (privacy-preserving)
-router.get('/insights/aggregated', controller.getAggregatedInsights.bind(controller));
+router.post('/insights', ...controller.submitInsight);
+router.get('/insights/aggregated', ...controller.getAggregatedInsights);
 
 export default router;

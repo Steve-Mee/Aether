@@ -8,18 +8,67 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  users     User[]
+  apiKeys   ApiKey[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  tenantId  String
+  email     String
+  role      String   @default("operator")
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, email])
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  tenantId  String
+  keyHash   String   @unique
+  label     String?
+  role      String   @default("operator")
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  tenantId  String
+  email     String
+  firstName String?
+  lastName  String?
+  createdAt DateTime @default(now())
+
+  orders    Order[]
+
+  @@unique([tenantId, email])
+}
+
 model Product {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
+  tenantId    String
   name        String
   description String?
-  slug        String    @unique
-  price       Float
-  stock       Int       @default(0)
-  status      String    @default("active")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  slug        String
+  price       Float    @default(0)
+  stock       Int      @default(0)
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   variants    ProductVariant[]
+
+  @@unique([tenantId, slug])
 }
 
 model ProductVariant {
@@ -34,14 +83,16 @@ model ProductVariant {
 }
 
 model Order {
-  id          String   @id @default(cuid())
-  customerId  String
-  status      String   @default("pending")
-  total       Float
-  currency    String   @default("EUR")
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  tenantId   String
+  customerId String
+  status     String   @default("pending")
+  total      Float
+  currency   String   @default("EUR")
+  createdAt  DateTime @default(now())
 
-  items       OrderItem[]
+  customer   Customer   @relation(fields: [customerId], references: [id])
+  items      OrderItem[]
 }
 
 model OrderItem {
@@ -51,20 +102,44 @@ model OrderItem {
   quantity  Int
   price     Float
 
-  order     Order  @relation(fields: [orderId], references: [id])
+  order     Order @relation(fields: [orderId], references: [id])
 }
 
 model EmailMessage {
-  id        String   @id @default(cuid())
-  from      String
-  subject   String?
-  body      String?
-  status    String   @default("received")
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  tenantId    String
+  messageId   String?
+  from        String
+  subject     String?
+  body        String?
+  status      String   @default("received")
+  riskLevel   String?
+  category    String?
+  confidence  Float?
+  draftReply  String?
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, messageId])
+}
+
+model Mailbox {
+  id             String    @id @default(cuid())
+  tenantId       String
+  email          String
+  imapHost       String?
+  smtpHost       String?
+  credentialsEnc String?
+  pollingPolicy  String    @default("default")
+  lastPolledAt   DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@unique([tenantId, email])
 }
 
 model Supplier {
   id        String   @id @default(cuid())
+  tenantId  String
   name      String
   website   String
   createdAt DateTime @default(now())
@@ -73,49 +148,195 @@ model Supplier {
 }
 
 model SupplierProduct {
-  id          String @id @default(cuid())
-  supplierId  String
-  name        String
-  sku         String  @unique
+  id           String   @id @default(cuid())
+  supplierId   String
+  name         String
+  sku          String
   currentPrice Float
-  stock       Int
-  lastUpdated DateTime @default(now())
+  stock        Int
+  lastUpdated  DateTime @default(now())
 
-  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  supplier     Supplier @relation(fields: [supplierId], references: [id])
+
+  @@unique([supplierId, sku])
+}
+
+model SupplierChange {
+  id         String   @id @default(cuid())
+  tenantId   String
+  supplierId String
+  changeType String
+  payload    String
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
 }
 
 model Decision {
   id        String   @id @default(cuid())
+  tenantId  String
   type      String
   result    String
+  rationale String?
+  actor     String?
   createdAt DateTime @default(now())
 }
 
 model Command {
+  id         String   @id @default(cuid())
+  tenantId   String
+  command    String
+  intent     String?
+  result     String?
+  confidence Float?
+  actor      String?
+  createdAt  DateTime @default(now())
+}
+
+model Approval {
+  id          String   @id @default(cuid())
+  tenantId    String
+  module      String
+  actionType  String
+  payload     String
+  status      String   @default("pending")
+  requestedBy String?
+  resolvedBy  String?
+  createdAt   DateTime @default(now())
+  resolvedAt  DateTime?
+}
+
+model AuditLog {
   id        String   @id @default(cuid())
-  command   String
-  result    String?
+  tenantId  String
+  module    String
+  action    String
+  actor     String?
+  details   String?
   createdAt DateTime @default(now())
+}
+
+model DomainEvent {
+  id              String    @id @default(cuid())
+  tenantId        String
+  type            String
+  payload         String
+  idempotencyKey  String?   @unique
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+}
+
+model OutcomeRecord {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  metric             String
+  baseline           Float
+  observed           Float
+  uplift             Float
+  confidence         Float
+  verificationStatus String   @default("proposed")
+  periodStart        DateTime
+  periodEnd          DateTime
+  createdAt          DateTime @default(now())
+}
+
+model WorkflowRun {
+  id        String   @id @default(cuid())
+  tenantId  String
+  workflow  String
+  status    String   @default("running")
+  createdAt DateTime @default(now())
+  steps     WorkflowStep[]
+}
+
+model WorkflowStep {
+  id        String   @id @default(cuid())
+  runId     String
+  name      String
+  status    String
+  input     String?
+  output    String?
+  createdAt DateTime @default(now())
+  run       WorkflowRun @relation(fields: [runId], references: [id])
+}
+
+model PrivacyBudget {
+  id        String   @id @default(cuid())
+  tenantId  String   @unique
+  spent     Float    @default(0)
+  budgetLimit Float  @default(100)
+  updatedAt DateTime @updatedAt
+}
+
+model TenantFeature {
+  id        String   @id @default(cuid())
+  tenantId  String
+  feature   String
+  enabled   Boolean  @default(false)
+
+  @@unique([tenantId, feature])
+}
+
+model PaymentIdempotency {
+  id        String   @id @default(cuid())
+  tenantId  String
+  key       String
+  paymentId String?
+  createdAt DateTime @default(now())
+
+  @@unique([tenantId, key])
+}
+
+model RevenueDistribution {
+  id         String   @id @default(cuid())
+  tenantId   String
+  merchantId String
+  amount     Float
+  period     String
+  createdAt  DateTime @default(now())
+}
+
+model InventoryItem {
+  id          String @id @default(cuid())
+  tenantId    String
+  productId   String
+  warehouseId String @default("default")
+  quantity    Int    @default(0)
+
+  @@unique([tenantId, productId, warehouseId])
+}
+
+model SupplierWebhookEvent {
+  id         String   @id @default(cuid())
+  tenantId   String
+  supplierId String?
+  payload    String
+  status     String   @default("received")
+  createdAt  DateTime @default(now())
 }
 
 model Forecast {
-  id          String   @id @default(cuid())
-  productId   String
-  prediction  String
-  confidence  Float
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  tenantId   String
+  productId  String
+  prediction String
+  confidence Float
+  createdAt  DateTime @default(now())
 }
 
 model Payment {
-  id        String   @id @default(cuid())
-  orderId   String
-  amount    Float
-  status    String   @default("pending")
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  tenantId      String
+  orderId       String
+  amount        Float
+  status        String   @default("pending")
+  paymentMethod String?
+  transactionId String?
+  createdAt     DateTime @default(now())
 }
 
 model Fulfillment {
   id        String   @id @default(cuid())
+  tenantId  String
   orderId   String
   status    String   @default("pending")
   createdAt DateTime @default(now())
@@ -123,43 +344,59 @@ model Fulfillment {
 
 model Plugin {
   id        String   @id @default(cuid())
-  name      String   @unique
+  tenantId  String
+  name      String
   version   String
   enabled   Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  @@unique([tenantId, name])
 }
 
 model Insight {
-  id        String   @id @default(cuid())
-  type      String
-  content   String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  tenantId   String
+  type       String
+  content    String
+  merchantId String?
+  createdAt  DateTime @default(now())
 }
 
 model PhysicalLocation {
   id        String   @id @default(cuid())
+  tenantId  String
   name      String
   type      String
+  address   String?
+  status    String   @default("active")
   createdAt DateTime @default(now())
 }
 
 model MerchantShare {
   id          String   @id @default(cuid())
+  tenantId    String
   merchantId  String
   percentage  Float
   createdAt   DateTime @default(now())
 }
 
 model Negotiation {
-  id          String   @id @default(cuid())
+  id              String   @id @default(cuid())
+  tenantId        String
   customerAgentId String
   merchantAgentId String
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
+  productId       String?
+  status          String   @default("active")
+  currentOffer    Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  offers          Offer[]
 }
 
 model Agent {
   id        String   @id @default(cuid())
+  tenantId  String
   type      String
   name      String
   createdAt DateTime @default(now())
@@ -168,7 +405,79 @@ model Agent {
 model Offer {
   id            String   @id @default(cuid())
   negotiationId String
+  agentId       String?
   price         Float
   conditions    String?
+  status        String   @default("pending")
   createdAt     DateTime @default(now())
+
+  negotiation   Negotiation @relation(fields: [negotiationId], references: [id])
+}
+
+model ImprovementProposal {
+  id            String   @id @default(cuid())
+  tenantId      String
+  module        String
+  type          String
+  description   String
+  confidence    Float
+  status        String   @default("proposed")
+  appliedConfig Json?
+  createdAt     DateTime @default(now())
+}
+
+model NegotiationMetrics {
+  tenantId  String   @id
+  accept    Int      @default(0)
+  counter   Int      @default(0)
+  reject    Int      @default(0)
+  llmUsed   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model BillingRecord {
+  id              String    @id @default(cuid())
+  tenantId        String
+  outcomeId       String
+  amount          Float
+  currency        String    @default("EUR")
+  status          String    @default("pending")
+  stripeInvoiceId String?
+  reconciledAt    DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([tenantId, outcomeId])
+}
+
+model MarketplaceListing {
+  id        String   @id @default(cuid())
+  tenantId  String
+  type      String
+  price     Float
+  sellerId  String
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+}
+
+model Experiment {
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  metric    String
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, metric])
+}
+
+model ExperimentAssignment {
+  id         String   @id @default(cuid())
+  tenantId   String
+  metric     String
+  treatedIds String
+  controlIds String
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, metric])
 }
