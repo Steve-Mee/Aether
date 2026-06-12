@@ -1,0 +1,22 @@
+[
+  {
+    "name": "App entry chunks",
+    "path": "dist/assets/index-*.js",
+    "limit": "530 KB"
+  },
+  {
+    "name": "Vendor chunk",
+    "path": "dist/assets/vendor-*.js",
+    "limit": "385 KB"
+  },
+  {
+    "name": "i18n catalog",
+    "path": "dist/assets/WLGSOJG7-*.js",
+    "limit": "250 KB"
+  },
+  {
+    "name": "Main stylesheet",
+    "path": "dist/assets/index-*.css",
+    "limit": "65 KB"
+  }
+]

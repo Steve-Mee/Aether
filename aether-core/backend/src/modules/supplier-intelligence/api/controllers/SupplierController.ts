@@ -28,7 +28,17 @@ export class SupplierController {
   static async getAll(req: Request, res: Response) {
     const { supplierRepository } = getCompositionRoot();
     const suppliers = await supplierRepository.findAll(req.tenantId!);
-    res.json(suppliers);
+    res.json(
+      suppliers.map((s) => ({
+        id: s.id,
+        name: s.name,
+        website: s.website,
+        status: s.status,
+        autoSyncEnabled: s.autoSyncEnabled,
+        supplierType: s.supplierType,
+        createdAt: s.createdAt.toISOString(),
+      }))
+    );
   }
 
   static async monitor(req: Request, res: Response) {
@@ -55,7 +65,15 @@ export class SupplierController {
           website: req.body.website,
           tenantId: req.tenantId!,
         });
-        res.status(201).json(supplier);
+        res.status(201).json({
+          id: supplier.id,
+          name: supplier.name,
+          website: supplier.website,
+          status: supplier.status,
+          autoSyncEnabled: supplier.autoSyncEnabled,
+          supplierType: supplier.supplierType,
+          createdAt: supplier.createdAt.toISOString(),
+        });
       } catch {
         res.status(400).json({ error: 'Failed to create supplier' });
       }

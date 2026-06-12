@@ -1,5 +1,7 @@
 # AETHER Core — Production Execution Baseline
 
+[![AETHER Core CI](https://github.com/Steve-Mee/Aether/actions/workflows/ci.yml/badge.svg)](https://github.com/Steve-Mee/Aether/actions/workflows/ci.yml)
+
 **This repository (`aether-core/`) is the only deployment source of truth.**
 
 Canonical execution charter: [`docs/runtime-charter.md`](docs/runtime-charter.md)
@@ -73,11 +75,23 @@ Requests require headers:
 | `npm run prisma:seed` | backend/ | Default tenant + sample products |
 | `npm run dev` | frontend/ | Vite admin UI |
 
+## CI/CD
+
+GitHub Actions workflows live at the **repository root** (not under `aether-core/.github/`):
+
+| Workflow | Trigger | Jobs |
+|----------|---------|------|
+| [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | Push/PR to `main` or `develop` (`aether-core/**`) | `backend`, `frontend` (parallel) |
+| [`.github/workflows/pilot-gates.yml`](../.github/workflows/pilot-gates.yml) | Manual / weekly schedule | `pilot-metrics` |
+
+See **[CONTRIBUTING.md](../CONTRIBUTING.md)** for branch protection rules, local pre-PR checks, and optional preview deployments.
+
 ## Documentation
 
 - [Truth Matrix](./docs/truth-matrix.md) — feature status vs code
 - [Release Gates](./docs/release-gates.md) — ship criteria (no green checkbox without CI proof)
 - [Roadmap Alignment](./docs/roadmap-alignment.md)
+- [Contributing](../CONTRIBUTING.md) — CI workflow and merge requirements
 
 Run `npm run validate:dod` from `backend/` before release — CI enforces this automatically.  
 Run `node scripts/truth-review.js` weekly for claim vs runtime alignment.

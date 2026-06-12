@@ -1,224 +1,210 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Mic, MicOff, Sparkles } from 'lucide-react';
+import { useEffect, useMemo, type MutableRefObject } from 'react';
 import React from 'react';
 import { useCommand } from '../../lib/CommandContext';
-import { Button } from '@/components/shadcn/button';
-import { Input } from '@/components/shadcn/input';
-import { cn } from '@/lib/utils';
-import {
-  buildDemoResponse,
-  detectIntent,
-  filterSuggestions,
-  type DemoCommandResponse,
-  type DemoIntentId,
-  type DemoSuggestion,
-} from '@/lib/localIntentMatcher';
+import { useDashboard } from '@/lib/DashboardContext';
+import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
+import { t } from '@/lib/i18n';
+import { CommandBar } from '@/components/ui';
+import type { DemoIntentId, DemoSuggestion } from '@/lib/localIntentMatcher';
+import type { TodayReadyInsight } from '@/lib/todayReadyDemo';
+import { useRotatingPlaceholder } from '@/hooks/useRotatingPlaceholder';
+import { useSmartCommandInput } from '@/hooks/useSmartCommandInput';
+import type { useCommandDemoFlow } from '@/hooks/useCommandDemoFlow';
+import CommandSuggestionsList from '@/components/command/CommandSuggestionsList';
+import CommandErrorCard from '@/components/command/CommandErrorCard';
 import CommandDemoResponse from './CommandDemoResponse';
-import { IntentPill, SuggestionButton } from './primitives';
+import { IntentPill } from './primitives';
 
-const PLACEHOLDER = 'Zeg wat je wilt — AETHER voert uit met minimale wrijving';
-const DEMO_DELAY_MS = 650;
+type DemoFlow = ReturnType<typeof useCommandDemoFlow>;
 
-export default function CommandCenterHeroBar() {
+interface CommandCenterHeroBarProps {
+  demo: DemoFlow;
+  todayReadyInsights: TodayReadyInsight[];
+  onIntentChange?: (intentId: DemoIntentId | null) => void;
+  onIntentClear?: () => void;
+  onUndo?: (intentId: DemoIntentId) => void;
+  autoExecuteTrigger?: number;
+  onAutoExecuteComplete?: (intentId: DemoIntentId) => void;
+  approvalConfirmedIntentId?: DemoIntentId | null;
+  adjustCommandRef?: MutableRefObject<((command: string) => void) | null>;
+}
+
+export default function CommandCenterHeroBar({
+  demo,
+  todayReadyInsights,
+  onIntentChange,
+  onIntentClear,
+  onUndo,
+  autoExecuteTrigger,
+  onAutoExecuteComplete,
+  approvalConfirmedIntentId,
+  adjustCommandRef,
+}: CommandCenterHeroBarProps) {
   const { openPalette } = useCommand();
-  const [command, setCommand] = useState('');
-  const [listening, setListening] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [demoLoading, setDemoLoading] = useState(false);
-  const [demoResult, setDemoResult] = useState<DemoCommandResponse | null>(null);
-  const [activeSuggestionId, setActiveSuggestionId] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const { data: dashboard } = useDashboard();
+  const { settings } = useMerchantSettings();
 
-  const detected = useMemo(() => detectIntent(command), [command]);
-  const suggestions = useMemo(() => filterSuggestions(command, 5), [command]);
-  const showSuggestions = focused || command.length > 0;
+  const {
+    demoLoading,
+    loadingPhase,
+    loadingProgress,
+    stepIndex,
+    stepTotal,
+    demoResult,
+    demoError,
+    responseRef,
+    runCommand,
+    clearDemoState,
+    handleDismiss,
+    handleExecute,
+  } = demo;
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (
-        e.key === '/' &&
-        document.activeElement?.tagName !== 'INPUT' &&
-        document.activeElement?.tagName !== 'TEXTAREA'
-      ) {
-        e.preventDefault();
-        inputRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  const contextInput = useMemo(
+    () => ({ dashboard, todayReady: todayReadyInsights, settings }),
+    [dashboard, todayReadyInsights, settings],
+  );
 
-  const runDemo = useCallback(async (text: string, intentOverride?: DemoIntentId) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+  const forceSuggestionsOpen = demoResult?.intentId === 'UNKNOWN' && !demoLoading;
 
-    setDemoLoading(true);
-    setDemoResult(null);
-    setActiveSuggestionId(null);
+  const smart = useSmartCommandInput({
+    contextInput,
+    onIntentChange,
+    forceSuggestionsOpen,
+  });
 
-    await new Promise((r) => setTimeout(r, DEMO_DELAY_MS));
-
-    const response = buildDemoResponse(trimmed, intentOverride);
-    setDemoResult(response);
-    setDemoLoading(false);
-  }, []);
+  const placeholder = useRotatingPlaceholder(!smart.isActive && !demoLoading);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!command.trim() || demoLoading) return;
-    const cmd = command.trim();
-    await runDemo(cmd);
-    setCommand('');
+    if (!smart.command.trim() || demoLoading) return;
+    const cmd = smart.command.trim();
+    await runCommand(cmd);
+    smart.setCommand('');
   };
 
   const handleSuggestionClick = async (suggestion: DemoSuggestion) => {
-    setCommand(suggestion.command);
-    setActiveSuggestionId(suggestion.id);
-    inputRef.current?.focus();
-    await runDemo(suggestion.command, suggestion.intentId);
+    smart.setCommand(suggestion.command);
+    smart.setActiveSuggestionId(suggestion.id);
+    smart.inputRef.current?.focus();
+    await runCommand(suggestion.command, suggestion.intentId);
   };
 
-  const toggleVoice = () => {
-    const SpeechRecognition =
-      (window as unknown as { SpeechRecognition?: typeof window.SpeechRecognition }).SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: typeof window.SpeechRecognition })
-        .webkitSpeechRecognition;
+  const handleInputKeyDown = smart.createInputKeyDown({
+    onEscape: () => {
+      clearDemoState();
+      onIntentClear?.();
+    },
+    onSuggestionSelect: (s) => void handleSuggestionClick(s),
+  });
 
-    if (!SpeechRecognition) return;
-    if (listening) {
-      setListening(false);
-      return;
+  const handleAdjust = (originalCommand: string) => {
+    smart.setCommand(originalCommand);
+    clearDemoState();
+    onIntentClear?.();
+    smart.inputRef.current?.focus();
+  };
+
+  useEffect(() => {
+    if (adjustCommandRef) {
+      adjustCommandRef.current = handleAdjust;
     }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'nl-NL';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.onstart = () => setListening(true);
-    recognition.onend = () => setListening(false);
-    recognition.onerror = () => setListening(false);
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      const transcript = event.results[0]?.[0]?.transcript;
-      if (transcript) setCommand(transcript);
+    return () => {
+      if (adjustCommandRef) {
+        adjustCommandRef.current = null;
+      }
     };
-    recognition.start();
-  };
+  });
 
-  const voiceSupported =
-    typeof window !== 'undefined' &&
-    (!!(window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition ||
-      !!(window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition);
+  const handleResponseDismiss = () => {
+    smart.setCommand('');
+    handleDismiss();
+  };
 
   return (
-    <section className="mb-10 w-full" aria-label="Command Bar">
-      <form onSubmit={handleSubmit} className="relative w-full">
-        <div
-          className={cn(
-            'relative w-full min-h-[88px] sm:min-h-[92px] rounded-2xl border border-border/35',
-            'bg-gradient-to-b from-card/50 to-card/25 backdrop-blur-md',
-            'transition-all duration-200 ring-1 ring-white/[0.04]',
-            'focus-within:border-primary/30 focus-within:ring-primary/25',
-            'focus-within:shadow-[var(--shadow-glow-focus)]'
-          )}
-        >
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 px-5 py-5 sm:px-6">
-            <button
-              type="button"
-              onClick={openPalette}
-              className="hidden sm:inline-flex items-center gap-1.5 shrink-0 rounded-lg px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors duration-200"
-              aria-label="Command palette"
-            >
-              <Sparkles size={16} strokeWidth={1.75} />
-              <kbd className="text-[10px] font-mono text-muted-foreground/55 px-1.5 py-0.5 rounded border border-border/40 bg-background/30">
-                ⌘K
-              </kbd>
-            </button>
-            <Input
-              ref={inputRef}
-              value={command}
-              onChange={(e) => setCommand(e.target.value)}
-              onFocus={() => setFocused(true)}
-              onBlur={() => setTimeout(() => setFocused(false), 150)}
-              placeholder={PLACEHOLDER}
-              disabled={demoLoading}
-              aria-label={PLACEHOLDER}
-              aria-expanded={showSuggestions}
-              aria-controls="command-suggestions"
-              className="h-12 sm:h-14 flex-1 border-0 bg-transparent text-base sm:text-lg font-normal tracking-tight shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/50"
-            />
-            <div className="flex items-center gap-1.5 sm:shrink-0 sm:pl-1">
-              {voiceSupported && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleVoice}
-                  aria-label={listening ? 'Stop opname' : 'Spraak invoer'}
-                  className={cn(
-                    'h-10 w-10 rounded-full text-muted-foreground transition-colors duration-200',
-                    'hover:bg-muted/50',
-                    listening && 'text-destructive'
-                  )}
-                >
-                  {listening ? <MicOff size={18} strokeWidth={1.75} /> : <Mic size={18} strokeWidth={1.75} />}
-                </Button>
-              )}
-              <Button
-                type="submit"
-                size="icon"
-                disabled={demoLoading || !command.trim()}
-                className={cn(
-                  'h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 bg-primary/90',
-                  'hover:bg-primary hover:shadow-[var(--shadow-glow-focus)] transition-all duration-200'
-                )}
-                aria-label="Versturen"
-              >
-                {demoLoading ? (
-                  <span className="text-sm animate-pulse">…</span>
-                ) : (
-                  <ArrowRight size={18} strokeWidth={2} />
-                )}
-              </Button>
-            </div>
+    <CommandBar
+      variant="hero"
+      inputFocused={smart.focused}
+      value={smart.command}
+      onChange={smart.setCommand}
+      onSubmit={handleSubmit}
+      placeholder={placeholder}
+      loading={demoLoading}
+      inputRef={smart.inputRef}
+      onInputFocus={() => smart.setFocused(true)}
+      onInputBlur={() => setTimeout(() => smart.setFocused(false), 150)}
+      onInputKeyDown={handleInputKeyDown}
+      onPaletteOpen={openPalette}
+      voiceSupported={smart.voiceSupported}
+      micActive={smart.listening}
+      onMicToggle={smart.toggleVoice}
+      voiceStatus={smart.listening ? t('commandCenter.voice.listening') : undefined}
+      suggestionsExpanded={smart.isActive}
+      suggestionsId="command-suggestions"
+      activeDescendantId={smart.activeDescendantId}
+      inputAriaLabel={t('a11y.commandInputLabel')}
+      rotatingHintText={!smart.isActive ? placeholder : undefined}
+      intentPill={
+        smart.showIntentPill ? (
+          <div key={smart.detected.id} className="flex items-center gap-2 animate-fade-in">
+            <span className="text-[10px] uppercase tracking-widest text-caption-accessible">
+              Intent
+            </span>
+            <IntentPill label={smart.detected.label} confidence={smart.detected.confidence} />
           </div>
-        </div>
-      </form>
-
-      {(command.length > 0 || focused) && detected.confidence > 0 && (
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60">
-            Intent
-          </span>
-          <IntentPill label={detected.label} confidence={detected.confidence} />
-        </div>
-      )}
-
-      {showSuggestions && (
-        <div
-          id="command-suggestions"
-          className="mt-3 rounded-2xl border border-border/25 bg-card/30 backdrop-blur-sm p-3 sm:p-4"
-          role="listbox"
-          aria-label="Slimme suggesties"
-        >
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 mb-2.5 px-0.5">
-            Slimme suggesties
+        ) : undefined
+      }
+      idleHint={
+        !smart.isActive ? (
+          <p className="mt-2.5 text-xs text-caption-accessible leading-relaxed px-0.5">
+            {t('commandCenter.idleHint')}
+            {smart.voiceSupported && (
+              <span className="text-caption-accessible"> · {t('commandCenter.voice.hint')}</span>
+            )}
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {suggestions.map((s) => (
-              <SuggestionButton
-                key={s.id}
-                label={s.label}
-                active={activeSuggestionId === s.id}
-                onClick={() => void handleSuggestionClick(s)}
-              />
-            ))}
-          </div>
+        ) : undefined
+      }
+      suggestions={
+        <CommandSuggestionsList
+          isActive={smart.isActive}
+          nowRelevant={smart.nowRelevant}
+          suggestionGroups={smart.suggestionGroups}
+          suggestions={smart.suggestions}
+          keyboardIndex={smart.keyboardIndex}
+          activeSuggestionId={smart.activeSuggestionId}
+          onSuggestionClick={(s) => void handleSuggestionClick(s)}
+          suggestionsLoading={smart.suggestionsLoading}
+        />
+      }
+      responseSlot={
+        <div ref={responseRef}>
+          {demoError && !demoLoading && !demoResult && (
+            <CommandErrorCard
+              message={demoError}
+              onRetry={() => {
+                const cmd = smart.command.trim();
+                if (cmd) void runCommand(cmd);
+              }}
+            />
+          )}
+          {(demoLoading || demoResult) && (
+            <CommandDemoResponse
+              response={demoResult}
+              loading={demoLoading}
+              loadingPhase={loadingPhase}
+              loadingProgress={loadingProgress}
+              stepIndex={stepIndex}
+              stepTotal={stepTotal}
+              onAdjust={handleAdjust}
+              onUndo={onUndo}
+              autoExecuteTrigger={autoExecuteTrigger}
+              onExecute={handleExecute}
+              onAutoExecuteComplete={onAutoExecuteComplete}
+              onDismiss={handleResponseDismiss}
+              approvalConfirmedIntentId={approvalConfirmedIntentId}
+            />
+          )}
         </div>
-      )}
-
-      {(demoLoading || demoResult) && (
-        <CommandDemoResponse response={demoResult!} loading={demoLoading} />
-      )}
-    </section>
+      }
+    />
   );
 }

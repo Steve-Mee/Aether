@@ -1,7 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-import { Supplier } from '../../domain/entities/Supplier';
+import { Supplier, SupplierStatus } from '../../domain/entities/Supplier';
 import { SupplierProduct } from '../../domain/entities/SupplierProduct';
-import { SupplierRepository } from '../../domain/repositories/SupplierRepository';
+import {
+  SupplierRepository,
+  SupplierUpdateInput,
+} from '../../domain/repositories/SupplierRepository';
 
 export class PrismaSupplierRepository implements SupplierRepository {
   constructor(private prisma: PrismaClient) {}
@@ -16,15 +19,44 @@ export class PrismaSupplierRepository implements SupplierRepository {
     return supplier ? this.toDomain(supplier) : null;
   }
 
-  async create(data: { name: string; website: string; tenantId: string }): Promise<Supplier> {
+  async create(data: {
+    name: string;
+    website: string;
+    tenantId: string;
+    supplierType?: string | null;
+  }): Promise<Supplier> {
     const created = await this.prisma.supplier.create({
       data: {
         name: data.name,
         website: data.website,
         tenantId: data.tenantId,
+        supplierType: data.supplierType ?? null,
+        status: 'active',
+        autoSyncEnabled: true,
       },
     });
     return this.toDomain(created);
+  }
+
+  async update(
+    id: string,
+    tenantId: string,
+    data: SupplierUpdateInput
+  ): Promise<Supplier | null> {
+    const existing = await this.prisma.supplier.findFirst({ where: { id, tenantId } });
+    if (!existing) return null;
+
+    const updated = await this.prisma.supplier.update({
+      where: { id },
+      data: {
+        ...(data.status !== undefined ? { status: data.status } : {}),
+        ...(data.autoSyncEnabled !== undefined
+          ? { autoSyncEnabled: data.autoSyncEnabled }
+          : {}),
+        ...(data.supplierType !== undefined ? { supplierType: data.supplierType } : {}),
+      },
+    });
+    return this.toDomain(updated);
   }
 
   async findProductsBySupplier(supplierId: string): Promise<SupplierProduct[]> {
@@ -60,13 +92,18 @@ export class PrismaSupplierRepository implements SupplierRepository {
     id: string;
     name: string;
     website: string;
+    status: string;
+    autoSyncEnabled: boolean;
+    supplierType: string | null;
     createdAt: Date;
   }): Supplier {
     return new Supplier(
       prismaSupplier.id,
       prismaSupplier.name,
       prismaSupplier.website,
-      'active',
+      prismaSupplier.status as SupplierStatus,
+      prismaSupplier.autoSyncEnabled,
+      prismaSupplier.supplierType,
       prismaSupplier.createdAt
     );
   }

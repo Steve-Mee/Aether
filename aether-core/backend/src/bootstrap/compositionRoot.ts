@@ -15,6 +15,8 @@ import { MonitorSupplierUseCase } from '../modules/supplier-intelligence/applica
 import { SupplierDecisionEngine } from '../modules/supplier-intelligence/application/services/SupplierDecisionEngine';
 import { SupplierWebhookAdapter } from '../modules/supplier-intelligence/infrastructure/adapters/SupplierWebhookAdapter';
 import { ExecuteNaturalLanguageCommandUseCase } from '../modules/admin-command-bar/application/use-cases/ExecuteNaturalLanguageCommandUseCase';
+import { UndoCommandUseCase } from '../modules/admin-command-bar/application/use-cases/UndoCommandUseCase';
+import { SuggestionService } from '../modules/admin-command-bar/application/services/SuggestionService';
 import { SupplierMonitorPort } from '../modules/admin-command-bar/application/ports/SupplierMonitorPort';
 import { AdminDataPort } from '../modules/admin-command-bar/application/ports/AdminDataPort';
 import { PrismaAdminDataAdapter } from '../modules/admin-command-bar/infrastructure/adapters/PrismaAdminDataAdapter';
@@ -53,6 +55,7 @@ import { PrismaPhysicalLocationAdapter } from '../modules/physical-digital-symbi
 import { PrismaDecisionRepository } from '../modules/autonomous-operations/infrastructure/persistence/PrismaDecisionRepository';
 import { PrismaSupplierChangeAdapter } from '../modules/supplier-intelligence/infrastructure/adapters/PrismaSupplierChangeAdapter';
 import { SupplierChangePort } from '../modules/supplier-intelligence/application/ports/SupplierChangePort';
+import { SupplierOverviewService } from '../modules/supplier-intelligence/application/services/SupplierOverviewService';
 import { productQueryAdapter } from '../modules/agentic-commerce/infrastructure/adapters/PrismaProductQueryAdapter';
 import { negotiationEngine } from '../modules/agentic-commerce/wiring';
 import { paymentIdempotencyAdapter } from '../modules/payment-fulfillment/infrastructure/adapters/PrismaPaymentIdempotencyAdapter';
@@ -78,6 +81,8 @@ export function createProcessIncomingEmailUseCase(
 
 export interface AppCompositionRoot {
   executeNaturalLanguageCommand: ExecuteNaturalLanguageCommandUseCase;
+  suggestionService: SuggestionService;
+  undoCommandUseCase: UndoCommandUseCase;
   updateInventory: UpdateInventoryUseCase;
   applyDynamicPrice: ApplyDynamicPriceUseCase;
   supplierMonitor: SupplierMonitorPort;
@@ -97,6 +102,7 @@ export interface AppCompositionRoot {
   listActiveNegotiations: ListActiveNegotiationsUseCase;
   supplierDecisionEngine: SupplierDecisionEngine;
   supplierRepository: SupplierRepository;
+  supplierOverviewService: SupplierOverviewService;
   supplierChangePort: SupplierChangePort;
   emailRepository: PrismaEmailRepository;
   monitorSupplierUseCase: MonitorSupplierUseCase;
@@ -174,6 +180,8 @@ export function bootstrapApplication(): AppCompositionRoot {
       adminData,
       commandLog
     ),
+    suggestionService: new SuggestionService(),
+    undoCommandUseCase: new UndoCommandUseCase(),
     updateInventory: new UpdateInventoryUseCase(inventoryRepo),
     applyDynamicPrice: new ApplyDynamicPriceUseCase(pricingEngine, inventoryRepo),
     supplierMonitor: new SupplierMonitorAdapter(monitorSupplierUseCase),
@@ -193,6 +201,7 @@ export function bootstrapApplication(): AppCompositionRoot {
     listActiveNegotiations: new ListActiveNegotiationsUseCase(negotiationRepo),
     supplierDecisionEngine,
     supplierRepository: supplierRepo,
+    supplierOverviewService: new SupplierOverviewService(prisma),
     supplierChangePort,
     emailRepository,
     monitorSupplierUseCase,

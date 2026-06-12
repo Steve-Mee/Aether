@@ -1,18 +1,6 @@
 import { prisma } from '../prisma/client';
+import { ACTION_LABELS } from '../audit/activityLabels';
 import { requireTenantId } from '../tenant/tenantContext';
-
-const ACTION_LABELS: Record<string, string> = {
-  email_processed: 'E-mail verwerkt',
-  action_executed: 'Goedgekeurde actie uitgevoerd',
-  autonomy_observe: 'Observatie (inkomend bericht)',
-  autonomy_decide: 'Beslissing (autonomie-kern)',
-  autonomy_approve: 'Goedkeuring vereist',
-  autonomy_execute: 'Autonoom uitgevoerd',
-  autonomy_measure: 'Meting vastgelegd',
-  mail_approval_required_received: 'Goedkeuring aangevraagd',
-  approved: 'Goedgekeurd',
-  rejected: 'Afgewezen',
-};
 
 export async function buildExplainabilityTimeline(params: {
   tenantId: string;

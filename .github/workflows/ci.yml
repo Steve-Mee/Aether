@@ -1,42 +1,304 @@
-name: CI
+name: AETHER Core CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
+    paths:
+      - 'aether-core/**'
+      - '.github/**'
   pull_request:
-    branches: [main]
+    branches: [main, develop]
+    paths:
+      - 'aether-core/**'
+      - '.github/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-node:
+  backend:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        project:
-          - aether-core/backend
-          - aether-core/frontend
-
+    timeout-minutes: 25
     defaults:
       run:
-        working-directory: ${{ matrix.project }}
+        working-directory: aether-core/backend
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aether_core
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      stripe-mock:
+        image: stripe/stripe-mock:latest
+        ports:
+          - 12111:12111
+
+      ollama:
+        image: ollama/ollama:latest
+        ports:
+          - 11434:11434
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aether_core?schema=public
+      AETHER_API_KEY: ci-test-key
+      AETHER_DEFAULT_TENANT: tenant_default
+      AETHER_JWT_SECRET: ci-jwt-secret-min-16-chars
+      AETHER_JWT_EXPIRES_IN: 15m
+      AETHER_REFRESH_EXPIRES_IN: 7d
+      AETHER_CORS_ORIGINS: http://localhost:5173
+      AETHER_SEED_USER_PASSWORD: AetherDev2026!
+      NODE_ENV: test
+      CI: 'true'
+      OLLAMA_BASE_URL: http://localhost:11434
+      OLLAMA_CONTRACT_TEST: 'true'
+      STRIPE_SECRET_KEY: sk_test_ci_mock
+      STRIPE_API_HOST: localhost
+      STRIPE_API_PORT: '12111'
+      STRIPE_API_PROTOCOL: http
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
           cache: npm
-          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+          cache-dependency-path: aether-core/backend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright browsers (supplier scrape CI)
+        run: npx playwright install chromium
+
+      - name: Supplier hash identity unit test
+        run: npm test -- --testPathPattern=supplierIdentity
+
+      - name: Supplier Playwright scrape integration
+        run: npm test -- --testPathPattern=supplierScrape.integration
+
+      - name: Stripe mock integration test
+        run: npm test -- --testPathPattern=stripeIntegration
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Merchant auth HTTP tests
+        run: npm test -- --testPathPattern=auth.http --runInBand
+
+      - name: Wait for Ollama and pull model
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:11434/api/tags; then break; fi
+            sleep 2
+          done
+          curl -sf -X POST http://localhost:11434/api/pull -d '{"name":"llama3.2"}' || true
+
+      - name: Ollama contract test
+        run: npm test -- --testPathPattern=ollamaContract --runInBand
+
+      - name: Lint (typecheck)
+        run: npm run lint
+
       - name: Build
-        run: npm run build --if-present
+        run: npm run build
+        env:
+          APP_VERSION: ${{ github.sha }}
+
+      - name: Upload backend sourcemaps to Sentry
+        run: |
+          if [ -n "$SENTRY_AUTH_TOKEN" ] && [ -n "$SENTRY_ORG" ] && [ -n "$SENTRY_PROJECT" ]; then
+            PROJECT="${SENTRY_BACKEND_PROJECT:-$SENTRY_PROJECT}"
+            npx sentry-cli sourcemaps upload --org "$SENTRY_ORG" --project "$PROJECT" --release "$APP_VERSION" ./dist
+          else
+            echo "Skipping backend sourcemap upload — Sentry secrets not configured"
+          fi
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_BACKEND_PROJECT: ${{ secrets.SENTRY_BACKEND_PROJECT }}
+          APP_VERSION: ${{ github.sha }}
+
+      - name: Mail approval E2E (DB-backed, mandatory gate)
+        run: npm test -- --testPathPattern=mail-approval.e2e --runInBand
+
+      - name: Webhook boundary and supplier auth tests
+        run: npm test -- --testPathPattern="webhookBoundary|supplierWebhook" --runInBand
+
+      - name: Mail Ollama path E2E (mocked classifier)
+        run: npm test -- --testPathPattern=mail-ollama.e2e --runInBand
+
+      - name: Webhook tenant binding test
+        run: npm test -- --testPathPattern=webhookTenant --runInBand
+
+      - name: Architecture and self-evolving safety gates
+        run: npm test -- --testPathPattern="architecture|decisionContract|SupplierDecisionEngine" --runInBand
+
+      - name: Test with coverage
+        run: npm run test:ci
+
+      - name: Tenant isolation test
+        run: npm test -- --testPathPattern=tenantIsolation --runInBand
+
+      - name: Truth review (weekly gate)
+        working-directory: aether-core
+        run: node scripts/truth-review.js
+
+      - name: Runtime validation (API smoke)
+        working-directory: aether-core
+        run: node scripts/validate-runtime.js
+
+      - name: Validate DoD / truth sync (release blocker)
+        working-directory: aether-core
+        run: node scripts/validate-dod.js
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: aether-core/frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: aether-core/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run lint
+
+      - name: ESLint
+        run: npm run lint:eslint
+
+      - name: Prettier check
+        run: npm run format:check
+
+      - name: Unit & integration tests (Vitest)
+        run: npm test
+
+      - name: Coverage report (informational)
+        continue-on-error: true
+        run: npm run test:coverage
+
+      - name: Verify UI copy (zero-placeholder)
+        run: npm run verify:copy
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:9000
+          VITE_AETHER_API_KEY: ci-test-key
+          VITE_AETHER_TENANT: tenant_default
+          VITE_APP_VERSION: ${{ github.sha }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+
+      - name: Bundle size check
+        run: npm run size:check
+
+      - name: Staging build (API-only)
+        run: npm run build:staging
+        env:
+          VITE_API_BASE_URL: https://api.staging.example.com
+          VITE_AETHER_API_KEY: ci-test-key
+          VITE_AETHER_TENANT: tenant_default
+          VITE_HYBRID_DEMO: false
+          VITE_LIVE_DEMO: false
+          VITE_DATA_SOURCE: live
+          VITE_USE_MOCK: false
+          VITE_APP_VERSION: ${{ github.sha }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium
+
+      - name: Critical flow tests (Playwright)
+        run: npm run test:flows
+        env:
+          CI: true
+          VITE_API_URL: http://localhost:9000
+          VITE_AETHER_API_KEY: ci-test-key
+          VITE_AETHER_TENANT: tenant_default
+          VITE_LIVE_DEMO: false
+          VITE_HYBRID_DEMO: false
+
+      - name: Visual regression smoke
+        run: npm run test:visual
+        env:
+          CI: true
+          VITE_API_URL: http://localhost:9000
+          VITE_AETHER_API_KEY: ci-test-key
+          VITE_AETHER_TENANT: tenant_default
+
+      - name: A11y (smoke, axe gate, keyboard)
+        run: npm run test:a11y
+        env:
+          CI: true
+          VITE_API_URL: http://localhost:9000
+          VITE_AETHER_API_KEY: ci-test-key
+          VITE_AETHER_TENANT: tenant_default
+
+      - name: jsx-a11y lint (warn-only)
+        run: npm run lint:a11y
+
+      - name: Dependency audit (production)
+        run: npm run audit:ci
+
+      - name: Dependency audit (dev toolchain, informational)
+        continue-on-error: true
+        run: npm run audit:ci:dev
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: |
+            aether-core/frontend/playwright-report/
+            aether-core/frontend/test-results/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-${{ github.run_id }}
+          path: aether-core/frontend/coverage/
+          retention-days: 7
+          if-no-files-found: ignore

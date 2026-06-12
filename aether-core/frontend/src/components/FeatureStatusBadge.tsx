@@ -1,10 +1,11 @@
-import { FeatureStatus } from '../lib/api';
-import { t } from '../lib/i18n';
+import { FeatureStatus } from '@/lib/api';
+import { Badge } from '@/components/ui';
+import { t } from '@/lib/i18n';
 
-const styles: Record<FeatureStatus, string> = {
-  live: 'bg-emerald-500/20 text-emerald-400',
-  partial: 'bg-amber-500/20 text-amber-400',
-  experimental: 'bg-purple-500/20 text-purple-400',
+const variantMap: Record<FeatureStatus, 'live' | 'partial' | 'experimental'> = {
+  live: 'live',
+  partial: 'partial',
+  experimental: 'experimental',
 };
 
 const labelKeys: Record<FeatureStatus, string> = {
@@ -14,9 +15,5 @@ const labelKeys: Record<FeatureStatus, string> = {
 };
 
 export default function FeatureStatusBadge({ status }: { status: FeatureStatus }) {
-  return (
-    <span className={`text-xs uppercase tracking-widest px-3 py-1 rounded-full ${styles[status]}`}>
-      {t(labelKeys[status])}
-    </span>
-  );
+  return <Badge variant={variantMap[status]}>{t(labelKeys[status])}</Badge>;
 }

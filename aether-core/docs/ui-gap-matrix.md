@@ -20,9 +20,10 @@
 
 | Capability | Roadmap belofte | Acceptatiecriteria | Runtime status | Gap severity |
 |------------|-----------------|-------------------|----------------|--------------|
-| **AI-Native Command Center** | NL-first cockpit; backend via taal | Permanente bar; ≥40% acties via NL; NPS >70 | **Partial** — cockpit + cmd-k live | Medium |
-| **⌘K Command palette** | Globale search & command (PoC §3.2) | `Meta+K` opent palette; keyboard-only journey | **Implemented (P0)** — `CommandPalette.tsx` | Gesloten |
-| **Voice input** | v0.5 voice op command bar | Speech-to-text → NL pipeline | **Partial** — Web Speech API stub in CommandBar | Medium |
+| **AI-Native Command Center** | NL-first cockpit; backend via taal | Permanente bar; ≥40% acties via NL; NPS >70 | **Improved** — home landing (metrics, live summary, activity preview), NL hero, compound demo-flow, undo | Medium |
+| **Global NL command bar** | Permanente slimme bar op subpagina's | Context suggesties + intent pill while typing | **Improved** — `NaturalLanguageBar` + `useSmartCommandInput` | Medium |
+| **⌘K Command palette** | Globale search & command (PoC §3.2) | `Meta+K` opent palette; keyboard-only journey | **Implemented (P0)** — `CommandPalette.tsx` + contextual top row | Gesloten |
+| **Voice input** | v0.5 voice op command bar | Speech-to-text → NL pipeline | **Demo enhanced** — hero mic pulse + STT → input (geen auto-submit) | Medium |
 | **Proactive sidecar** | Contextueel meedenken op elke pagina | Realtime signalen; batch-acties | **Implemented** — SSE stream + fallback polling | Gesloten |
 | **AI insights per pagina** | Anomalieën, suggesties, voorspellingen | Context-aware panel per route | **Partial** — sidecar globaal, geen per-route density | Medium |
 | **Low Margin widget** | AI prijsvoorstellen (PoC widget 1) | Één-klik prijsoptimalisatie | **Partial** — via NL intent + dashboard metric | Medium |
@@ -39,8 +40,8 @@
 | **Design system** | Premium, consistent | Semantische tokens, primitives | **Implemented (P2)** — `tokens.css`, ui/* | Gesloten v1 |
 | **Async UX** | Skeletons, optimistic, retry | Uniform per pagina | **Implemented** — AsyncBoundary op kernpages | Gesloten v1 |
 | **Mobile cockpit** | Merchant overal | Collapsible nav, thumb zone | **Implemented (P2)** — `MobileNav` | Gesloten v1 |
-| **A11y** | WCAG AA baseline | Keyboard, ARIA, focus | **Implemented (P2)** — landmarks, labels | Partial rollout |
-| **i18n** | NL/EN merchant locales | Message keys, locale format | **Partial** — `lib/i18n.ts` foundation | Medium |
+| **A11y** | WCAG AA baseline | Keyboard, ARIA, focus | **Implemented** — skip link, palette trap, `test:a11y` in CI | Gesloten v1 |
+| **i18n** | NL/EN merchant locales | Message keys, locale format | **Implemented** — sidecar, route hints, verify guards | Gesloten v1 |
 | **Voice full / AR** | Admin v1.0 Fase 2 | Conversatie + AR overlay | **Afwezig** — P3 contracts only | Verwacht (2027) |
 | **Zero-click optimizations** | AI initieert low-risk | Post-fact explain digest | **Spec (P3)** — `ui-p3-boundary-concepts.md` | Toekomst |
 | **Causal outcome cockpit** | Holdout + confidence band | Live causal graph | **Spec (P3)** | Toekomst |

@@ -7,6 +7,8 @@ import type { SupplierMonitorPort } from '../ports/SupplierMonitorPort';
 import type { AdminDataPort } from '../ports/AdminDataPort';
 import { ALL_INTENT_HANDLERS } from '../intents/handlers';
 import type { IntentHandlerDeps } from '../intents/types';
+import { SuggestionService } from '../services/SuggestionService';
+import { withServerSpan } from '../../../../shared/observability/sentry';
 
 function matchIntent(text: string): { intent: string; parameters?: Record<string, unknown> } | null {
   const lower = text.toLowerCase();
@@ -46,6 +48,17 @@ export class ExecuteNaturalLanguageCommandUseCase {
     naturalLanguage: string,
     ctx: { tenantId: string; actorId?: string }
   ) {
+    return withServerSpan(
+      'command.execute',
+      { tenantId: ctx.tenantId, actorId: ctx.actorId ?? 'unknown' },
+      () => this.executeCommand(naturalLanguage, ctx)
+    );
+  }
+
+  private async executeCommand(
+    naturalLanguage: string,
+    ctx: { tenantId: string; actorId?: string }
+  ) {
     const parsedFromLlm = await this.parser.parseCommand(naturalLanguage);
     const regexMatch = matchIntent(naturalLanguage);
 
@@ -75,14 +88,23 @@ export class ExecuteNaturalLanguageCommandUseCase {
 
     const uplift = await computeIncrementalRevenueUplift(ctx.tenantId);
 
-    await this.commandLog.save({
-      tenantId: ctx.tenantId,
-      command: naturalLanguage,
-      intent: parsed.intent,
-      result,
-      confidence: parsed.confidence,
-      actor: ctx.actorId,
-    });
+    const undoable = SuggestionService.isUndoableIntent(parsed.intent);
+    const saved = await this.commandLog.save(
+      {
+        tenantId: ctx.tenantId,
+        command: naturalLanguage,
+        intent: parsed.intent,
+        result,
+        confidence: parsed.confidence,
+        actor: ctx.actorId,
+      },
+      undoable
+        ? {
+            undoable: true,
+            undoExpiresAt: SuggestionService.undoExpiresAtFromNow(),
+          }
+        : undefined
+    );
 
     await writeAuditLog({
       tenantId: ctx.tenantId,
@@ -108,6 +130,9 @@ export class ExecuteNaturalLanguageCommandUseCase {
       confidence: parsed.confidence,
       verifiedUplift: uplift,
       timestamp: new Date().toISOString(),
+      commandId: saved.id,
+      undoable,
+      undoExpiresAt: undoable ? SuggestionService.undoExpiresAtFromNow().toISOString() : undefined,
     };
   }
 }

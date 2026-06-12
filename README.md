@@ -1,5 +1,7 @@
 # AETHER Core v1
 
+[![AETHER Core CI](https://github.com/Steve-Mee/Aether/actions/workflows/ci.yml/badge.svg)](https://github.com/Steve-Mee/Aether/actions/workflows/ci.yml)
+
 **The world's most advanced self-learning, self-evolving, and market-aware AI e-commerce organism.**
 
 > “Open AETHER, tell it what you want to sell, and within 60 seconds your fully optimized global store is live — with AI that continuously generates more revenue than you ever thought possible. Your mailbox, suppliers, and entire backend are autonomously managed 24/7 by locally running intelligence.”
@@ -62,6 +64,20 @@ This is not “just another commerce platform”. This is the foundation of some
 - **Events**: In-memory + BullMQ (Pulsar planned)
 - **Testing**: Jest + Supertest (>85% coverage)
 - **Infra**: Docker Compose (PostgreSQL + Redis) + Cloudflare-ready
+
+---
+
+## CI/CD
+
+Production code lives in [`aether-core/`](aether-core/). Every push and PR to `main` or `develop` runs GitHub Actions:
+
+| Workflow | Purpose |
+|----------|---------|
+| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Backend + frontend quality gates (parallel) |
+| [`.github/workflows/lighthouse-weekly.yml`](.github/workflows/lighthouse-weekly.yml) | Weekly Core Web Vitals baseline |
+| [`.github/workflows/pilot-gates.yml`](.github/workflows/pilot-gates.yml) | Manual/weekly pilot metrics |
+
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for branch protection, local `verify:ci` commands, and the GitHub setup checklist. Frontend details: [`aether-core/frontend/README.md`](aether-core/frontend/README.md).
 
 ---
 

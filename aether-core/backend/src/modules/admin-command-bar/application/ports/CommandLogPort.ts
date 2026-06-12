@@ -16,7 +16,13 @@ export interface CommandLogRecord {
   createdAt: Date;
 }
 
+export interface CommandLogSaveOptions {
+  undoable?: boolean;
+  undoExpiresAt?: Date;
+}
+
 export interface CommandLogPort {
-  save(entry: CommandLogEntry): Promise<void>;
+  save(entry: CommandLogEntry, options?: CommandLogSaveOptions): Promise<CommandLogRecord>;
   findRecent(tenantId: string): Promise<CommandLogRecord[]>;
+  findById(id: string, tenantId: string): Promise<CommandLogRecord | null>;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { apiFetch } from './api';
+import { adminRepository } from '@/lib/data';
 
 /**
  * Records sidebar/route navigation for NL adoption metrics (debounced).
@@ -14,10 +14,9 @@ export function useNavigationTelemetry(): void {
     lastPath.current = location.pathname;
 
     const timer = setTimeout(() => {
-      void apiFetch('/api/admin/ui-event', {
-        method: 'POST',
-        body: JSON.stringify({ type: 'navigation', path: location.pathname }),
-      }).catch(() => undefined);
+      void adminRepository
+        .trackUiEvent({ type: 'navigation', path: location.pathname })
+        .catch(() => undefined);
     }, 400);
 
     return () => clearTimeout(timer);

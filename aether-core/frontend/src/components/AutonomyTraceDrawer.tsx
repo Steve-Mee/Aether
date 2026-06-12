@@ -1,24 +1,11 @@
-import { useEffect, useState } from 'react';
-import { X, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import React from 'react';
-import { apiFetch } from '../lib/api';
+import { adminRepository } from '@/lib/data';
 import { formatDate, t } from '../lib/i18n';
-import AsyncBoundary from './ui/AsyncBoundary';
-import Button from './ui/Button';
-
-interface AutonomyTraceEvent {
-  kind?: string;
-  at?: string;
-  label?: string;
-  stage?: string;
-  module?: string;
-  workflow?: string;
-  status?: string;
-}
-
-interface AutonomyTraceResponse {
-  events: AutonomyTraceEvent[];
-}
+import { AsyncBoundary, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui';
+import { aetherErrorMessage, useAetherQuery } from '@/lib/query/hooks';
+import { queryTiming } from '@/lib/query/client';
+import { queryKeys } from '@/lib/query/keys';
 
 interface AutonomyTraceDrawerProps {
   open: boolean;
@@ -33,85 +20,66 @@ export default function AutonomyTraceDrawer({
   decisionTitle,
   decisionDetail,
 }: AutonomyTraceDrawerProps) {
-  const [trace, setTrace] = useState<AutonomyTraceResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const query = useAetherQuery(
+    queryKeys.autonomyTrace(30),
+    () => adminRepository.autonomyTrace(30),
+    {
+      enabled: open,
+      staleTime: queryTiming.drawerStale,
+      gcTime: queryTiming.drawerGc,
+      meta: { domain: 'admin' },
+    },
+  );
 
-  useEffect(() => {
-    if (!open) return;
-    setLoading(true);
-    setError(null);
-    apiFetch<AutonomyTraceResponse>('/api/admin/autonomy/trace?limit=30')
-      .then(setTrace)
-      .catch((e) => setError(String(e instanceof Error ? e.message : e)))
-      .finally(() => setLoading(false));
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
+  const trace = query.data ?? null;
+  const loading = query.isLoading;
+  const error = aetherErrorMessage(query.error);
 
   return (
-    <>
-      <div className="fixed inset-0 bg-black/60 z-[60]" onClick={onClose} aria-hidden="true" />
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('autonomous.trace')}
-        className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[var(--color-surface)] border-l border-[var(--color-border-subtle)] z-[70] flex flex-col shadow-2xl"
+    <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
+      <SheetContent
+        side="right"
+        className="w-full max-w-md p-0 gap-0"
+        aria-describedby={decisionDetail ? 'autonomy-trace-detail' : undefined}
       >
-        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border-subtle)]">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Clock size={18} className="text-[var(--color-accent)]" />
-            {t('autonomous.trace')}
-          </h2>
-          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Sluiten">
-            <X size={18} />
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-auto p-4">
+        <SheetHeader className="p-4 border-b border-border text-left space-y-1">
+          <SheetTitle>{t('autonomous.trace')}</SheetTitle>
           {decisionTitle && (
-            <div className="mb-4 p-3 rounded-[var(--radius-lg)] bg-[var(--color-bg)] border border-[var(--color-border-subtle)]">
-              <p className="text-sm font-medium text-[var(--color-text)]">{decisionTitle}</p>
-              {decisionDetail && (
-                <p className="text-xs text-[var(--color-text-muted)] mt-1">{decisionDetail}</p>
-              )}
-            </div>
+            <p className="text-sm text-muted-foreground font-normal">{decisionTitle}</p>
           )}
-          <AsyncBoundary loading={loading} error={error} onRetry={() => setLoading(true)}>
-            {trace && trace.events.length === 0 ? (
-              <p className="text-sm text-[var(--color-text-muted)]">Geen trace-events beschikbaar.</p>
-            ) : (
-              trace && (
-                <ol className="space-y-4">
-                  {trace.events.map((event, i) => (
-                    <li key={i} className="relative pl-6 border-l border-[var(--color-border-subtle)] pb-4 last:pb-0">
-                      <span className="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-[var(--color-accent)]" />
-                      <p className="text-sm font-medium text-[var(--color-text)]">
-                        {event.label ?? event.stage ?? event.workflow ?? 'Event'}
+        </SheetHeader>
+
+        <div className="p-4 overflow-y-auto max-h-[calc(100vh-4rem)]">
+          {decisionDetail && (
+            <p id="autonomy-trace-detail" className="text-sm text-muted-foreground mb-4">
+              {decisionDetail}
+            </p>
+          )}
+          <AsyncBoundary loading={loading} error={error} onRetry={() => void query.refetch()}>
+            {trace && (
+              <ul className="space-y-4" role="list">
+                {trace.events.map((event, i) => (
+                  <li key={`${event.at ?? i}-${i}`} className="flex gap-3 text-sm">
+                    <Clock
+                      size={16}
+                      className="text-muted-foreground shrink-0 mt-0.5"
+                      aria-hidden
+                    />
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {event.label ?? event.kind ?? t('autonomous.trace')}
                       </p>
-                      <p className="text-xs text-[var(--color-text-subtle)] mt-1">
-                        {event.at ? formatDate(String(event.at)) : '—'}
-                      </p>
-                      {event.module && (
-                        <p className="text-xs text-[var(--color-text-subtle)] mt-1">{event.module}</p>
+                      {event.at && (
+                        <p className="text-muted-foreground text-xs">{formatDate(event.at)}</p>
                       )}
-                    </li>
-                  ))}
-                </ol>
-              )
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </AsyncBoundary>
         </div>
-      </aside>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -4,6 +4,7 @@ import { prisma } from '../../shared/prisma/client';
 import { requireOperator, requireViewer } from '../../shared/security/rbac';
 import { resolveApproval } from '../../shared/approval/approvalService';
 import { validateBody } from '../../shared/security/validate';
+import { withServerSpan } from '../../shared/observability/sentry';
 
 import {
   assessApprovalAutoEligible,
@@ -36,7 +37,7 @@ router.post('/auto-apply', requireOperator, async (req: Request, res: Response) 
 
   for (const approval of pending) {
     const payload = JSON.parse(approval.payload) as Record<string, unknown>;
-    const assessment = assessApprovalAutoEligible({
+    const assessment = await assessApprovalAutoEligible({
       tenantId,
       module: approval.module,
       actionType: approval.actionType,
@@ -65,12 +66,21 @@ router.post(
   validateBody(resolveSchema),
   async (req: Request, res: Response) => {
     const { approve } = req.body;
-    await resolveApproval({
-      id: req.params.id,
-      tenantId: req.tenantId!,
-      approve,
-      resolvedBy: req.actorId ?? 'unknown',
-    });
+    await withServerSpan(
+      'approval.resolve',
+      {
+        tenantId: req.tenantId!,
+        approvalId: req.params.id,
+        approve,
+      },
+      () =>
+        resolveApproval({
+          id: req.params.id,
+          tenantId: req.tenantId!,
+          approve,
+          resolvedBy: req.actorId ?? 'unknown',
+        })
+    );
     res.json({ success: true });
   }
 );

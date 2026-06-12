@@ -1,27 +1,39 @@
 import { Zap } from 'lucide-react';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { apiFetch, TenantApprovalPolicy } from '../../lib/api';
-import { useAsyncData } from '../../lib/useAsyncData';
 import { t } from '../../lib/i18n';
+import {
+  autoRunWindowLabel,
+  isAutonomousWindowOpen,
+} from '../../lib/settings/merchantSettingsTypes';
+import { useMerchantSettings } from '../../lib/settings/MerchantSettingsContext';
 import InsightState from '../ui/InsightState';
 
 export default function AutoRunWindowCard() {
-  const { data: policy } = useAsyncData(async () => {
-    const res = await apiFetch<{ policy: TenantApprovalPolicy }>('/api/admin/policies/approval');
-    return res.policy;
-  });
+  const { settings } = useMerchantSettings();
 
-  if (!policy?.enabled || !policy.autoApproveLowRisk) return null;
+  if (!settings.policyEnabled || !settings.autoApproveLowRisk) return null;
+
+  const windowOpen = isAutonomousWindowOpen(settings);
+  const windowLabel = autoRunWindowLabel(settings);
 
   return (
-    <InsightState variant="active">
+    <InsightState variant={windowOpen ? 'active' : 'idle'}>
       <div className="flex gap-3">
-        <Zap size={18} className="text-[var(--color-warning)] shrink-0 mt-0.5" />
+        <Zap size={18} className="text-warning shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-medium text-[var(--color-text)]">{t('cockpit.autoRun.title')}</p>
-          <p className="text-xs text-[var(--color-text-muted)] mt-1">{t('cockpit.autoRun.detail')}</p>
-          <Link to="/settings" className="text-xs text-[var(--color-intent)] hover:underline mt-2 inline-block">
+          <p className="text-sm font-medium text-foreground">{t('cockpit.autoRun.title')}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {settings.autoRunWindow === 'always'
+              ? t('cockpit.autoRun.detail')
+              : `${t('settings.autonomy.autoRunWindow')}: ${windowLabel} · ${
+                  windowOpen ? t('cockpit.autoRun.active') : t('cockpit.autoRun.inactive')
+                }`}
+          </p>
+          <Link
+            to="/settings"
+            className="text-xs text-primary/80 hover:underline mt-2 inline-block"
+          >
             {t('cockpit.autoRun.settings')} →
           </Link>
         </div>

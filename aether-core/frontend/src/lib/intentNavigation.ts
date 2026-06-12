@@ -1,3 +1,5 @@
+export { routeForIntent, INTENT_ROUTES } from '@/lib/navigation/routes';
+
 export const SUGGESTED_COMMANDS = [
   { label: 'Toon lage margin producten', command: 'Toon producten met margin onder 25%' },
   { label: 'Mail samenvatting', command: 'Samenvatting van alle openstaande mails' },
@@ -6,25 +8,6 @@ export const SUGGESTED_COMMANDS = [
   { label: 'Outcome rapport', command: 'Toon outcome en uplift rapport' },
   { label: 'Voorraad status', command: 'Toon voorraad status' },
 ] as const;
-
-const INTENT_ROUTES: Record<string, string> = {
-  LOW_MARGIN_REPORT: '/products',
-  EMAIL_SUMMARY: '/emails',
-  PENDING_APPROVALS: '/approvals',
-  SUPPLIER_MONITOR: '/suppliers',
-  SUPPLIER_CREATE: '/suppliers',
-  INVENTORY_STATUS: '/products',
-  ORDER_STATUS: '/orders',
-  OUTCOMES_REPORT: '/outcomes',
-  OUTCOME_VERIFY: '/outcomes',
-  APPROVE_CHANGES: '/approvals',
-  FORECAST: '/insights',
-  PRICE_UPDATE: '/products',
-};
-
-export function routeForIntent(intent: string): string | null {
-  return INTENT_ROUTES[intent] ?? null;
-}
 
 export type RiskBand = 'low' | 'medium' | 'high';
 

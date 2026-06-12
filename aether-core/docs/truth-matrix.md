@@ -30,7 +30,9 @@ Status legend: `implemented` | `partial` | `planned` | `experimental` | `scaffol
 | LangGraph / multi-agent graph | planned | Not implemented in `aether-core` |
 | Event bus | implemented | In-process + optional `EVENT_BUS_URL` forward |
 | Approvals & audit | implemented | `/api/approvals` + ApprovalExecutor on resolve; mail approval-execute E2E |
+| Activity log / audit trail | partial | `GET /api/admin/activity`; `/timeline` UI; hybrid demo feed |
 | Frontend admin UI | implemented | Status badges from `/api/admin/truth-status`; no hardcoded live claims |
+| Observability (Sentry) | implemented | Frontend `errorReporter` + `businessEvents`; backend `sentry.ts`; distributed trace propagation; OTEL parallel |
 | CI quality gates | implemented | Runtime DoD validation + coverage ≥60%; mandatory E2E in CI |
 | Prisma schema / migrations | implemented | `v070_foundation` + `v080_roadmap` + `roadmap_v1` |
 

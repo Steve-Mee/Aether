@@ -1,6 +1,7 @@
 import { prisma } from '../../../../shared/prisma/client';
 import { logger } from '../../../../shared/logging/logger';
 import { getCompositionRoot } from '../../../../bootstrap/compositionRoot';
+import { withServerSpan } from '../../../../shared/observability/sentry';
 
 export class MonitorSupplierJob {
   private timer: NodeJS.Timeout | null = null;
@@ -22,13 +23,20 @@ export class MonitorSupplierJob {
 
   async runAll(): Promise<void> {
     const { monitorSupplierUseCase } = getCompositionRoot();
-    const suppliers = await prisma.supplier.findMany();
+    const suppliers = await prisma.supplier.findMany({
+      where: { status: 'active', autoSyncEnabled: true },
+    });
     for (const s of suppliers) {
       try {
-        await monitorSupplierUseCase.execute(s.id, {
-          tenantId: s.tenantId,
-          actorId: 'scheduler',
-        });
+        await withServerSpan(
+          'supplier.monitor',
+          { tenantId: s.tenantId, supplierId: s.id },
+          () =>
+            monitorSupplierUseCase.execute(s.id, {
+              tenantId: s.tenantId,
+              actorId: 'scheduler',
+            })
+        );
       } catch (error) {
         logger.warn('supplier_monitor_failed', { supplierId: s.id, error: String(error) });
       }

@@ -1,11 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
-import { apiStreamFetch, apiFetch, DashboardSummary } from './api';
+import { useQueryClient } from '@tanstack/react-query';
+import { env } from '@/lib/config';
+import { dashboardRepository } from '@/lib/data';
+import { toUserMessage } from '@/lib/api/errors';
+import { apiStreamFetch, type DashboardSummary } from './api';
+import { queryKeys } from './query/keys';
 
-const FALLBACK_POLL_MS = 30_000;
+const FALLBACK_POLL_MS = 60_000;
+
+function syncDashboardCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  data: DashboardSummary,
+): void {
+  queryClient.setQueryData(queryKeys.dashboard(), data);
+}
 
 /**
- * Realtime dashboard via SSE (/api/admin/events/stream).
- * Falls back to polling if stream unavailable.
+ * Realtime dashboard via SSE (/api/admin/events/stream) in live mode.
+ * Mock mode: poll via dashboardRepository (no SSE).
  */
 export function useDashboardStream(): {
   data: DashboardSummary | null;
@@ -13,33 +25,62 @@ export function useDashboardStream(): {
   error: string | null;
   reload: () => void;
 } {
-  const [data, setData] = useState<DashboardSummary | null>(null);
-  const [connected, setConnected] = useState(false);
+  const queryClient = useQueryClient();
+  const [data, setData] = useState<DashboardSummary | null>(
+    () => queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard()) ?? null,
+  );
+  const [connected, setConnected] = useState(env.isMockMode);
   const [error, setError] = useState<string | null>(null);
   const fallbackRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const applyData = (d: DashboardSummary) => {
+    setData(d);
+    syncDashboardCache(queryClient, d);
+  };
+
+  const fetchDashboard = () =>
+    dashboardRepository
+      .fetch()
+      .then(applyData)
+      .catch((e) => setError(toUserMessage(e)));
+
+  const fetchDashboardIfStale = () => {
+    const state = queryClient.getQueryState(queryKeys.dashboard());
+    if (state?.dataUpdatedAt && Date.now() - state.dataUpdatedAt < FALLBACK_POLL_MS) {
+      return Promise.resolve();
+    }
+    return fetchDashboard();
+  };
+
   const reload = () => {
-    apiFetch<DashboardSummary>('/api/admin/dashboard')
-      .then(setData)
-      .catch((e) => setError(String(e instanceof Error ? e.message : e)));
+    void fetchDashboard();
   };
 
   useEffect(() => {
     let cancelled = false;
-    const controller = new AbortController();
 
-    const startFallback = () => {
+    const startPoll = () => {
       if (fallbackRef.current) return;
-      const poll = () => {
-        apiFetch<DashboardSummary>('/api/admin/dashboard')
-          .then((d) => {
-            if (!cancelled) setData(d);
-          })
-          .catch(() => undefined);
-      };
-      poll();
-      fallbackRef.current = setInterval(poll, FALLBACK_POLL_MS);
+      void fetchDashboardIfStale();
+      fallbackRef.current = setInterval(() => {
+        if (!cancelled) void fetchDashboardIfStale();
+      }, FALLBACK_POLL_MS);
     };
+
+    if (env.isMockMode) {
+      setConnected(true);
+      setError(null);
+      startPoll();
+      return () => {
+        cancelled = true;
+        if (fallbackRef.current) {
+          clearInterval(fallbackRef.current);
+          fallbackRef.current = null;
+        }
+      };
+    }
+
+    const controller = new AbortController();
 
     void (async () => {
       try {
@@ -68,7 +109,7 @@ export function useDashboardStream(): {
             if (!line) continue;
             try {
               const json = JSON.parse(line.slice(5).trim()) as DashboardSummary;
-              if (!cancelled) setData(json);
+              if (!cancelled) applyData(json);
             } catch {
               /* ignore malformed chunk */
             }
@@ -77,8 +118,8 @@ export function useDashboardStream(): {
       } catch (err) {
         if (!cancelled) {
           setConnected(false);
-          setError(String(err instanceof Error ? err.message : err));
-          startFallback();
+          setError(toUserMessage(err));
+          startPoll();
         }
       }
     })();
@@ -91,7 +132,7 @@ export function useDashboardStream(): {
         fallbackRef.current = null;
       }
     };
-  }, []);
+  }, [queryClient]);
 
   return { data, connected, error, reload };
 }

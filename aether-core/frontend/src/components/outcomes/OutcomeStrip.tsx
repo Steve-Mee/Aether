@@ -2,7 +2,7 @@ import React from 'react';
 import { useDashboard } from '../../lib/DashboardContext';
 import { formatCurrency, t } from '../../lib/i18n';
 import MetricDelta from '../ui/MetricDelta';
-import SkeletonPulse from '../ui/SkeletonPulse';
+import { Skeleton } from '@/components/ui';
 
 export default function OutcomeStrip() {
   const { data } = useDashboard();
@@ -11,7 +11,7 @@ export default function OutcomeStrip() {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {[1, 2, 3, 4, 5].map((i) => (
-          <SkeletonPulse key={i} className="h-24" />
+          <Skeleton key={i} className="h-24" />
         ))}
       </div>
     );

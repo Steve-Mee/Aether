@@ -85,6 +85,7 @@ const mockAdminData: AdminDataPort = {
 const mockCommandLog = {
   save: jest.fn().mockResolvedValue(undefined),
   findRecent: jest.fn().mockResolvedValue([]),
+  findById: jest.fn().mockResolvedValue(null),
 };
 
 function createUseCase() {

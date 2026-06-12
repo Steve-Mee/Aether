@@ -22,7 +22,12 @@
     "orchestration": { "status": "partial", "label": "AI orchestration layer" },
     "event-bus": { "status": "live", "label": "Event bus" },
     "approvals-audit": { "status": "live", "label": "Approvals & audit (resolve executes actions)" },
+    "activity-log": { "status": "partial", "label": "Activity log / audit trail (GET /api/admin/activity)" },
     "frontend-admin": { "status": "live", "label": "Frontend admin UI" },
+    "observability-sentry": {
+      "status": "live",
+      "label": "Sentry observability (frontend + backend error monitoring, tracing, business events)"
+    },
     "ci-quality": { "status": "live", "label": "CI quality gates" },
     "prisma-migrations": { "status": "live", "label": "Prisma schema / migrations" }
   },

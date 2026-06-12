@@ -16,18 +16,66 @@ model Tenant {
 
   users     User[]
   apiKeys   ApiKey[]
+  settings  TenantSettings?
+}
+
+model TenantSettings {
+  tenantId                  String   @id
+  autonomyLevel             String   @default("medium")
+  autoApproveLowRisk        Boolean  @default(true)
+  autoApproveMediumRiskMail  Boolean  @default(false)
+  maxAutoPriceChangePct     Float    @default(5)
+  maxMarginImpactEuro       Float    @default(500)
+  policyEnabled             Boolean  @default(true)
+  autoRunWindow             String   @default("always")
+  autoRunWindowStart        String?  @default("18:00")
+  autoRunWindowEnd          String?  @default("08:00")
+  notificationPrefs         Json     @default("{}")
+  locale                    String   @default("nl")
+  dataExportEnabled         Boolean  @default(true)
+  updatedAt                 DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
 
 model User {
-  id        String   @id @default(cuid())
-  tenantId  String
-  email     String
-  role      String   @default("operator")
-  createdAt DateTime @default(now())
+  id           String         @id @default(cuid())
+  tenantId     String
+  email        String
+  role         String         @default("operator")
+  passwordHash String?
+  createdAt    DateTime       @default(now())
 
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  refreshTokens RefreshToken[]
 
   @@unique([tenantId, email])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model NotificationInboxState {
+  id             String    @id @default(cuid())
+  tenantId       String
+  actorId        String
+  notificationId String
+  readAt         DateTime?
+  dismissedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@unique([tenantId, actorId, notificationId])
+  @@index([tenantId, actorId])
 }
 
 model ApiKey {
@@ -138,11 +186,14 @@ model Mailbox {
 }
 
 model Supplier {
-  id        String   @id @default(cuid())
-  tenantId  String
-  name      String
-  website   String
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  tenantId        String
+  name            String
+  website         String
+  status          String   @default("active")
+  autoSyncEnabled Boolean  @default(true)
+  supplierType    String?
+  createdAt       DateTime @default(now())
 
   products  SupplierProduct[]
 }
@@ -182,14 +233,17 @@ model Decision {
 }
 
 model Command {
-  id         String   @id @default(cuid())
-  tenantId   String
-  command    String
-  intent     String?
-  result     String?
-  confidence Float?
-  actor      String?
-  createdAt  DateTime @default(now())
+  id            String    @id @default(cuid())
+  tenantId      String
+  command       String
+  intent        String?
+  result        String?
+  confidence    Float?
+  actor         String?
+  undoable      Boolean   @default(false)
+  revertedAt    DateTime?
+  undoExpiresAt DateTime?
+  createdAt     DateTime  @default(now())
 }
 
 model Approval {

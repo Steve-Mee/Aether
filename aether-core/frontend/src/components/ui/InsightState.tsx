@@ -4,9 +4,9 @@ import React from 'react';
 type InsightStateVariant = 'idle' | 'active' | 'urgent';
 
 const variantStyles: Record<InsightStateVariant, string> = {
-  idle: 'border-[var(--color-border-subtle)]',
-  active: 'border-[var(--color-accent)]/30',
-  urgent: 'border-[var(--color-danger)]/40',
+  idle: 'border-border/40',
+  active: 'border-primary/30',
+  urgent: 'border-destructive/40',
 };
 
 export default function InsightState({
@@ -16,7 +16,5 @@ export default function InsightState({
   variant?: InsightStateVariant;
   children: ReactNode;
 }) {
-  return (
-    <div className={`rounded-[var(--radius-lg)] border p-4 ${variantStyles[variant]}`}>{children}</div>
-  );
+  return <div className={`rounded-lg border p-4 ${variantStyles[variant]}`}>{children}</div>;
 }

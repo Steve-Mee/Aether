@@ -1,0 +1,67 @@
+name: Lighthouse CWV Weekly
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: aether-core/frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: aether-core/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_URL: http://localhost:9000
+          VITE_AETHER_API_KEY: ci-test-key
+          VITE_AETHER_TENANT: tenant_default
+
+      - name: Start preview server
+        run: npx vite preview --host 127.0.0.1 --port 4173 &
+        env:
+          CI: true
+
+      - name: Wait for preview
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:4173/; then exit 0; fi
+            sleep 2
+          done
+          echo "Preview server did not start"
+          exit 1
+
+      - name: Run Lighthouse CWV gate
+        run: node scripts/lighthouse-cwv.mjs
+        env:
+          LH_MIN_SCORE: '0.60'
+
+      - name: Upload Lighthouse summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-cwv-${{ github.run_id }}
+          path: |
+            aether-core/frontend/.lighthouse-cwv-summary.json
+            aether-core/frontend/.lighthouse-*.json
+          retention-days: 30
+          if-no-files-found: ignore

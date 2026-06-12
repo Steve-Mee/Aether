@@ -3,6 +3,7 @@ import { createApp, VERSION } from './app';
 import { disconnectPrisma } from './shared/prisma/client';
 import { logger } from './shared/logging/logger';
 import { initOtelSdk, shutdownOtelSdk } from './shared/observability/otelBootstrap';
+import { initSentry, shutdownSentry } from './shared/observability/sentry';
 import { imapPollingService } from './modules/aether-mail/infrastructure/imap/ImapPollingService';
 import { monitorSupplierJob } from './modules/supplier-intelligence/infrastructure/jobs/MonitorSupplierJob';
 import { federatedHiveJob } from './modules/zero-knowledge-hive-mind/infrastructure/jobs/FederatedHiveJobScheduler';
@@ -12,6 +13,7 @@ import { processEventOutbox } from './bootstrap/compositionRoot';
 const PORT = process.env.PORT || 9000;
 const DEFAULT_TENANT = process.env.AETHER_DEFAULT_TENANT ?? 'tenant_default';
 
+initSentry();
 initOtelSdk();
 
 async function assertOllamaReachable(): Promise<void> {
@@ -83,6 +85,7 @@ async function startServer(): Promise<void> {
     federatedHiveJob.stop();
     server.close(async () => {
       await shutdownOtelSdk();
+      await shutdownSentry();
       await disconnectPrisma();
       process.exit(0);
     });

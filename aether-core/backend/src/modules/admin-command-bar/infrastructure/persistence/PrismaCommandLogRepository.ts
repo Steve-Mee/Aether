@@ -10,14 +10,17 @@ export interface CommandLogEntry {
 }
 
 export class PrismaCommandLogRepository {
-  async save(entry: {
-    tenantId: string;
-    command: string;
-    intent?: string;
-    result?: string;
-    confidence?: number;
-    actor?: string;
-  }): Promise<CommandLogEntry> {
+  async save(
+    entry: {
+      tenantId: string;
+      command: string;
+      intent?: string;
+      result?: string;
+      confidence?: number;
+      actor?: string;
+    },
+    options?: { undoable?: boolean; undoExpiresAt?: Date }
+  ): Promise<CommandLogEntry> {
     const row = await prisma.command.create({
       data: {
         tenantId: entry.tenantId,
@@ -26,8 +29,23 @@ export class PrismaCommandLogRepository {
         result: entry.result,
         confidence: entry.confidence,
         actor: entry.actor,
+        undoable: options?.undoable ?? false,
+        undoExpiresAt: options?.undoExpiresAt,
       },
     });
+    return {
+      id: row.id,
+      command: row.command,
+      result: row.result,
+      intent: row.intent,
+      confidence: row.confidence,
+      createdAt: row.createdAt,
+    };
+  }
+
+  async findById(id: string, tenantId: string): Promise<CommandLogEntry | null> {
+    const row = await prisma.command.findFirst({ where: { id, tenantId } });
+    if (!row) return null;
     return {
       id: row.id,
       command: row.command,
