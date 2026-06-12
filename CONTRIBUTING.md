@@ -183,11 +183,15 @@ Complete after merging the CI/CD workflows:
 
 ## First-time CI verification
 
-After the initial CI/CD merge, open a PR that touches `aether-core/` or `.github/` and confirm:
+Track the open verification PR: [PR #1 — CI/CD pipeline](https://github.com/Steve-Mee/Aether/pull/1) on branch `ci-cd-perfection`.
 
-- `backend` job green (Postgres + Ollama services)
+After merge, confirm on each PR:
+
+- `backend` job green (Postgres + Ollama + Stripe mock services)
 - `frontend` job green (Playwright + size-limit)
-- Artifacts downloadable from the run page
+- Artifacts downloadable from the run page (playwright-report, coverage)
+
+If Playwright flow tests fail in CI but pass locally, re-run with `npm run build && npm run verify:ci:e2e` and compare artifacts from the failed GitHub run.
 
 ## Questions
 
