@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupFlowPage } from '../shared/flow-helpers';
+import { getCommandBarInput, setupFlowPage } from '../shared/flow-helpers';
 
 test.describe('Insights after command flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -16,7 +16,7 @@ test.describe('Insights after command flow', () => {
 
     await page.goto('/suppliers');
     await expect(page.getByTestId('global-command-bar')).toBeVisible({ timeout: 15000 });
-    const input = page.getByTestId('global-command-bar').getByRole('textbox');
+    const input = getCommandBarInput(page);
     await input.fill('Toon goedkeuringen');
     await input.press('Enter');
     await expect(page.getByTestId('command-api-response')).toBeVisible({ timeout: 15000 });

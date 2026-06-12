@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupFlowPage } from '../shared/flow-helpers';
+import { getCommandBarInput, setupFlowPage } from '../shared/flow-helpers';
 
 test.describe('Command undo flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -10,7 +10,7 @@ test.describe('Command undo flow', () => {
     await page.goto('/suppliers');
     await expect(page.getByTestId('global-command-bar')).toBeVisible({ timeout: 15000 });
 
-    const input = page.getByTestId('global-command-bar').getByRole('textbox');
+    const input = getCommandBarInput(page);
     await input.fill('Sync leveranciers');
     await input.press('Enter');
 

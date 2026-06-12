@@ -28,6 +28,12 @@ test-ci-out*.txt
 !**/.env.example
 docker-compose.override.yml
 
+## Local Lighthouse / bundle analysis artifacts
+**/.lighthouse-*.json
+**/lighthouse-insights.json
+**/*.report.html
+**/stats.html
+
 ## Local databases and Prisma runtime artifacts
 **/*.db
 **/*.sqlite

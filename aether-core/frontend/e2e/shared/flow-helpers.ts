@@ -7,3 +7,8 @@ export async function setupFlowPage(page: Page): Promise<void> {
   await setupAuthenticatedSession(page);
   await setupMockAdminApi(page);
 }
+
+/** NL command bar input (role=combobox, not textbox). */
+export function getCommandBarInput(page: Page) {
+  return page.getByTestId('global-command-bar').getByRole('combobox');
+}

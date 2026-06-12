@@ -14,7 +14,7 @@ test.describe('Supplier sync activity flow', () => {
       timeout: 15000,
     });
 
-    await page.getByTestId(`supplier-card-${SUPPLIER_ID}`).click();
+    await page.getByTestId(`supplier-card-${SUPPLIER_ID}`).getByRole('button').click();
     await expect(page.getByTestId('supplier-detail-sheet')).toBeVisible({ timeout: 15000 });
 
     const syncButton = page.getByRole('button', { name: /Handmatig syncen|Sync now/i });

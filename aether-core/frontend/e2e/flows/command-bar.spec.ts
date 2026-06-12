@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupFlowPage } from '../shared/flow-helpers';
+import { getCommandBarInput, setupFlowPage } from '../shared/flow-helpers';
 import { setCommandExecuteFails } from '../shared/playwrightApiState';
 
 test.describe('Command bar flow', () => {
@@ -11,7 +11,7 @@ test.describe('Command bar flow', () => {
     await page.goto('/suppliers');
     await expect(page.getByTestId('global-command-bar')).toBeVisible({ timeout: 15000 });
 
-    const input = page.getByTestId('global-command-bar').getByRole('textbox');
+    const input = getCommandBarInput(page);
     await expect(input).toBeVisible({ timeout: 15000 });
     await input.fill('Toon openstaande goedkeuringen');
     await input.press('Enter');
@@ -25,7 +25,7 @@ test.describe('Command bar flow', () => {
 
     await page.goto('/suppliers');
     await expect(page.getByTestId('global-command-bar')).toBeVisible({ timeout: 15000 });
-    const input = page.getByTestId('global-command-bar').getByRole('textbox');
+    const input = getCommandBarInput(page);
     await expect(input).toBeVisible({ timeout: 15000 });
     await input.fill('Mislukt commando');
     await input.press('Enter');

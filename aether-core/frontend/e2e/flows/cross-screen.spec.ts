@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { setupFlowPage } from '../shared/flow-helpers';
+import { getCommandBarInput, setupFlowPage } from '../shared/flow-helpers';
 
 test.describe('Cross-screen flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,7 +8,7 @@ test.describe('Cross-screen flow', () => {
 
   test('command execution navigates to approvals with consistent queue', async ({ page }) => {
     await page.goto('/suppliers');
-    const input = page.getByTestId('global-command-bar').getByRole('textbox');
+    const input = getCommandBarInput(page);
     await input.fill('Toon goedkeuringen');
     await input.press('Enter');
 
