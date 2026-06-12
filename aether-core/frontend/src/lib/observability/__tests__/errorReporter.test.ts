@@ -137,7 +137,9 @@ describe('errorReporter', () => {
   it('scrubSentryEventForTests drops auth and validation events', async () => {
     const { scrubSentryEventForTests } = await import('../errorReporter');
     expect(
-      scrubSentryEventForTests({ extra: { kind: 'auth' } } as unknown as import('@sentry/react').ErrorEvent),
+      scrubSentryEventForTests({
+        extra: { kind: 'auth' },
+      } as unknown as import('@sentry/react').ErrorEvent),
     ).toBeNull();
     expect(
       scrubSentryEventForTests({

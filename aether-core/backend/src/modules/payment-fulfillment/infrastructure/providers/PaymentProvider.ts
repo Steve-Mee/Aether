@@ -42,23 +42,31 @@ export class StripePaymentProvider implements PaymentProvider {
 
     try {
       const Stripe = (await import('stripe')).default;
+      const useStripeMock = Boolean(process.env.STRIPE_API_HOST);
       const stripeOptions: ConstructorParameters<typeof Stripe>[1] = {
-        apiVersion: '2025-02-24.acacia',
+        apiVersion: useStripeMock ? '2020-08-27' : '2025-02-24.acacia',
       };
-      if (process.env.STRIPE_API_HOST) {
+      if (useStripeMock) {
         stripeOptions.host = process.env.STRIPE_API_HOST;
         stripeOptions.port = Number(process.env.STRIPE_API_PORT ?? 12111);
         stripeOptions.protocol = (process.env.STRIPE_API_PROTOCOL as 'http' | 'https') ?? 'http';
       }
       const stripe = new Stripe(secretKey, stripeOptions);
-      const intent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100),
-        currency: 'eur',
-        metadata: { orderId },
-        ...(process.env.STRIPE_API_HOST
-          ? { payment_method_types: ['card'] as const }
-          : { automatic_payment_methods: { enabled: true } }),
-      });
+      const intent = await stripe.paymentIntents.create(
+        useStripeMock
+          ? {
+              amount: Math.round(amount * 100),
+              currency: 'eur',
+              metadata: { orderId },
+              payment_method_types: ['card'],
+            }
+          : {
+              amount: Math.round(amount * 100),
+              currency: 'eur',
+              metadata: { orderId },
+              automatic_payment_methods: { enabled: true },
+            }
+      );
       return {
         success: intent.status === 'succeeded' || intent.status === 'requires_payment_method',
         transactionId: intent.id,
