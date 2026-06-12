@@ -93,6 +93,13 @@ jobs:
       - name: Supplier Playwright scrape integration
         run: npm test -- --testPathPattern=supplierScrape.integration
 
+      - name: Wait for Stripe mock
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:12111/; then break; fi
+            sleep 2
+          done
+
       - name: Stripe mock integration test
         run: npm test -- --testPathPattern=stripeIntegration
 

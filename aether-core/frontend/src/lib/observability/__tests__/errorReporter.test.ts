@@ -123,7 +123,7 @@ describe('errorReporter', () => {
         username: 'merchant',
         ip_address: '1.2.3.4',
       },
-    } as import('@sentry/react').ErrorEvent);
+    } as unknown as import('@sentry/react').ErrorEvent);
 
     expect(scrubbed?.extra?.authorization).toBe('[Redacted]');
     expect(scrubbed?.extra?.email).toBe('[Redacted]');
@@ -137,12 +137,12 @@ describe('errorReporter', () => {
   it('scrubSentryEventForTests drops auth and validation events', async () => {
     const { scrubSentryEventForTests } = await import('../errorReporter');
     expect(
-      scrubSentryEventForTests({ extra: { kind: 'auth' } } as import('@sentry/react').ErrorEvent),
+      scrubSentryEventForTests({ extra: { kind: 'auth' } } as unknown as import('@sentry/react').ErrorEvent),
     ).toBeNull();
     expect(
       scrubSentryEventForTests({
         extra: { kind: 'validation' },
-      } as import('@sentry/react').ErrorEvent),
+      } as unknown as import('@sentry/react').ErrorEvent),
     ).toBeNull();
   });
 });

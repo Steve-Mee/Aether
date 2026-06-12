@@ -55,7 +55,9 @@ export class StripePaymentProvider implements PaymentProvider {
         amount: Math.round(amount * 100),
         currency: 'eur',
         metadata: { orderId },
-        automatic_payment_methods: { enabled: true },
+        ...(process.env.STRIPE_API_HOST
+          ? { payment_method_types: ['card'] as const }
+          : { automatic_payment_methods: { enabled: true } }),
       });
       return {
         success: intent.status === 'succeeded' || intent.status === 'requires_payment_method',
