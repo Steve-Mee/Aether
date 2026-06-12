@@ -12,6 +12,7 @@ test.describe('Command bar flow', () => {
     await expect(page.getByTestId('global-command-bar')).toBeVisible({ timeout: 15000 });
 
     const input = page.getByTestId('global-command-bar').getByRole('textbox');
+    await expect(input).toBeVisible({ timeout: 15000 });
     await input.fill('Toon openstaande goedkeuringen');
     await input.press('Enter');
 
@@ -23,7 +24,9 @@ test.describe('Command bar flow', () => {
     setCommandExecuteFails(true);
 
     await page.goto('/suppliers');
+    await expect(page.getByTestId('global-command-bar')).toBeVisible({ timeout: 15000 });
     const input = page.getByTestId('global-command-bar').getByRole('textbox');
+    await expect(input).toBeVisible({ timeout: 15000 });
     await input.fill('Mislukt commando');
     await input.press('Enter');
 
