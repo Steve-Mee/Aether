@@ -149,7 +149,7 @@ test.describe('Suppliers page /suppliers', () => {
   });
 
   test('opens detail sheet with sync history', async ({ page }) => {
-    await page.getByTestId('supplier-card-sup_e2e_1').click();
+    await page.getByTestId('supplier-card-sup_e2e_1').getByRole('button').click();
     await expect(page.getByTestId('supplier-detail-sheet')).toBeVisible();
     await expect(page.getByTestId('supplier-recent-syncs')).toBeVisible();
   });

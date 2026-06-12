@@ -85,7 +85,7 @@ test.describe('Global command bar', () => {
     await page.goto('/approvals');
     await expect(page.getByTestId('global-command-bar')).toBeVisible({ timeout: 15000 });
 
-    const input = page.getByTestId('global-command-bar').getByRole('textbox');
+    const input = page.getByTestId('global-command-bar').getByRole('combobox');
     await input.click();
     await input.fill('goedkeur');
 
