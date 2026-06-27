@@ -1,6 +1,18 @@
+import { emitStreamEvent } from '../command-brain/AgentStreamEvents';
 import type { AgentRegistry } from './AgentRegistry';
 import type { SpecialistAgentRunner } from './SpecialistAgentRunner';
-import type { ParallelSpecialistRequest, ParallelSpecialistResult } from './types';
+import { wrapAgentEvent } from './agentStreamWrap';
+import { getMaxParallelAgents, runWithConcurrency } from './parallelConfig';
+import type { AgentBranchResult, ParallelSpecialistRequest, ParallelSpecialistResult } from './types';
+
+function skippedBranch(agentKey: string, reason: string): AgentBranchResult {
+  return {
+    agentKey,
+    status: 'skipped',
+    narrative: '',
+    error: reason,
+  };
+}
 
 export class ParallelCoordinator {
   constructor(
@@ -9,43 +21,134 @@ export class ParallelCoordinator {
   ) {}
 
   async executeParallel(request: ParallelSpecialistRequest): Promise<ParallelSpecialistResult> {
-    const results = await Promise.all(
-      request.agents.map(async (agentSpec) => {
-        const def = this.registry.resolveByKey(agentSpec.agentKey);
-        if (!def) {
-          return {
-            narrative: '',
-            error: `Unknown agent: ${agentSpec.agentKey}`,
-          };
-        }
-        try {
-          return await this.specialistRunner.runWithDefinition(def, {
-            tenantId: request.tenantId,
+    emitStreamEvent(request.onEvent, {
+      type: 'agent_assigned',
+      agentKey: request.agents.map((a) => a.agentKey).join(','),
+      executionMode: 'parallel',
+    });
+
+    const concurrencyLimit = getMaxParallelAgents();
+    const agentsToRun = request.agents.slice(0, concurrencyLimit);
+    const skippedSpecs = request.agents.slice(concurrencyLimit);
+
+    for (const spec of skippedSpecs) {
+      emitStreamEvent(request.onEvent, {
+        type: 'agent_completed',
+        agentKey: spec.agentKey,
+        error: `Skipped: max parallel agents (${concurrencyLimit})`,
+        executionMode: 'parallel',
+      });
+    }
+
+    const branchTasks = agentsToRun.map((agentSpec) => async (): Promise<AgentBranchResult> => {
+      if (request.abortSignal?.aborted) {
+        const error = 'cancelled';
+        emitStreamEvent(request.onEvent, {
+          type: 'agent_completed',
+          agentKey: agentSpec.agentKey,
+          error,
+          executionMode: 'parallel',
+        });
+        return skippedBranch(agentSpec.agentKey, error);
+      }
+
+      emitStreamEvent(request.onEvent, {
+        type: 'agent_started',
+        agentKey: agentSpec.agentKey,
+        executionMode: 'parallel',
+      });
+
+      const def = this.registry.resolveByKey(agentSpec.agentKey);
+      if (!def) {
+        const error = `Unknown agent: ${agentSpec.agentKey}`;
+        emitStreamEvent(request.onEvent, {
+          type: 'agent_completed',
+          agentKey: agentSpec.agentKey,
+          error,
+          executionMode: 'parallel',
+        });
+        return {
+          agentKey: agentSpec.agentKey,
+          status: 'failed',
+          narrative: '',
+          error,
+        };
+      }
+
+      try {
+        const result = await this.specialistRunner.runWithDefinition(def, {
+          tenantId: request.tenantId,
+          agentKey: agentSpec.agentKey,
+          intent: agentSpec.intent,
+          command: request.command,
+          contextSnippets: agentSpec.contextSnippets ?? [],
+          handlerResult: `Parallel sub-task: ${agentSpec.intent}`,
+          parentRunId: request.parentRunId,
+          actorId: request.actorId,
+          collectiveSnippets: request.collectiveSnippets,
+          memoryPromptBlock: request.memoryPromptBlock,
+          deferToTools: request.deferToTools,
+          adaptiveLearningEnabled: request.adaptiveLearningEnabled,
+          onEvent: wrapAgentEvent(request.onEvent, agentSpec.agentKey),
+          abortSignal: request.abortSignal,
+        });
+
+        if (request.abortSignal?.aborted) {
+          const error = 'cancelled';
+          emitStreamEvent(request.onEvent, {
+            type: 'agent_completed',
             agentKey: agentSpec.agentKey,
-            intent: agentSpec.intent,
-            command: request.command,
-            contextSnippets: agentSpec.contextSnippets ?? [],
-            handlerResult: `Parallel sub-task: ${agentSpec.intent}`,
-            parentRunId: request.parentRunId,
-            actorId: request.actorId,
-            collectiveSnippets: request.collectiveSnippets,
-            memoryPromptBlock: request.memoryPromptBlock,
-            deferToTools: request.deferToTools,
-            adaptiveLearningEnabled: request.adaptiveLearningEnabled,
-            onEvent: request.onEvent,
+            error,
+            executionMode: 'parallel',
           });
-        } catch (err) {
-          const message = err instanceof Error ? err.message : 'Parallel agent failed';
-          return { narrative: '', error: message };
+          return skippedBranch(agentSpec.agentKey, error);
         }
-      })
+
+        const summary =
+          result.handoffPackage?.summary ??
+          (result.narrative ? result.narrative.slice(0, 200) : undefined);
+
+        emitStreamEvent(request.onEvent, {
+          type: 'agent_completed',
+          agentKey: agentSpec.agentKey,
+          summary,
+          error: result.error,
+          executionMode: 'parallel',
+        });
+
+        return {
+          ...result,
+          agentKey: agentSpec.agentKey,
+          status: result.error ? 'failed' : 'completed',
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Parallel agent failed';
+        emitStreamEvent(request.onEvent, {
+          type: 'agent_completed',
+          agentKey: agentSpec.agentKey,
+          error: message,
+          executionMode: 'parallel',
+        });
+        return {
+          agentKey: agentSpec.agentKey,
+          status: 'failed',
+          narrative: '',
+          error: message,
+        };
+      }
+    });
+
+    const branchResults = await runWithConcurrency(branchTasks, concurrencyLimit);
+    const skippedResults = skippedSpecs.map((spec) =>
+      skippedBranch(spec.agentKey, `Skipped: max parallel agents (${concurrencyLimit})`)
     );
+    const results = [...branchResults, ...skippedResults];
 
     const narratives = results
-      .map((r, i) => {
-        const spec = request.agents[i];
-        if (!r.narrative && r.error) return `[${spec.agentKey}] Error: ${r.error}`;
-        if (r.narrative) return `[${spec.agentKey}] ${r.narrative}`;
+      .map((r) => {
+        if (r.status === 'skipped') return `[${r.agentKey}] Skipped: ${r.error}`;
+        if (!r.narrative && r.error) return `[${r.agentKey}] Error: ${r.error}`;
+        if (r.narrative) return `[${r.agentKey}] ${r.narrative}`;
         return '';
       })
       .filter(Boolean);
@@ -53,7 +156,7 @@ export class ParallelCoordinator {
     const mergedToolTrace = results.flatMap((r) => r.toolTrace ?? []);
     const pendingActions = results.flatMap((r) => r.pendingActions ?? []);
     const agentRunIds = results.map((r) => r.agentRunId).filter((id): id is string => Boolean(id));
-    const checkpoint = results.some((r) => r.checkpoint);
+    const checkpoint = results.some((r) => r.checkpoint && r.status === 'completed');
 
     return {
       results,

@@ -1,7 +1,27 @@
 export type AgentKey = 'admin' | 'mail' | 'supplier' | 'pricing' | 'inventory' | string;
 
-export type RouteSource = 'intent' | 'keyword' | 'llm' | 'none';
+export type RouteSource = 'intent' | 'keyword' | 'llm' | 'llm-plan' | 'none';
 export type ExecutionMode = 'single' | 'sequential' | 'parallel';
+
+export type PlanAgent = { agentKey: string; intent: string; command?: string };
+
+export type PlanNode =
+  | { kind: 'agent'; agentKey: string; intent: string; command?: string }
+  | { kind: 'group'; mode: 'sequential' | 'parallel'; children: PlanNode[] }
+  | { kind: 'supervisor'; agentKey: string; intent: string; command?: string; subPlan?: PlanNode };
+
+export interface CollaborationChainStep {
+  agentKey: string;
+  intent: string;
+  command?: string;
+}
+
+export interface CollaborationChain {
+  ruleId: string;
+  mode: 'prepend' | 'sequential' | 'parallel';
+  steps: CollaborationChainStep[];
+  primaryAgentKey?: string;
+}
 
 export interface RouteDecision {
   agent: SpecialistAgentDefinition | null;
@@ -30,10 +50,38 @@ export interface ParallelSpecialistRequest {
   deferToTools?: boolean;
   adaptiveLearningEnabled?: boolean;
   onEvent?: import('../command-brain/AgentStreamEvents').AgentStreamCallback;
+  abortSignal?: AbortSignal;
+}
+
+export interface AgentBranchResult extends SpecialistExecuteResult {
+  agentKey: string;
+  status: 'completed' | 'failed' | 'skipped';
+}
+
+export interface AgentContribution {
+  agentKey: string;
+  summary: string;
+  status: 'completed' | 'failed';
+  pendingActions?: import('../personal-brain/tools/types').ToolProposal[];
+}
+
+export interface ActionConflict {
+  description: string;
+  proposals: import('../personal-brain/tools/types').ToolProposal[];
+  resolution: 'user_choice' | 'merged';
+}
+
+export type SynthesisSource = 'llm' | 'structured' | 'concat';
+
+export interface AggregatedMultiAgentResult {
+  narrative: string;
+  perAgentContributions: AgentContribution[];
+  conflicts?: ActionConflict[];
+  synthesisSource: SynthesisSource;
 }
 
 export interface ParallelSpecialistResult {
-  results: SpecialistExecuteResult[];
+  results: AgentBranchResult[];
   mergedNarrative: string;
   mergedToolTrace: import('../personal-brain/tools/types').BrainToolTraceEntry[];
   pendingActions: import('../personal-brain/tools/types').ToolProposal[];
@@ -43,7 +91,26 @@ export interface ParallelSpecialistResult {
 
 export interface ExecutionPlan {
   mode: ExecutionMode;
-  agents: Array<{ agentKey: string; intent: string; command?: string }>;
+  agents: PlanAgent[];
+  root?: PlanNode;
+  planDepth?: number;
+  collaborationChain?: CollaborationChain;
+  routingSource?: RouteSource;
+  routingReason?: string;
+  performanceScores?: Record<string, number>;
+  graphDefinition?: import('./graph/types').GraphDefinition;
+}
+
+export interface HandoffChainEntry {
+  from: string;
+  to: string;
+  reason: string;
+  mode: 'sync' | 'async';
+  jobId?: string;
+  status?: 'pending' | 'running' | 'completed' | 'failed';
+  summary?: string;
+  planDepth?: number;
+  handoffMode?: 'direct' | 'orchestrated';
 }
 
 export interface SpecialistAgentDefinition {
@@ -76,6 +143,28 @@ export interface SpecialistExecuteRequest {
   abortSignal?: AbortSignal;
   handoffConstraints?: string[];
   chainContext?: string[];
+  skipCollaborationChain?: boolean;
+  peerDepth?: number;
+}
+
+export interface PeerDelegationRequest {
+  tenantId: string;
+  sourceAgentKey: string;
+  targetAgentKey: string;
+  intent: string;
+  query: string;
+  parentRunId?: string;
+  actorId?: string;
+  depth: number;
+  onEvent?: import('../command-brain/AgentStreamEvents').AgentStreamCallback;
+  abortSignal?: AbortSignal;
+}
+
+export interface PeerDelegationResult {
+  success: boolean;
+  narrative?: string;
+  error?: string;
+  agentRunId?: string;
 }
 
 export interface SpecialistExecuteResult {
@@ -91,6 +180,7 @@ export interface SpecialistExecuteResult {
   plan?: import('../command-brain/types/AgentPlan').AgentPlan;
   summary?: import('../command-brain/types/AgentPlan').AgentRunSummary;
   handoffPackage?: HandoffPackage;
+  transcript?: import('../command-brain/AgentTranscript').AgentMessage[];
 }
 
 export interface ResumeToken {

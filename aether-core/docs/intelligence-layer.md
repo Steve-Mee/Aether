@@ -509,11 +509,17 @@ Functional multi-agent routing: specialist agents run their own `BrainAgentLoop`
 | Intent | Agent | Tools (subset) |
 |--------|-------|----------------|
 | `PRICE_UPDATE`, `LOW_MARGIN_REPORT`, `PRICING_OPTIMIZE` | `pricing` | search, margins, suggest, updatePrice, insight |
-| `SUPPLIER_MONITOR`, `SUPPLIER_CREATE` | `supplier` | syncSupplier, search, approvals |
+| `SUPPLIER_MONITOR`, `SUPPLIER_CREATE`, `SUPPLIER_PRICE_INTEL` | `supplier` | getSupplierPriceIntel, syncSupplier, createSupplier, insight |
 
-### Cross-agent chain (v1)
+### Cross-agent collaboration (Pricing ↔ Supplier)
 
-When a pricing command mentions supplier/inkoop keywords, `AgentOrchestrator.chainHandoff` runs the supplier agent first and passes results as context to the pricing loop.
+`AgentCollaborationPolicy` defines declarative handoff rules. `AgentRouterService.routePlan()` returns sequential multi-agent plans for cross-domain commands. Chain results pass via `chainContext`; SSE emits `agent_assigned` and `agent_handoff` per step.
+
+| Rule | Example command |
+|------|-----------------|
+| `pricing-needs-supplier` | "Verhoog prijs op basis van inkoopprijs leverancier" |
+| `supplier-to-pricing` | "Monitor leverancier en stel prijsvoorstel voor" |
+| `cross-domain-single` | "Check leveranciersprijzen en stel prijsaanpassingen voor" |
 
 ### Response metadata
 
@@ -541,14 +547,22 @@ See [`multi-agent/README.md`](../backend/src/ai/intelligence/multi-agent/README.
 | Parallel orchestration | `ParallelCoordinator` + `executeParallel` for compound workflows |
 | UI agent indicator | `AgentBadge` in `CommandResultCard` + stream `agent_assigned` |
 
-### Agent matrix (Phase 6)
+### Agent matrix (Phase 6+)
 
 | Agent | Key | Tools (highlights) |
 |-------|-----|-------------------|
 | pricing | `pricing` | analyzeMargins, suggestOptimalPrice, updatePrice |
-| supplier | `supplier` | syncSupplier, createSupplier |
+| supplier | `supplier` | syncSupplier, createSupplier, getSupplierPriceIntel |
 | inventory | `inventory` | getInventoryStatus, listLowStock, suggestRestock |
 | mail | `mail` | getEmailSummary |
+| customer | `customer` | getCustomerOverview, getTopCustomers, getOrderTrends, getRecentOrders |
+| forecast | `forecast` | getForecastSummary, forecastProductDemand, listForecasts |
+| approvals | `approvals` | listPendingApprovals, summarizeApprovalsByModule, approveLowRisk |
+| outcomes | `outcomes` | getOutcomesSummary, verifyLatestOutcome |
+| negotiation | `negotiation` | listActiveNegotiations, proposeCounterOffer |
+| catalog | `catalog` | listProducts, searchCatalogProducts, proposeCreateProduct |
+| autonomy | `autonomy` | getAutonomyMetrics, listDecisions, evaluateDecision, routeAutonomousDecision |
+| workflow_supervisor | `workflow_supervisor` | delegateToAgent, compound workflows |
 
 ### Response metadata (extended)
 
@@ -584,6 +598,86 @@ See [`multi-agent/README.md`](../backend/src/ai/intelligence/multi-agent/README.
 ### Cross-tenant agent state (v1)
 
 **Not** shared transcripts or checkpoints. Only anonymized execution patterns (success rates, routing hints) via `GlobalAgentPattern`, gated by k-anonymity and tenant opt-in.
+
+## Phase 6c–7 — Inventory collaboration, parallel routing, LLM planner, peer delegation
+
+| Phase | Feature | Component |
+|-------|---------|-----------|
+| 6c | Inventory ↔ Pricing rules | `AgentCollaborationPolicy` — `pricing-needs-inventory`, `inventory-to-pricing`, `cross-domain-inventory-pricing` |
+| 6d | Parallel read-only multi-agent | `ExecutionModeClassifier` + `routePlan` parallel mode (no compound parser) |
+| 7a | LLM collaboration planning | `CollaborationPlannerService` — multi-agent plan via Ollama |
+| 7b | Peer agent delegation | `AgentPeerBus`, `delegateToAgent` tool, `PeerDelegationGuard` |
+
+### Env vars (Phase 6c–7)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MULTI_AGENT_LLM_COLLABORATION_PLANNING` | on in dev; prod requires `true` | LLM multi-agent planner in `routePlan` |
+| `MULTI_AGENT_LLM_PLAN_MIN_CONFIDENCE` | `0.65` | Min confidence for LLM collaboration plan |
+| `MULTI_AGENT_PEER_DELEGATION` | `false` | Enable `delegateToAgent` tool during agent loops |
+| `MULTI_AGENT_PEER_MAX_DEPTH` | `2` | Max nested peer delegation depth |
+
+See [`multi-agent/README.md`](../backend/src/ai/intelligence/multi-agent/README.md) for full routing cascade and examples.
+
+## Phase 8 — Async peers, federated advisory, UI & graph edges
+
+| Phase | Feature | Component |
+|-------|---------|-----------|
+| 8a | Async fire-and-forget peer jobs | `AgentPeerJob` (Prisma), `delegateToAgentAsync`, domain events `agent.peer.*`, `AgentPeerJobWorker` |
+| 8b | Federated cross-tenant advisory | `global-advisory` pseudo-agent, `FederatedPeerPort` → anonymized `AgentPatternSyncService` snippets only |
+| 8c | Peer-delegation UI | `HandoffChainRail`, `brain.handoffChain`, `AgentBadge.chainFrom`, SSE `peer_job_*` |
+| 8d | Graph peer edges | `CollaborationGraphBuilder`, `NativeGraphOrchestrator` v2, `LangGraphOrchestrator.buildStateGraph` stub |
+
+### Env vars (Phase 8)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MULTI_AGENT_ASYNC_PEER` | `false` | Enable async peer job queue |
+| `MULTI_AGENT_ASYNC_PEER_POLL_MS` | `2000` | Outbox poll hint |
+| `MULTI_AGENT_GRAPH_PEER_EDGES` | `false` | Explicit graph node/edge execution with peer nodes |
+
+**Privacy:** Cross-tenant peer calls are **federated advisory only** — no raw merchant data between tenants.
+
+## Phase 10 — Federated v2 RPC, broker choice, autonomy peer expansion
+
+See also [`messaging-broker.md`](messaging-broker.md).
+
+| Component | Path |
+|-----------|------|
+| Broker config | `backend/src/shared/messaging/messagingConfig.ts` |
+| Federated RPC types | `backend/src/ai/intelligence/multi-agent/peer/federated/types.ts` |
+| Deployment registry | `backend/src/ai/intelligence/multi-agent/peer/federated/FederatedDeploymentRegistry.ts` |
+| RPC client | `backend/src/ai/intelligence/multi-agent/peer/federated/FederatedRpcClient.ts` |
+| Remote worker | `backend/src/federatedWorker.ts` |
+| Peer bridge (expanded) | `backend/src/ai/intelligence/multi-agent/peer/PeerDelegationBridge.ts` |
+
+**Broker decision:** Kafka-only for async messaging; Redis remains rate-limiting only.
+
+**Federated v2:** Signed `FederatedAgentRequest` via Kafka topic `aether.federated.execute`; local v1 cohort fallback when RPC disabled or no remote deployment.
+
+**Autonomy peer flags:** `MULTI_AGENT_PHYSICAL_PEER`, `MULTI_AGENT_NEGOTIATION_PEER`, `MULTI_AGENT_INVENTORY_PEER`, `MULTI_AGENT_AUTONOMY_PEER`.
+
+## Phase 11 — Bilateral exchange, federated registry UI, Kafka hardening
+
+| Component | Path |
+|-----------|------|
+| Bilateral exchange | `backend/src/modules/bilateral-exchange/` |
+| Safety filter | `backend/src/modules/bilateral-exchange/application/BilateralSafetyFilter.ts` |
+| Federated registry API | `GET/POST/PUT/DELETE /api/admin/federated/deployments` |
+| Operator UI | `frontend/src/components/settings/FederatedDeploymentsPanel.tsx` |
+| Kafka hardening | `backend/src/shared/messaging/OutboxRelayService.ts`, `messagingMetrics.ts` |
+
+**Bilateral exchange:** Governed two-party contracts with field allowlists, TTL/revoke, audit-only logs. Packages ingest into consumer PersonalBrain via scoped `indexKnowledge` (`source: bilateral:{contractId}`). No writes to GlobalBrain.
+
+**Tenant toggle:** `brainBilateralExchangeEnabled` (default `false`) — Settings → Data & Privacy.
+
+**Merchant UI (11b-lite):** Settings → Data partnerships — contract list, slug-based propose, accept/revoke/publish/consume. Operator actions; viewers read-only.
+
+**Federated registry:** Platform-scoped deployment registry with env-sourced read-only rows and DB-managed CRUD.
+
+**Kafka:** Single relay owner (`OUTBOX_RELAY_OWNER`), `FOR UPDATE SKIP LOCKED` outbox claiming, consumer idempotency, TLS/SASL env. Multi-region runbook mirrors only `aether.federated.execute` + response topics.
+
+Tracked in `feature-status.json` as `bilateral_merchant_exchange: partial`.
 
 
 ## LoRA manifest (metadata-only v1)

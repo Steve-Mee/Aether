@@ -26,12 +26,18 @@ export interface AgentSupervisorPort {
   routeDecision?(
     intent: string,
     command?: string,
-    options?: { confidence?: number }
+    options?: { confidence?: number; tenantId?: string }
   ): Promise<RouteDecision>;
+  routePlan?(
+    intent: string,
+    command?: string,
+    options?: { confidence?: number; tenantId?: string }
+  ): Promise<ExecutionPlan>;
   resolveExecutionPlan?(
     command: string,
     intent: string,
-    subGoals?: Array<{ intent: string; command: string }>
+    subGoals?: Array<{ intent: string; command: string }>,
+    connector?: 'sequential' | 'parallel'
   ): ExecutionPlan;
   executeSpecialist?(request: SpecialistExecuteRequest): Promise<SpecialistExecuteResult>;
   executeParallel?(request: ParallelSpecialistRequest): Promise<ParallelSpecialistResult>;

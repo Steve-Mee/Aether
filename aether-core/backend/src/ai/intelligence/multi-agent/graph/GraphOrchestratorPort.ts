@@ -6,6 +6,7 @@ export interface GraphExecutionRequest extends ParallelSpecialistRequest {
   intent: string;
   subGoals?: Array<{ intent: string; command: string }>;
   contextSnippets?: string[];
+  graphDefinition?: import('./types').GraphDefinition;
 }
 
 export interface GraphExecutionResult {

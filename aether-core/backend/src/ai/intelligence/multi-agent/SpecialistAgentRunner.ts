@@ -107,6 +107,7 @@ export class SpecialistAgentRunner {
       allowedTools: def.allowedTools,
       parentRunId: request.parentRunId,
       handoffConstraints: request.handoffConstraints,
+      peerDepth: request.peerDepth ?? 0,
     });
 
     const summaryText =
@@ -124,6 +125,7 @@ export class SpecialistAgentRunner {
       runStatus: loopResult.runStatus,
       plan: loopResult.plan,
       summary: loopResult.summary,
+      transcript: loopResult.transcript,
       handoffPackage: {
         sourceAgentKey: agentKey,
         targetAgentKey: 'admin',

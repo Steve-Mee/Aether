@@ -1,7 +1,10 @@
 import crypto from 'crypto';
 import { isMutatingIntent } from '../command-brain/BrainActionPolicyResolver';
 import { emitStreamEvent } from '../command-brain/AgentStreamEvents';
+import { wrapAgentEvent } from './agentStreamWrap';
+import { humanizeHandoffReason, buildChainHandoffReason } from './peer/handoffReason';
 import { DEFAULT_BRAIN_AGENT_KEY } from '../global-knowledge/constants';
+import type { ReflectionMetricsRecorder } from '../personal-brain/reflection/ReflectionMetricsRecorder';
 import type { PersonalBrainMemoryService } from '../personal-brain/memory/PersonalBrainMemoryService';
 import {
   createBrainAgentRun,
@@ -18,10 +21,15 @@ import type { GraphOrchestratorPort } from './graph/GraphOrchestratorPort';
 import type { GraphExecutionRequest, GraphExecutionResult } from './graph/GraphOrchestratorPort';
 import { isGraphOrchestrationEnabled } from './graph/graphOrchestrationConfig';
 import type { SpecialistAgentRunner } from './SpecialistAgentRunner';
+import { compoundToExecutionPlan } from './PlanNodeBuilder';
 import {
   isMultiAgentDelegationEnabled,
   resolveDelegationTarget,
 } from './delegationConfig';
+import {
+  needsSupplierIntel as collaborationNeedsSupplierIntel,
+  resolvePrependChainForPrimary,
+} from './AgentCollaborationPolicy';
 import type {
   DelegationRecord,
   DelegationRequest,
@@ -38,9 +46,6 @@ import type {
   SpecialistExecuteResult,
 } from './types';
 
-const SUPPLIER_INTEL_PATTERN =
-  /\b(leverancier|supplier|inkoop|inkoopprijs|inkoopkosten|cost\s*price|purchase)\b/i;
-
 export interface ChainHandoffInput {
   tenantId: string;
   fromAgentKey: string;
@@ -50,6 +55,8 @@ export interface ChainHandoffInput {
   context: string[];
   parentRunId?: string;
   actorId?: string;
+  peerDepth?: number;
+  abortSignal?: AbortSignal;
 }
 
 export class AgentOrchestrator implements AgentSupervisorPort {
@@ -61,7 +68,8 @@ export class AgentOrchestrator implements AgentSupervisorPort {
     private personalBrainMemory?: PersonalBrainMemoryService,
     private agentRouter?: AgentRouterService,
     private parallelCoordinator?: ParallelCoordinator,
-    private graphOrchestrator?: GraphOrchestratorPort
+    private graphOrchestrator?: GraphOrchestratorPort,
+    private reflectionMetrics?: ReflectionMetricsRecorder
   ) {}
 
   isDelegationEnabled(): boolean {
@@ -84,14 +92,14 @@ export class AgentOrchestrator implements AgentSupervisorPort {
   async routeDecision(
     intent: string,
     command?: string,
-    options?: { confidence?: number; onEvent?: SpecialistExecuteRequest['onEvent'] }
+    options?: { confidence?: number; tenantId?: string; onEvent?: SpecialistExecuteRequest['onEvent'] }
   ): Promise<RouteDecision> {
     if (!isMultiAgentDelegationEnabled()) {
       return { agent: null, agentKey: null, confidence: 0, reason: 'disabled', source: 'none' };
     }
 
     if (this.agentRouter && command) {
-      return this.agentRouter.route({ intent, command, confidence: options?.confidence });
+      return this.agentRouter.route({ intent, command, confidence: options?.confidence, tenantId: options?.tenantId });
     }
 
     const agent = this.agentRegistry.resolve(intent, command) ?? null;
@@ -104,6 +112,33 @@ export class AgentOrchestrator implements AgentSupervisorPort {
     };
   }
 
+  async routePlan(
+    intent: string,
+    command?: string,
+    options?: { confidence?: number; tenantId?: string }
+  ): Promise<ExecutionPlan> {
+    if (!isMultiAgentDelegationEnabled()) {
+      return { mode: 'single', agents: [], routingSource: 'none', routingReason: 'disabled' };
+    }
+
+    if (this.agentRouter && command) {
+      return this.agentRouter.routePlan({
+        intent,
+        command,
+        confidence: options?.confidence,
+        tenantId: options?.tenantId,
+      });
+    }
+
+    const agent = this.agentRegistry.resolve(intent, command);
+    return {
+      mode: 'single',
+      agents: agent ? [{ agentKey: agent.agentKey, intent }] : [],
+      routingSource: agent ? 'intent' : 'none',
+      routingReason: agent ? `intent:${intent}` : 'no match',
+    };
+  }
+
   resolveTargetAgent(intent: string): string | null {
     const fromRegistry = this.agentRegistry.resolveByIntent(intent);
     if (fromRegistry) return fromRegistry.agentKey;
@@ -113,37 +148,22 @@ export class AgentOrchestrator implements AgentSupervisorPort {
   resolveExecutionPlan(
     command: string,
     intent: string,
-    subGoals?: Array<{ intent: string; command: string }>
+    subGoals?: Array<{ intent: string; command: string }>,
+    connector: 'sequential' | 'parallel' = 'sequential'
   ): ExecutionPlan {
-    if (intent !== 'COMPOUND_WORKFLOW' || !subGoals?.length) {
-      const single = this.agentRegistry.resolve(intent, command);
-      return {
-        mode: 'single',
-        agents: single ? [{ agentKey: single.agentKey, intent }] : [],
-      };
+    if (intent === 'COMPOUND_WORKFLOW' && subGoals?.length) {
+      return compoundToExecutionPlan(subGoals, this.agentRegistry, connector);
     }
 
-    const agents = subGoals
-      .map((step) => {
-        const def = this.agentRegistry.resolveByIntent(step.intent);
-        return def ? { agentKey: def.agentKey, intent: step.intent, command: step.command } : null;
-      })
-      .filter((a): a is { agentKey: string; intent: string; command: string } => a !== null);
-
-    if (agents.length === 0) {
-      return { mode: 'single', agents: [] };
-    }
-
-    const hasMutating = subGoals.some((s) => isMutatingIntent(s.intent));
+    const single = this.agentRegistry.resolve(intent, command);
     return {
-      mode: hasMutating ? 'sequential' : 'parallel',
-      agents,
+      mode: 'single',
+      agents: single ? [{ agentKey: single.agentKey, intent }] : [],
     };
   }
 
   needsSupplierIntel(command: string, intent: string): boolean {
-    if (intent !== 'PRICE_UPDATE' && intent !== 'PRICING_OPTIMIZE') return false;
-    return SUPPLIER_INTEL_PATTERN.test(command);
+    return collaborationNeedsSupplierIntel(command, intent);
   }
 
   async executeParallel(request: ParallelSpecialistRequest): Promise<ParallelSpecialistResult> {
@@ -156,10 +176,6 @@ export class AgentOrchestrator implements AgentSupervisorPort {
         agentRunIds: [],
       };
     }
-    emitStreamEvent(request.onEvent, {
-      type: 'agent_assigned',
-      agentKey: request.agents.map((a) => a.agentKey).join(','),
-    });
     return this.parallelCoordinator.executeParallel(request);
   }
 
@@ -168,14 +184,47 @@ export class AgentOrchestrator implements AgentSupervisorPort {
   ): Promise<SpecialistExecuteResult[]> {
     const results: SpecialistExecuteResult[] = [];
     let chainContext: string[] = [];
+
+    if (requests.length > 0) {
+      emitStreamEvent(requests[0].onEvent, {
+        type: 'agent_assigned',
+        agentKey: requests.map((r) => r.agentKey).join(','),
+        executionMode: 'sequential',
+      });
+    }
+
     for (const req of requests) {
-      const result = await this.executeSpecialist({
+      if (req.abortSignal?.aborted) {
+        break;
+      }
+
+      emitStreamEvent(req.onEvent, {
+        type: 'agent_started',
+        agentKey: req.agentKey,
+        executionMode: 'sequential',
+      });
+
+      const result = await this.executeSpecialistCore({
         ...req,
         chainContext: [...chainContext, ...(req.chainContext ?? [])],
+        skipCollaborationChain: true,
       });
       results.push(result);
+
+      emitStreamEvent(req.onEvent, {
+        type: 'agent_completed',
+        agentKey: req.agentKey,
+        executionMode: 'sequential',
+        error: result.error,
+      });
+
+      if (req.abortSignal?.aborted) {
+        break;
+      }
       if (result.narrative) {
         chainContext = [...chainContext, result.narrative];
+      } else if (result.error) {
+        chainContext = [...chainContext, `[${req.agentKey} error] ${result.error}`];
       }
     }
     return results;
@@ -202,27 +251,73 @@ export class AgentOrchestrator implements AgentSupervisorPort {
       return { narrative: request.handlerResult, error: 'No specialist agent for intent' };
     }
 
-    emitStreamEvent(request.onEvent, { type: 'agent_assigned', agentKey: def.agentKey });
-
     let chainContext: string[] = request.chainContext ?? [];
-    if (
-      def.canDelegateTo?.includes('supplier') &&
-      this.needsSupplierIntel(request.command, request.intent)
-    ) {
-      const supplierResult = await this.chainHandoff({
-        tenantId: request.tenantId,
-        fromAgentKey: def.agentKey,
-        toAgentKey: 'supplier',
-        intent: 'SUPPLIER_MONITOR',
-        command: `Leveranciersprijzen ophalen voor pricing context: ${request.command}`,
-        context: request.contextSnippets,
-        parentRunId: request.parentRunId,
-        actorId: request.actorId,
-      });
-      if (supplierResult.narrative) {
-        chainContext = [...chainContext, `[Supplier intel] ${supplierResult.narrative}`];
+    if (!request.skipCollaborationChain) {
+      chainContext = await this.executeCollaborationChain(def, request, chainContext);
+    }
+
+    return this.executeSpecialistCore({ ...request, chainContext });
+  }
+
+  private async executeCollaborationChain(
+    def: SpecialistAgentDefinition,
+    request: SpecialistExecuteRequest,
+    chainContext: string[]
+  ): Promise<string[]> {
+    const prependChain = resolvePrependChainForPrimary(
+      request.command,
+      request.intent,
+      def,
+      this.agentRegistry
+    );
+    if (!prependChain || prependChain.mode !== 'prepend') {
+      return chainContext;
+    }
+
+    let context = [...chainContext];
+    for (const step of prependChain.steps) {
+      const stepResult = await this.chainHandoff(
+        {
+          tenantId: request.tenantId,
+          fromAgentKey: def.agentKey,
+          toAgentKey: step.agentKey,
+          intent: step.intent,
+          command: step.command ?? request.command,
+          context: request.contextSnippets,
+          parentRunId: request.parentRunId,
+          actorId: request.actorId,
+        },
+        request.onEvent
+      );
+      if (stepResult.narrative) {
+        context = [...context, `[${step.agentKey} intel] ${stepResult.narrative}`];
+      } else if (stepResult.error) {
+        context = [
+          ...context,
+          `[${step.agentKey} warning] Chain step failed: ${stepResult.error} — continuing with ${def.agentKey}.`,
+        ];
       }
     }
+    return context;
+  }
+
+  private async executeSpecialistCore(
+    request: SpecialistExecuteRequest
+  ): Promise<SpecialistExecuteResult> {
+    if (!this.specialistRunner) {
+      return { narrative: request.handlerResult, error: 'Specialist runner not configured' };
+    }
+
+    const def =
+      this.agentRegistry.get(request.agentKey) ??
+      this.agentRegistry.resolve(request.intent, request.command);
+    if (!def) {
+      return { narrative: request.handlerResult, error: 'No specialist agent for intent' };
+    }
+
+    emitStreamEvent(request.onEvent, { type: 'agent_assigned', agentKey: def.agentKey });
+
+    const chainContext: string[] = request.chainContext ?? [];
 
     const { handoffPackage, resumeToken } = this.protocol.createRequest({
       parentRunId: request.parentRunId ?? crypto.randomUUID(),
@@ -238,6 +333,7 @@ export class AgentOrchestrator implements AgentSupervisorPort {
       chainContext,
       handoffConstraints: handoffPackage.constraints,
       parentRunId: request.parentRunId,
+      onEvent: wrapAgentEvent(request.onEvent, def.agentKey),
     });
 
     if (result.handoffPackage && request.parentRunId) {
@@ -254,23 +350,49 @@ export class AgentOrchestrator implements AgentSupervisorPort {
     return result;
   }
 
-  async chainHandoff(input: ChainHandoffInput): Promise<SpecialistExecuteResult> {
+  async chainHandoff(
+    input: ChainHandoffInput,
+    onEvent?: SpecialistExecuteRequest['onEvent']
+  ): Promise<SpecialistExecuteResult> {
     const targetDef = this.agentRegistry.resolveByKey(input.toAgentKey);
     if (!targetDef || !this.specialistRunner) {
       return { narrative: '', error: `Cannot chain to agent ${input.toAgentKey}` };
     }
 
-    return this.specialistRunner.runWithDefinition(targetDef, {
-      tenantId: input.tenantId,
-      agentKey: input.toAgentKey,
-      intent: input.intent,
-      command: input.command,
-      contextSnippets: input.context,
-      handlerResult: `Chained from ${input.fromAgentKey}`,
-      parentRunId: input.parentRunId,
-      actorId: input.actorId,
-      handoffConstraints: [`chainFrom:${input.fromAgentKey}`],
+    emitStreamEvent(onEvent, { type: 'agent_assigned', agentKey: input.toAgentKey });
+    emitStreamEvent(onEvent, {
+      type: 'agent_handoff',
+      fromAgentKey: input.fromAgentKey,
+      toAgentKey: input.toAgentKey,
+      handoffReason: humanizeHandoffReason(buildChainHandoffReason(input.intent)),
     });
+
+    try {
+      const started = Date.now();
+      const result = await this.specialistRunner.runWithDefinition(targetDef, {
+        tenantId: input.tenantId,
+        agentKey: input.toAgentKey,
+        intent: input.intent,
+        command: input.command,
+        contextSnippets: input.context,
+        handlerResult: `Chained from ${input.fromAgentKey}`,
+        parentRunId: input.parentRunId,
+        actorId: input.actorId,
+        handoffConstraints: [`chainFrom:${input.fromAgentKey}`],
+        onEvent: wrapAgentEvent(onEvent, input.toAgentKey),
+        abortSignal: input.abortSignal,
+        peerDepth: input.peerDepth ?? 0,
+      });
+      void this.reflectionMetrics?.recordHandoffLatency(
+        input.tenantId,
+        Date.now() - started,
+        input.parentRunId
+      );
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Chain handoff failed';
+      return { narrative: '', error: message };
+    }
   }
 
   async delegate(request: DelegationRequest): Promise<DelegationResult> {
