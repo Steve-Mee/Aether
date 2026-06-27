@@ -71,6 +71,10 @@ export const apiRoutes = {
     brainMemoryConsolidate: '/api/admin/brain/memory/consolidate',
     brainReflectionTimeline: '/api/admin/brain/reflections/timeline',
     brainReflectionExperiments: '/api/admin/brain/reflection-experiments',
+    federatedDeployments: '/api/admin/federated/deployments',
+    federatedDeploymentsStatus: '/api/admin/federated/deployments/status',
+    federatedDeployment: (deploymentId: string) =>
+      `/api/admin/federated/deployments/${encodeURIComponent(deploymentId)}`,
   },
   suppliers: {
     overview: '/api/suppliers/overview',
@@ -95,4 +99,15 @@ export const apiRoutes = {
     negotiations: '/api/agentic/negotiations',
   },
   autonomous: { list: '/api/autonomous' },
+  bilateral: {
+    schemas: '/api/bilateral/schemas',
+    contracts: '/api/bilateral/contracts',
+    contract: (id: string) => `/api/bilateral/contracts/${encodeURIComponent(id)}`,
+    contractAccept: (id: string) => `/api/bilateral/contracts/${encodeURIComponent(id)}/accept`,
+    contractRevoke: (id: string) => `/api/bilateral/contracts/${encodeURIComponent(id)}/revoke`,
+    contractPackages: (id: string) => `/api/bilateral/contracts/${encodeURIComponent(id)}/packages`,
+    contractAudit: (id: string) => `/api/bilateral/contracts/${encodeURIComponent(id)}/audit`,
+    publishPackage: '/api/bilateral/packages',
+    consumePackage: '/api/bilateral/packages/consume',
+  },
 } as const;

@@ -74,7 +74,16 @@ export type AgentStreamEventType =
   | 'proposal_ready'
   | 'checkpoint'
   | 'narrative_delta'
+  | 'global_knowledge_synced'
   | 'agent_assigned'
+  | 'agent_started'
+  | 'agent_completed'
+  | 'agent_handoff'
+  | 'peer_job_queued'
+  | 'peer_job_completed'
+  | 'peer_job_failed'
+  | 'handoff_chain_update'
+  | 'run_started'
   | 'done'
   | 'error'
   | 'result';
@@ -101,11 +110,32 @@ export interface AgentStreamEvent {
   error?: string;
   runStatus?: 'running' | 'completed' | 'failed' | 'awaiting_approval' | 'cancelled';
   agentKey?: string;
+  fromAgentKey?: string;
+  toAgentKey?: string;
+  handoffReason?: string;
+  handoffMode?: 'direct' | 'orchestrated';
+  jobId?: string;
+  handoffChain?: HandoffChainEntry[];
+  executionMode?: 'single' | 'sequential' | 'parallel';
+  commandId?: string;
   timestamp?: string;
   result?: CommandResult;
 }
 
-export type RouteSource = 'intent' | 'keyword' | 'llm' | 'none';
+export type RouteSource = 'intent' | 'keyword' | 'llm' | 'llm-plan' | 'none';
+
+export interface AgentContribution {
+  agentKey: string;
+  summary: string;
+  status: 'completed' | 'failed';
+}
+
+export interface ActionConflict {
+  description: string;
+  resolution: 'user_choice' | 'merged';
+}
+
+export type SynthesisSource = 'llm' | 'structured' | 'concat';
 
 export interface SpecialistMeta {
   agentKey: string;
@@ -113,6 +143,18 @@ export interface SpecialistMeta {
   specialistRunId?: string;
   handoffSummary?: string;
   routingSource?: RouteSource;
+}
+
+export interface HandoffChainEntry {
+  from: string;
+  to: string;
+  reason: string;
+  mode: 'sync' | 'async';
+  jobId?: string;
+  status?: 'pending' | 'running' | 'completed' | 'failed';
+  summary?: string;
+  planDepth?: number;
+  handoffMode?: 'direct' | 'orchestrated';
 }
 
 export interface AgentRunSummary {
@@ -191,6 +233,11 @@ export interface CommandResult {
     specialist?: SpecialistMeta;
     agents?: SpecialistMeta[];
     executionMode?: 'single' | 'sequential' | 'parallel';
+    handoffChain?: HandoffChainEntry[];
+    agentContributions?: AgentContribution[];
+    actionConflicts?: ActionConflict[];
+    synthesisSource?: SynthesisSource;
+    agentTranscripts?: Record<string, AgentMessage[]>;
   };
 }
 

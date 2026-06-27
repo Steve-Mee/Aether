@@ -81,7 +81,27 @@
       "label": "Sentry observability (frontend + backend error monitoring, tracing, business events)"
     },
     "ci-quality": { "status": "live", "label": "CI quality gates" },
-    "prisma-migrations": { "status": "live", "label": "Prisma schema / migrations" }
+    "prisma-migrations": { "status": "live", "label": "Prisma schema / migrations" },
+    "federated-rpc-v2": {
+      "status": "partial",
+      "label": "Phase 10 multi-deployment federated sandbox RPC (Kafka, signed requests, local fallback)"
+    },
+    "autonomy-peer-expansion": {
+      "status": "partial",
+      "label": "Phase 10 peer delegation in physical/negotiation/inventory/autonomy modules"
+    },
+    "bilateral_merchant_exchange": {
+      "status": "partial",
+      "label": "Phase 11 governed bilateral exchange + Phase 11b-lite merchant Settings UI (contracts, slug propose, packages)"
+    },
+    "federated-deployment-registry-ui": {
+      "status": "partial",
+      "label": "Phase 11 operator federated deployment registry API + Settings panel"
+    },
+    "kafka-production-hardening": {
+      "status": "partial",
+      "label": "Phase 11 outbox relay leader, row claiming, consumer idempotency, TLS/SASL env"
+    }
   },
   "phases": {
     "fase3": { "status": "partial", "label": "Orchestration + Outcome productization" },

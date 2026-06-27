@@ -93,6 +93,7 @@ export interface DataAdapter {
   rejectToolProposal(proposalId: string): Promise<ExecuteBrainToolResponse>;
   fetchCommandHistory(): Promise<CommandHistoryItem[]>;
   fetchAgentRun(commandId: string): Promise<AgentRunResponse>;
+  cancelAgentRun(commandId: string): Promise<{ success: boolean }>;
 
   fetchNotifications(): Promise<AppNotification[]>;
   markNotificationRead(id: string): Promise<void>;

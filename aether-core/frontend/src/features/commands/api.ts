@@ -9,5 +9,6 @@ export const commandsApi = {
   rejectToolProposal: (proposalId: string) => commandsRepository.rejectToolProposal(proposalId),
   history: () => commandsRepository.history(),
   agentRun: (commandId: string) => commandsRepository.agentRun(commandId),
+  cancelAgentRun: (commandId: string) => commandsRepository.cancelAgentRun(commandId),
   queryKeys: queryKeys.commands,
 };

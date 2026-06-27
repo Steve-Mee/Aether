@@ -126,6 +126,11 @@ export const httpDataAdapter: DataAdapter = {
   fetchAgentRun: (commandId) =>
     apiFetch<AgentRunResponse>(apiRoutes.admin.commandAgentRun(commandId)),
 
+  cancelAgentRun: (commandId) =>
+    apiFetch<{ success: boolean }>(apiRoutes.admin.commandAgentRunCancel(commandId), {
+      method: 'POST',
+    }),
+
   fetchNotifications: async () => {
     const res = await apiFetch<{ notifications: AppNotification[] }>(
       apiRoutes.admin.notifications(),

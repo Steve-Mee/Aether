@@ -11,6 +11,8 @@ import { defaultOrchestratorPort } from '../../../../ai/orchestrator/Orchestrato
 import { AutonomyLoop } from '../../../../shared/autonomy/AutonomyLoop';
 import { merchantAutonomyKernel } from '../../../../ai/autonomy/DecisionContract';
 import type { PersonalBrainRegistry } from '../../../../ai/intelligence/personal-brain/PersonalBrainRegistry';
+import type { PeerDelegationBridge } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
+import { isMailPeerEnabled } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
 
 import { policyEngine } from '../../../../ai/orchestrator/WorkflowEngine';
 
@@ -22,7 +24,8 @@ export class ProcessIncomingEmailUseCase {
     private contextProvider: EmailContextProvider,
     private policyService: EmailPolicyService = emailPolicyService,
     private orchestratorPort: OrchestratorPort = defaultOrchestratorPort,
-    private personalBrains?: PersonalBrainRegistry
+    private personalBrains?: PersonalBrainRegistry,
+    private peerBridge?: PeerDelegationBridge
   ) {}
 
   async execute(
@@ -63,6 +66,22 @@ export class ProcessIncomingEmailUseCase {
       confidence: classification.confidence,
       messageId: rawEmail.messageId,
     });
+
+    if (isMailPeerEnabled() && this.peerBridge?.isAvailable()) {
+      try {
+        await this.peerBridge.runSpecialist({
+          tenantId: ctx.tenantId,
+          agentKey: 'mail',
+          intent: 'EMAIL_SUMMARY',
+          command: `${rawEmail.subject ?? ''} from ${rawEmail.from}`,
+          contextSnippets: ragSnippets,
+          handlerResult: `Email classified as ${classification.category}`,
+          actorId: ctx.actorId,
+        });
+      } catch {
+        // Peer specialist run is best-effort
+      }
+    }
 
     let approvalId: string | undefined;
     let autoSent = false;

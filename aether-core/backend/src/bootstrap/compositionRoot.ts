@@ -5,6 +5,8 @@ import { registerEventHandlers } from './eventHandlers';
 import { assertAllRequiredHandlersRegistered } from '../shared/events/eventHandlerRegistry';
 
 import { eventBus } from '../shared/events/eventBus';
+import { createMessageBroker } from '../shared/messaging/createMessageBroker';
+import { OutboxRelayService, setOutboxRelayService } from '../shared/messaging/OutboxRelayService';
 
 import { PrismaInventoryRepository } from '../modules/inventory-pricing/infrastructure/persistence/PrismaInventoryRepository';
 
@@ -170,6 +172,8 @@ import type { CommandBrainService } from '../ai/intelligence/command-brain/Comma
 import type { AgentSupervisorPort } from '../ai/intelligence/multi-agent/AgentSupervisorPort';
 import type { ReflectionDistillationService } from '../ai/intelligence/global-knowledge/distillation/ReflectionDistillationService';
 import { ReflectionExperimentService } from '../ai/intelligence/personal-brain/reflection/experiments/ReflectionExperimentService';
+import { BilateralExchangeService } from '../modules/bilateral-exchange/application/BilateralExchangeService';
+import { BilateralImportAdapter } from '../modules/bilateral-exchange/application/BilateralImportAdapter';
 import type { ReflectionMetricsRecorder } from '../ai/intelligence/personal-brain/reflection/ReflectionMetricsRecorder';
 
 
@@ -292,6 +296,12 @@ export interface AppCompositionRoot {
 
   agentSupervisor?: AgentSupervisorPort;
 
+  peerDelegationBridge?: import('../ai/intelligence/multi-agent/peer/PeerDelegationBridge').PeerDelegationBridge;
+
+  federatedExecutionWorker?: import('../ai/intelligence/multi-agent/peer/federated/FederatedExecutionWorker').FederatedExecutionWorker;
+
+  agentPatternSync?: import('../ai/intelligence/global-knowledge/agent-patterns/AgentPatternSyncService').AgentPatternSyncService;
+
   reflectionDistillationService?: ReflectionDistillationService;
 
   reflectionExperimentService?: ReflectionExperimentService;
@@ -299,6 +309,8 @@ export interface AppCompositionRoot {
   reflectionMetricsRecorder?: ReflectionMetricsRecorder;
 
   memoryConsolidationJob: import('../ai/intelligence/personal-brain/memory/jobs/MemoryConsolidationJob').MemoryConsolidationJob;
+
+  bilateralExchangeService: BilateralExchangeService;
 
 }
 
@@ -345,6 +357,7 @@ export function bootstrapApplication(): AppCompositionRoot {
 
 
   registerEventHandlers();
+  setOutboxRelayService(new OutboxRelayService(createMessageBroker()));
 
   assertAllRequiredHandlersRegistered();
 
@@ -406,7 +419,12 @@ export function bootstrapApplication(): AppCompositionRoot {
     privacyBudgetService,
     adminData,
     dynamicPricingEngine: pricingEngine,
+    decisionRepository: decisionRepo,
   });
+
+  const bilateralExchangeService = new BilateralExchangeService(
+    new BilateralImportAdapter(intelligence.personalBrainRegistry)
+  );
 
   const monitorSupplierUseCase = new MonitorSupplierUseCase(
     supplierRepo,
@@ -414,7 +432,8 @@ export function bootstrapApplication(): AppCompositionRoot {
     new PriceChangeDetectorService(),
     supplierDecisionEngine,
     supplierChangePort,
-    intelligence.personalBrainRegistry
+    intelligence.personalBrainRegistry,
+    intelligence.peerDelegationBridge
   );
 
   const supplierMonitorAdapter = new SupplierMonitorAdapter(monitorSupplierUseCase);
@@ -455,7 +474,9 @@ export function bootstrapApplication(): AppCompositionRoot {
 
     undefined,
 
-    intelligence.personalBrainRegistry
+    intelligence.personalBrainRegistry,
+
+    intelligence.peerDelegationBridge
 
   );
 
@@ -486,6 +507,7 @@ export function bootstrapApplication(): AppCompositionRoot {
         planMemory: intelligence.planMemoryService,
         personalBrainMemory: intelligence.personalBrainMemory,
         agentSupervisor: intelligence.agentSupervisor,
+        multiAgentResultAggregator: intelligence.multiAgentResultAggregator,
         reflectionExperimentService: intelligence.reflectionExperimentService,
         reflectionMetricsRecorder: intelligence.reflectionMetricsRecorder,
         reflectionDistillationService: intelligence.reflectionDistillationService,
@@ -538,7 +560,11 @@ export function bootstrapApplication(): AppCompositionRoot {
 
     updateInventory: new UpdateInventoryUseCase(inventoryRepo),
 
-    applyDynamicPrice: new ApplyDynamicPriceUseCase(pricingEngine, inventoryRepo),
+    applyDynamicPrice: new ApplyDynamicPriceUseCase(
+      pricingEngine,
+      inventoryRepo,
+      intelligence.peerDelegationBridge
+    ),
 
     supplierMonitor: new SupplierMonitorAdapter(monitorSupplierUseCase),
 
@@ -558,11 +584,19 @@ export function bootstrapApplication(): AppCompositionRoot {
 
     listDecisions: new ListDecisionsUseCase(decisionRepo),
 
-    createDecision: new CreateDecisionUseCase(decisionRepo),
+    createDecision: new CreateDecisionUseCase(
+      decisionRepo,
+      intelligence.peerDelegationBridge
+    ),
 
     getDecision: new GetDecisionUseCase(decisionRepo),
 
-    respondToOffer: new RespondToOfferUseCase(negotiationRepo, productQueryAdapter, negotiationEngine),
+    respondToOffer: new RespondToOfferUseCase(
+      negotiationRepo,
+      productQueryAdapter,
+      negotiationEngine,
+      intelligence.peerDelegationBridge
+    ),
 
     startNegotiation: new StartNegotiationUseCase(negotiationRepo),
 
@@ -614,6 +648,12 @@ export function bootstrapApplication(): AppCompositionRoot {
 
     agentSupervisor: intelligence.agentSupervisor,
 
+    peerDelegationBridge: intelligence.peerDelegationBridge,
+
+    federatedExecutionWorker: intelligence.federatedExecutionWorker,
+
+    agentPatternSync: intelligence.agentPatternSync,
+
     reflectionDistillationService: intelligence.reflectionDistillationService,
 
     reflectionExperimentService: intelligence.reflectionExperimentService,
@@ -621,6 +661,8 @@ export function bootstrapApplication(): AppCompositionRoot {
     reflectionMetricsRecorder: intelligence.reflectionMetricsRecorder,
 
     memoryConsolidationJob: intelligence.memoryConsolidationJob,
+
+    bilateralExchangeService,
 
   };
 

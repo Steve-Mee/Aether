@@ -15,6 +15,10 @@ import GlobalKnowledgePanel from '@/components/settings/GlobalKnowledgePanel';
 import MemoryPanel from '@/components/settings/MemoryPanel';
 import ReflectionTimelinePanel from '@/components/settings/ReflectionTimelinePanel';
 import ContributionHistoryPanel from '@/components/settings/ContributionHistoryPanel';
+import FederatedDeploymentsPanel from '@/components/settings/FederatedDeploymentsPanel';
+import BilateralExchangePanel from '@/components/settings/BilateralExchangePanel';
+import { useCurrentUser } from '@/lib/auth/AuthProvider';
+import { roleMeetsMin } from '@/lib/auth/permissions';
 
 const SECTIONS = [
   { id: 'autonomy', labelKey: 'settings.section.autonomy' },
@@ -26,6 +30,8 @@ const SECTIONS = [
   { id: 'services', labelKey: 'settings.section.services' },
   { id: 'general', labelKey: 'settings.section.general' },
   { id: 'privacy', labelKey: 'settings.section.privacy' },
+  { id: 'bilateralExchange', labelKey: 'settings.section.bilateralExchange' },
+  { id: 'platform', labelKey: 'settings.section.platform', operatorOnly: true },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]['id'];
@@ -50,6 +56,10 @@ function SectionContent({ id }: { id: SectionId }) {
       return <GeneralPreferencesSection />;
     case 'privacy':
       return <DataPrivacySection />;
+    case 'bilateralExchange':
+      return <BilateralExchangePanel />;
+    case 'platform':
+      return <FederatedDeploymentsPanel />;
   }
 }
 
@@ -62,6 +72,10 @@ function parseSectionId(value: string | null): SectionId {
 
 export default function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const user = useCurrentUser();
+  const visibleSections = SECTIONS.filter(
+    (s) => !('operatorOnly' in s && s.operatorOnly) || roleMeetsMin(user?.role ?? 'viewer', 'operator')
+  );
   const [active, setActive] = useState<SectionId>(() =>
     parseSectionId(searchParams.get('section')),
   );
@@ -79,7 +93,7 @@ export default function Settings() {
     setSearchParams({ section: id }, { replace: true });
   };
 
-  const navSections = SECTIONS.map((s) => ({ id: s.id, label: t(s.labelKey) }));
+  const navSections = visibleSections.map((s) => ({ id: s.id, label: t(s.labelKey) }));
 
   return (
     <div className="max-w-5xl space-y-6" data-testid="settings-page">

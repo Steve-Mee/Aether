@@ -8,4 +8,5 @@ export const commandsRepository = {
   rejectToolProposal: (proposalId: string) => getDataAdapter().rejectToolProposal(proposalId),
   history: () => getDataAdapter().fetchCommandHistory(),
   agentRun: (commandId: string) => getDataAdapter().fetchAgentRun(commandId),
+  cancelAgentRun: (commandId: string) => getDataAdapter().cancelAgentRun(commandId),
 };

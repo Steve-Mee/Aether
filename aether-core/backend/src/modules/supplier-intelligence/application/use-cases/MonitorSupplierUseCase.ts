@@ -10,6 +10,8 @@ import { SupplierDecisionEngine } from '../services/SupplierDecisionEngine';
 import type { SupplierChangePort } from '../ports/SupplierChangePort';
 import { merchantAutonomyKernel } from '../../../../ai/autonomy/DecisionContract';
 import type { PersonalBrainRegistry } from '../../../../ai/intelligence/personal-brain/PersonalBrainRegistry';
+import type { PeerDelegationBridge } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
+import { isSupplierPeerEnabled } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
 
 export class MonitorSupplierUseCase {
   constructor(
@@ -18,7 +20,8 @@ export class MonitorSupplierUseCase {
     private detector: PriceChangeDetectorService,
     private decisionEngine: SupplierDecisionEngine,
     private supplierChanges: SupplierChangePort,
-    private personalBrains?: PersonalBrainRegistry
+    private personalBrains?: PersonalBrainRegistry,
+    private peerBridge?: PeerDelegationBridge
   ) {}
 
   async execute(supplierId: string, ctx: { tenantId: string; actorId?: string }): Promise<any> {
@@ -134,6 +137,26 @@ export class MonitorSupplierUseCase {
             autoApplied: true,
           },
         });
+
+        if (
+          isSupplierPeerEnabled() &&
+          this.peerBridge?.isAvailable() &&
+          change.type === 'price_change'
+        ) {
+          try {
+            await this.peerBridge.chainHandoff({
+              tenantId: ctx.tenantId,
+              fromAgentKey: 'supplier',
+              toAgentKey: 'pricing',
+              intent: 'PRICING_OPTIMIZE',
+              command: `${supplier.name} price change ${changePct}%`,
+              context: supplierRecall,
+              actorId: ctx.actorId,
+            });
+          } catch {
+            // Peer chain is best-effort
+          }
+        }
 
         if (this.personalBrains) {
           const brain = this.personalBrains.get(ctx.tenantId, 'supplier');

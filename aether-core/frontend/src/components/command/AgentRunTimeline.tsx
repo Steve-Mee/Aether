@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { CompoundStepTimeline, StepProgressRail } from '@/components/command-center/primitives';
 import type { AgentMessage } from '@/types/command';
+import { agentDisplayLabel } from '@/lib/agentDisplay';
 import { t } from '@/lib/i18n';
 
 function transcriptToSteps(
@@ -53,7 +55,7 @@ function transcriptToSteps(
   return steps;
 }
 
-export default function AgentRunTimeline({
+function SingleAgentTimeline({
   transcript,
   checkpoint,
   planGoal,
@@ -73,8 +75,7 @@ export default function AgentRunTimeline({
     planStepTotal ?? (planMessage?.role === 'plan' ? planMessage.steps.length : undefined);
 
   return (
-    <div className="mt-3" data-testid="agent-run-timeline">
-      <p className="text-xs font-medium text-muted-foreground mb-2">{t('command.brain.agentSteps')}</p>
+    <>
       {goal && total != null && total > 0 && (
         <div className="mb-2 space-y-1">
           <p className="text-xs text-muted-foreground">{goal}</p>
@@ -82,6 +83,78 @@ export default function AgentRunTimeline({
         </div>
       )}
       <CompoundStepTimeline steps={steps} />
+    </>
+  );
+}
+
+export default function AgentRunTimeline({
+  transcript,
+  agentTranscripts,
+  executionMode,
+  checkpoint,
+  planGoal,
+  planStepTotal,
+}: {
+  transcript?: AgentMessage[];
+  agentTranscripts?: Record<string, AgentMessage[]>;
+  executionMode?: 'single' | 'sequential' | 'parallel';
+  checkpoint?: boolean;
+  planGoal?: string;
+  planStepTotal?: number;
+}) {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const groupedKeys =
+    agentTranscripts && executionMode && executionMode !== 'single'
+      ? Object.keys(agentTranscripts).filter((k) => (agentTranscripts[k]?.length ?? 0) > 0)
+      : [];
+
+  if (groupedKeys.length > 1) {
+    return (
+      <div className="mt-3 space-y-2" data-testid="agent-run-timeline-grouped">
+        <p className="text-xs font-medium text-muted-foreground">{t('command.brain.agentSteps')}</p>
+        {groupedKeys.map((agentKey) => {
+          const messages = agentTranscripts![agentKey] ?? [];
+          const isOpen = !collapsed[agentKey];
+          return (
+            <div
+              key={agentKey}
+              className="rounded-lg border border-border/30 bg-muted/5 px-3 py-2"
+            >
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 text-left text-xs font-medium text-muted-foreground hover:text-foreground"
+                onClick={() => setCollapsed((c) => ({ ...c, [agentKey]: !c[agentKey] }))}
+                aria-expanded={isOpen}
+              >
+                <span>{agentDisplayLabel(agentKey)}</span>
+                <span className="ml-auto text-[10px]">{isOpen ? '▾' : '▸'}</span>
+              </button>
+              {isOpen && (
+                <div className="mt-2">
+                  <SingleAgentTimeline transcript={messages} checkpoint={checkpoint} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  const singleTranscript =
+    transcript ?? (groupedKeys.length === 1 ? agentTranscripts?.[groupedKeys[0]] : undefined);
+  if (!singleTranscript || singleTranscript.length === 0) return null;
+
+  return (
+    <div className="mt-3" data-testid="agent-run-timeline">
+      <p className="text-xs font-medium text-muted-foreground mb-2">{t('command.brain.agentSteps')}</p>
+      <SingleAgentTimeline
+        transcript={singleTranscript}
+        checkpoint={checkpoint}
+        planGoal={planGoal}
+        planStepTotal={planStepTotal}
+      />
     </div>
   );
 }

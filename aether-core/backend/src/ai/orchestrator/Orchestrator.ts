@@ -7,7 +7,12 @@ import { executeOrchestratorTask } from './TaskExecutor';
 
 export type AgentTask =
   | 'mail.classify'
+  | 'mail.analyze'
   | 'supplier.sync'
+  | 'supplier.delegate'
+  | 'inventory.analyze'
+  | 'negotiation.delegate'
+  | 'physical.sync'
   | 'admin.command'
   | 'pricing.adjust'
   | 'negotiation.step'

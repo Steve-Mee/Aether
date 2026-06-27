@@ -9,9 +9,10 @@ export class AgentPatternSyncService {
 
   async contributeFromTenant(tenantId: string): Promise<number> {
     if (!(await this.gate.isEnabled(tenantId))) return 0;
+    if (!(await this.gate.isContributorEnabled(tenantId))) return 0;
     const patterns = await this.distillation.distillFromCompletedRuns(tenantId);
     for (const pattern of patterns) {
-      await this.distillation.upsertGlobalPattern(pattern);
+      await this.distillation.upsertGlobalPattern(pattern, tenantId);
     }
     return patterns.length;
   }

@@ -100,6 +100,7 @@ const mockAdminData: AdminDataPort = {
   ]),
   approveLowRisk: jest.fn().mockResolvedValue(1),
   createSupplier: jest.fn().mockResolvedValue({ id: 'sup_1', name: 'acme.com' }),
+  createProduct: jest.fn().mockResolvedValue({ id: 'prod_1', name: 'Widget', slug: 'widget' }),
   listSuppliers: jest.fn().mockResolvedValue([]),
   findLatestProposedOutcome: jest.fn().mockResolvedValue({ id: 'out_1', metric: 'revenue', confidence: 0.8 }),
   countRecentCommands: jest.fn().mockResolvedValue(0),
@@ -108,6 +109,18 @@ const mockAdminData: AdminDataPort = {
   searchProductsByName: jest.fn().mockResolvedValue([]),
   restoreProductPrices: jest.fn().mockResolvedValue(0),
   applyRestockUpdates: jest.fn().mockResolvedValue(0),
+  countCustomers: jest.fn().mockResolvedValue(0),
+  getTopCustomers: jest.fn().mockResolvedValue([]),
+  getOrderTrends: jest.fn().mockResolvedValue({
+    recentCount: 0,
+    priorCount: 0,
+    trendPct: 0,
+    statusBreakdown: {},
+  }),
+  listForecasts: jest.fn().mockResolvedValue([]),
+  listRecentOrdersDetailed: jest.fn().mockResolvedValue([]),
+  listActiveNegotiations: jest.fn().mockResolvedValue([]),
+  getNegotiationDetail: jest.fn().mockResolvedValue(null),
 };
 
 const mockCommandLog = {
@@ -172,11 +185,50 @@ function createMockAgentSupervisor(
       source: 'intent',
     }),
     route: jest.fn().mockResolvedValue(def),
+    routePlan: jest.fn().mockResolvedValue({
+      mode: 'single',
+      agents: [{ agentKey, intent: supportedIntents[0] ?? 'UNKNOWN' }],
+      routingSource: 'intent',
+    }),
     executeSpecialist: jest.fn().mockResolvedValue({
       narrative: `${agentKey} specialist narrative`,
       agentRunId: `run_${agentKey}`,
       toolTrace: [],
       pendingActions: [],
+    }),
+    executeSequential: jest.fn().mockResolvedValue([
+      {
+        narrative: 'supplier specialist narrative',
+        agentRunId: 'run_supplier',
+        toolTrace: [],
+        pendingActions: [],
+      },
+      {
+        narrative: 'pricing specialist narrative',
+        agentRunId: 'run_pricing',
+        toolTrace: [],
+        pendingActions: [],
+      },
+    ]),
+    executeParallel: jest.fn().mockResolvedValue({
+      results: [
+        {
+          narrative: 'inventory specialist narrative',
+          agentRunId: 'run_inventory',
+          toolTrace: [],
+          pendingActions: [],
+        },
+        {
+          narrative: 'mail specialist narrative',
+          agentRunId: 'run_mail',
+          toolTrace: [],
+          pendingActions: [],
+        },
+      ],
+      mergedNarrative: 'inventory + mail narratives',
+      mergedToolTrace: [],
+      pendingActions: [],
+      agentRunIds: ['run_inventory', 'run_mail'],
     }),
     delegate: jest.fn(),
     resumeFromChild: jest.fn(),
@@ -347,6 +399,77 @@ describe('ExecuteNaturalLanguageCommandUseCase', () => {
       expect(result.parsedIntent).toBe('RESTOCK_SUGGEST');
       expect(result.brain?.specialist?.agentKey).toBe('inventory');
       expect(mockAdminData.applyRestockUpdates).not.toHaveBeenCalled();
+    });
+
+    it('runs sequential supplier→pricing for cross-domain command', async () => {
+      const supervisor = createMockAgentSupervisor('pricing', ['PRICING_OPTIMIZE']);
+      (supervisor.routePlan as jest.Mock).mockResolvedValue({
+        mode: 'sequential',
+        agents: [
+          { agentKey: 'supplier', intent: 'SUPPLIER_PRICE_INTEL', command: 'check supplier prices' },
+          { agentKey: 'pricing', intent: 'PRICING_OPTIMIZE', command: 'suggest price adjustments' },
+        ],
+        routingSource: 'keyword',
+        routingReason: 'collaboration:cross-domain-single',
+      });
+
+      const useCase = createUseCase(supervisor);
+      const result = await useCase.execute(
+        'check leveranciersprijzen en stel prijsaanpassingen voor',
+        { tenantId: 'tenant_default' }
+      );
+
+      expect(result.brain?.executionMode).toBe('sequential');
+      expect(result.brain?.agents?.length).toBeGreaterThanOrEqual(2);
+      expect(supervisor.executeSequential).toHaveBeenCalled();
+      expect(supervisor.executeSpecialist).not.toHaveBeenCalled();
+    });
+
+    it('runs parallel inventory+mail for read-only multi-agent command', async () => {
+      const supervisor = createMockAgentSupervisor('inventory', ['INVENTORY_STATUS']);
+      (supervisor.routePlan as jest.Mock).mockResolvedValue({
+        mode: 'parallel',
+        agents: [
+          { agentKey: 'inventory', intent: 'INVENTORY_STATUS', command: 'inventory status' },
+          { agentKey: 'mail', intent: 'EMAIL_SUMMARY', command: 'email summary' },
+        ],
+        routingSource: 'keyword',
+        routingReason: 'multi-keyword parallel',
+      });
+
+      const useCase = createUseCase(supervisor);
+      const result = await useCase.execute('geef inventory status en email samenvatting', {
+        tenantId: 'tenant_default',
+      });
+
+      expect(result.brain?.executionMode).toBe('parallel');
+      expect(result.brain?.agents?.length).toBe(2);
+      expect(supervisor.executeParallel).toHaveBeenCalled();
+      expect(supervisor.executeSequential).not.toHaveBeenCalled();
+    });
+
+    it('runs sequential customer→pricing for cross-domain command', async () => {
+      const supervisor = createMockAgentSupervisor('customer', ['CUSTOMER_ORDER_TRENDS']);
+      (supervisor.routePlan as jest.Mock).mockResolvedValue({
+        mode: 'sequential',
+        agents: [
+          { agentKey: 'customer', intent: 'CUSTOMER_ORDER_TRENDS', command: 'klant order trends' },
+          { agentKey: 'pricing', intent: 'PRICING_OPTIMIZE', command: 'prijsoptimalisatie' },
+        ],
+        routingSource: 'keyword',
+        routingReason: 'collaboration:cross-domain-customer-pricing',
+      });
+
+      const useCase = createUseCase(supervisor);
+      const result = await useCase.execute(
+        'toon klant order trends en stel prijsoptimalisatie voor',
+        { tenantId: 'tenant_default' }
+      );
+
+      expect(result.brain?.executionMode).toBe('sequential');
+      expect(result.brain?.agents?.length).toBeGreaterThanOrEqual(2);
+      expect(supervisor.executeSequential).toHaveBeenCalled();
+      expect(supervisor.executeSpecialist).not.toHaveBeenCalled();
     });
   });
 });

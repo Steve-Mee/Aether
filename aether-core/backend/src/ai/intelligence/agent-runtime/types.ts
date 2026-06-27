@@ -14,7 +14,7 @@ export interface ParsedCommand {
   source?: 'llm' | 'regex' | 'none';
   compound?: {
     steps: CompoundStep[];
-    connector: 'sequential';
+    connector: 'sequential' | 'parallel';
   };
 }
 

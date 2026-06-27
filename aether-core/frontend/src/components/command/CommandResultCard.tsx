@@ -6,6 +6,8 @@ import { Button, Card, ConfidenceBadge, ErrorState, RiskBadge } from '@/componen
 import BrainToolProposalCard from './BrainToolProposalCard';
 import AgentRunTimeline from './AgentRunTimeline';
 import AgentBadge from './AgentBadge';
+import HandoffChainRail, { executionModeBadgeLabel } from './HandoffChainRail';
+import AgentContributionsPanel from './AgentContributionsPanel';
 import { agentDisplayLabel } from '@/lib/agentDisplay';
 import { routeForIntent } from '../../lib/intentNavigation';
 import { t } from '../../lib/i18n';
@@ -152,14 +154,31 @@ export default function CommandResultCard({
         <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/65">
           {headerLabel}
         </p>
+        {brain?.executionMode && executionModeBadgeLabel(brain.executionMode) && (
+          <span className="text-[10px] rounded-md border border-border/40 px-1.5 py-0.5 text-muted-foreground">
+            {executionModeBadgeLabel(brain.executionMode)}
+          </span>
+        )}
         {activeAgents.map((agent) => (
           <AgentBadge
             key={`${agent.agentKey}-${agent.specialistRunId ?? 'primary'}`}
             agentKey={agent.agentKey}
             delegatedFrom={agent.delegatedFrom}
+            chainFrom={
+              brain?.handoffChain?.find((h) => h.to === agent.agentKey)?.from
+            }
           />
         ))}
       </div>
+      {brain?.handoffChain && brain.handoffChain.length > 0 && (
+        <HandoffChainRail chain={brain.handoffChain} />
+      )}
+      {brain?.agentContributions && brain.agentContributions.length > 0 && (
+        <AgentContributionsPanel
+          contributions={brain.agentContributions}
+          conflicts={brain.actionConflicts}
+        />
+      )}
       {brain?.specialist?.handoffSummary && (
         <p className="text-xs text-muted-foreground/80 mb-2">{brain.specialist.handoffSummary}</p>
       )}
@@ -316,9 +335,18 @@ export default function CommandResultCard({
       {agentTranscript && agentTranscript.length > 0 && (
         <AgentRunTimeline
           transcript={agentTranscript}
+          agentTranscripts={brain?.agentTranscripts}
+          executionMode={brain?.executionMode}
           checkpoint={isCheckpoint}
           planGoal={brain?.plan?.goal}
           planStepTotal={brain?.plan?.steps.length}
+        />
+      )}
+      {!agentTranscript?.length && brain?.agentTranscripts && (
+        <AgentRunTimeline
+          agentTranscripts={brain.agentTranscripts}
+          executionMode={brain.executionMode}
+          checkpoint={isCheckpoint}
         />
       )}
 

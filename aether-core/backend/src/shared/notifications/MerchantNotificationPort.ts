@@ -4,4 +4,11 @@ export interface MerchantNotificationPort {
     approvalId: string;
     module: string;
   }): Promise<void>;
+
+  notifyHandoffCompleted?(params: {
+    tenantId: string;
+    jobId?: string;
+    narrative?: string;
+    success: boolean;
+  }): Promise<void>;
 }

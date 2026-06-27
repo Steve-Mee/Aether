@@ -3,18 +3,21 @@ import { NegotiationRepository } from '../../domain/repositories/NegotiationRepo
 import type { ProductQueryPort } from '../ports/ProductQueryPort';
 import { eventBus } from '../../../../shared/events/eventBus';
 import { requireTenantId } from '../../../../shared/tenant/tenantContext';
+import type { PeerDelegationBridge } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
+import { isNegotiationPeerEnabled } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
 
 export class RespondToOfferUseCase {
   constructor(
     private repo: NegotiationRepository,
     private productQuery: ProductQueryPort,
-    private engine: NegotiationEngine
+    private engine: NegotiationEngine,
+    private peerBridge?: PeerDelegationBridge
   ) {}
 
   async execute(
     negotiationId: string,
     params: { offer: number; agentId: string },
-    ctx: { tenantId: string }
+    ctx: { tenantId: string; actorId?: string }
   ) {
     const tid = requireTenantId(ctx.tenantId, 'RespondToOfferUseCase.execute');
     const negotiation = await this.repo.findById(negotiationId, tid);
@@ -58,6 +61,26 @@ export class RespondToOfferUseCase {
       type: 'negotiation.updated',
       payload: { negotiationId, decision, offer: params.offer },
     });
+
+    if (
+      isNegotiationPeerEnabled() &&
+      this.peerBridge?.isAvailable() &&
+      (decision === 'COUNTER' || decision === 'ACCEPT')
+    ) {
+      try {
+        await this.peerBridge.chainHandoff({
+          tenantId: tid,
+          fromAgentKey: 'negotiation',
+          toAgentKey: 'pricing',
+          intent: 'PRICING_OPTIMIZE',
+          command: `Negotiation ${negotiationId} ${decision} at offer ${params.offer}`,
+          context: [],
+          actorId: ctx.actorId,
+        });
+      } catch {
+        // Best-effort negotiation peer chain
+      }
+    }
 
     return {
       negotiationId,

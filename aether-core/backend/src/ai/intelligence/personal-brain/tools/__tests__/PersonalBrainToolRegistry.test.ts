@@ -45,6 +45,7 @@ describe('PersonalBrainToolRegistry', () => {
     ]),
     approveLowRisk: jest.fn(),
     createSupplier: jest.fn(),
+    createProduct: jest.fn(),
     listSuppliers: jest.fn(),
     findLatestProposedOutcome: jest.fn(),
     countRecentCommands: jest.fn(),

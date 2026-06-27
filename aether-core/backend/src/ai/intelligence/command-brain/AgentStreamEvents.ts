@@ -13,6 +13,14 @@ export type AgentStreamEventType =
   | 'checkpoint'
   | 'global_knowledge_synced'
   | 'agent_assigned'
+  | 'agent_started'
+  | 'agent_completed'
+  | 'agent_handoff'
+  | 'peer_job_queued'
+  | 'peer_job_completed'
+  | 'peer_job_failed'
+  | 'handoff_chain_update'
+  | 'run_started'
   | 'done'
   | 'error';
 
@@ -38,6 +46,14 @@ export interface AgentStreamEvent {
   error?: string;
   runStatus?: 'running' | 'completed' | 'failed' | 'awaiting_approval' | 'cancelled';
   agentKey?: string;
+  fromAgentKey?: string;
+  toAgentKey?: string;
+  handoffReason?: string;
+  handoffMode?: 'direct' | 'orchestrated';
+  jobId?: string;
+  handoffChain?: import('../multi-agent/types').HandoffChainEntry[];
+  executionMode?: 'single' | 'sequential' | 'parallel';
+  commandId?: string;
   timestamp: string;
 }
 

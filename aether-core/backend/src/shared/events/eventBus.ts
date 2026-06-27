@@ -1,7 +1,8 @@
 import { prisma } from '../prisma/client';
 import { logger } from '../logging/logger';
 import { requireTenantId } from '../tenant/tenantContext';
-
+import { getEventBusMode, isExternalBrokerEnabled, shouldSkipInProcessDispatch } from '../messaging/messagingConfig';
+import { getOutboxRelayService } from '../messaging/OutboxRelayService';
 export type DomainEventType =
   | 'mail.processed'
   | 'mail.approval_required'
@@ -11,7 +12,10 @@ export type DomainEventType =
   | 'decision.executed'
   | 'negotiation.updated'
   | 'outcome.recorded'
-  | 'outcome.verified';
+  | 'outcome.verified'
+  | 'agent.peer.requested'
+  | 'agent.peer.completed'
+  | 'agent.handoff.completed';
 
 export interface DomainEventPayload {
   tenantId: string;
@@ -72,7 +76,36 @@ class AetherEventBus {
       }
     }
 
+    const skipLocal = shouldSkipInProcessDispatch(event.type);
+    if (skipLocal) {
+      await this.maybeRelay(created.id, event, tenantId);
+      return;
+    }
+
     await this.dispatchLocal({ ...event, tenantId }, created.id);
+
+    if (isExternalBrokerEnabled() && getEventBusMode() === 'dual') {
+      await this.maybeRelay(created.id, event, tenantId);
+    }
+  }
+
+  private async maybeRelay(
+    eventId: string,
+    event: DomainEventPayload,
+    tenantId: string
+  ): Promise<void> {
+    const relay = getOutboxRelayService();
+    if (!relay) return;
+    try {
+      await relay.relayBatch(1);
+    } catch (error) {
+      logger.warn('event_bus_relay_trigger_failed', {
+        eventId,
+        type: event.type,
+        tenantId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private async dispatchLocal(event: DomainEventPayload, eventId: string): Promise<void> {

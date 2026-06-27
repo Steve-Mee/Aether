@@ -8,6 +8,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "peer-worker": "ts-node-dev --respawn --transpile-only src/peerWorker.ts",
+    "federated-worker": "ts-node-dev --respawn --transpile-only src/federatedWorker.ts",
     "build": "tsc",
     "sentry:sourcemaps": "sentry-cli sourcemaps upload --org \"$SENTRY_ORG\" --project \"${SENTRY_BACKEND_PROJECT:-$SENTRY_PROJECT}\" --release \"$APP_VERSION\" ./dist",
     "start": "node dist/index.js",
@@ -53,7 +55,10 @@
     "nodemailer": "^6.9.13",
     "prisma": "^5.22.0",
     "stripe": "^17.7.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "kafkajs": "^2.2.4",
+    "@langchain/core": "^0.3.26",
+    "@langchain/langgraph": "^0.2.36"
   },
   "optionalDependencies": {
     "playwright": "^1.44.0",

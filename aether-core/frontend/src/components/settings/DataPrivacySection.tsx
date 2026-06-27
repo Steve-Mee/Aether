@@ -15,6 +15,7 @@ export default function DataPrivacySection() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const advancedPanelId = useId();
   const exportToggleId = useId();
+  const bilateralToggleId = useId();
   const { apiUrl, tenantId } = getRuntimeConfig();
   const tenant = tenantId ? `${tenantId.slice(0, 8)}…` : '—';
 
@@ -40,6 +41,19 @@ export default function DataPrivacySection() {
             id={exportToggleId}
             checked={settings.dataExportEnabled}
             onCheckedChange={(v) => void updateSettings({ dataExportEnabled: v })}
+          />
+        </SettingRow>
+
+        <SettingRow
+          label={t('settings.privacy.bilateralExchange')}
+          description={t('settings.privacy.bilateralExchangeHint')}
+          htmlFor={bilateralToggleId}
+        >
+          <Switch
+            id={bilateralToggleId}
+            checked={settings.brainBilateralExchangeEnabled}
+            onCheckedChange={(v) => void updateSettings({ brainBilateralExchangeEnabled: v })}
+            data-testid="brain-bilateral-exchange"
           />
         </SettingRow>
 

@@ -24,7 +24,12 @@ interface CommandContextValue {
   streaming: boolean;
   streamSteps: import('@/lib/useCommandStream').CommandStreamStep[];
   streamPlan: import('@/lib/useCommandStream').CommandStreamPlan | null;
+  streamPlansByAgent: Record<string, import('@/lib/useCommandStream').CommandStreamPlan>;
   streamActiveAgentKey: string | null;
+  streamActiveAgentKeys: string[];
+  streamHandoffChain: import('@/types/command').HandoffChainEntry[];
+  streamExecutionMode: 'single' | 'sequential' | 'parallel' | null;
+  streamChainFrom: string | null;
   cancelStream: () => void;
   error: string | null;
   paletteOpen: boolean;
@@ -85,7 +90,7 @@ export function CommandProvider({ children }: { children: ReactNode }) {
     });
   }, [serverHistory]);
 
-  const { executeMutation, undoMutation, loading, streamSteps, streamPlan, streaming, activeAgentKey, cancelStream } = useCommandMutations({
+  const { executeMutation, undoMutation, loading, streamSteps, streamPlan, streamPlansByAgent, streaming, activeAgentKey, activeAgentKeys, streamHandoffChain, streamExecutionMode, streamChainFrom, cancelStream } = useCommandMutations({
     onExecuteSuccess: (data) => {
       setLastResult(data);
       setHistory((prev) => [data, ...prev].slice(0, 20));
@@ -135,7 +140,12 @@ export function CommandProvider({ children }: { children: ReactNode }) {
         streaming,
         streamSteps,
         streamPlan,
+        streamPlansByAgent,
         streamActiveAgentKey: activeAgentKey,
+        streamActiveAgentKeys: activeAgentKeys,
+        streamHandoffChain,
+        streamExecutionMode,
+        streamChainFrom,
         cancelStream,
         error,
         paletteOpen,

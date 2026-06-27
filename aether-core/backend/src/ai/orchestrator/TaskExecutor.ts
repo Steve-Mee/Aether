@@ -61,6 +61,96 @@ export async function executeOrchestratorTask(
       };
     }
 
+    case 'mail.analyze': {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (!bridge?.isAvailable()) {
+        return { executed: false, reason: 'peer bridge unavailable' };
+      }
+      const command = String(ctx.input.command ?? ctx.input.subject ?? 'email summary');
+      const result = await bridge.runSpecialist({
+        tenantId: ctx.tenantId,
+        agentKey: 'mail',
+        intent: 'EMAIL_SUMMARY',
+        command,
+        contextSnippets: [],
+        handlerResult: 'mail.analyze task',
+        actorId: ctx.actorId,
+      });
+      return { narrative: result.narrative, executed: true };
+    }
+
+    case 'supplier.delegate': {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (!bridge?.isAvailable()) {
+        return { executed: false, reason: 'peer bridge unavailable' };
+      }
+      const command = String(ctx.input.command ?? 'supplier price review');
+      const result = await bridge.chainHandoff({
+        tenantId: ctx.tenantId,
+        fromAgentKey: 'supplier',
+        toAgentKey: 'pricing',
+        intent: 'PRICING_OPTIMIZE',
+        command,
+        context: [],
+        actorId: ctx.actorId,
+      });
+      return { narrative: result.narrative, executed: true };
+    }
+
+    case 'inventory.analyze': {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (!bridge?.isAvailable()) {
+        return { executed: false, reason: 'peer bridge unavailable' };
+      }
+      const command = String(ctx.input.command ?? 'inventory status review');
+      const result = await bridge.runSpecialist({
+        tenantId: ctx.tenantId,
+        agentKey: 'inventory',
+        intent: 'INVENTORY_STATUS',
+        command,
+        contextSnippets: [],
+        handlerResult: 'inventory.analyze task',
+        actorId: ctx.actorId,
+      });
+      return { narrative: result.narrative, executed: true };
+    }
+
+    case 'negotiation.delegate': {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (!bridge?.isAvailable()) {
+        return { executed: false, reason: 'peer bridge unavailable' };
+      }
+      const command = String(ctx.input.command ?? 'negotiation margin review');
+      const result = await bridge.chainHandoff({
+        tenantId: ctx.tenantId,
+        fromAgentKey: 'pricing',
+        toAgentKey: 'supplier',
+        intent: 'PRICING_OPTIMIZE',
+        command,
+        context: [],
+        actorId: ctx.actorId,
+      });
+      return { narrative: result.narrative, executed: true };
+    }
+
+    case 'physical.sync': {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (!bridge?.isAvailable()) {
+        return { executed: false, reason: 'peer bridge unavailable' };
+      }
+      const shelfId = String(ctx.input.shelfId ?? 'unknown');
+      const result = await bridge.runSpecialist({
+        tenantId: ctx.tenantId,
+        agentKey: 'inventory',
+        intent: 'INVENTORY_STATUS',
+        command: `Physical shelf sync ${shelfId}`,
+        contextSnippets: [],
+        handlerResult: 'physical.sync task',
+        actorId: ctx.actorId,
+      });
+      return { narrative: result.narrative, executed: true };
+    }
+
     case 'admin.command': {
       if (ctx.input.intent) {
         return {

@@ -12,7 +12,12 @@ export interface PolicyDecision {
 
 const TASK_TO_ACTION: Record<string, string> = {
   'mail.classify': 'email.auto_reply',
+  'mail.analyze': 'brain.recall',
   'supplier.sync': 'supplier.monitor',
+  'supplier.delegate': 'brain.recall',
+  'inventory.analyze': 'brain.recall',
+  'negotiation.delegate': 'negotiation.counter',
+  'physical.sync': 'brain.recall',
   'admin.command': 'admin.command',
   'pricing.adjust': 'price.change',
   'negotiation.step': 'negotiation.counter',

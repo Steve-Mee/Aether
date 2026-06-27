@@ -14,6 +14,9 @@ import CommandSuggestionsList from './CommandSuggestionsList';
 import CommandResultCard from './CommandResultCard';
 import CommandErrorCard from './CommandErrorCard';
 import AgentBadge from './AgentBadge';
+import HandoffChainRail, { executionModeBadgeLabel } from './HandoffChainRail';
+import { agentsWorkingParallelLabel } from './AgentContributionsPanel';
+import AgentGroupedTimeline from './AgentGroupedTimeline';
 
 export const COMMAND_PREFILL_STORAGE_KEY = 'aether_command_prefill';
 
@@ -26,7 +29,11 @@ export default function NaturalLanguageBar() {
     streaming,
     streamSteps,
     streamPlan,
-    streamActiveAgentKey,
+    streamPlansByAgent,
+    streamActiveAgentKeys,
+    streamHandoffChain,
+    streamExecutionMode,
+    streamChainFrom,
     cancelStream,
     error,
     openPalette,
@@ -181,9 +188,27 @@ export default function NaturalLanguageBar() {
           <>
             {streaming && (
               <div className="mt-3 space-y-2" role="status" data-testid="command-stream-steps">
-                {streamActiveAgentKey && (
-                  <div className="flex items-center gap-2">
-                    <AgentBadge agentKey={streamActiveAgentKey} delegatedFrom="admin" />
+                {streamHandoffChain.length > 0 && <HandoffChainRail chain={streamHandoffChain} />}
+                {streamActiveAgentKeys.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {streamExecutionMode && executionModeBadgeLabel(streamExecutionMode) && (
+                        <span className="text-[10px] rounded-md border border-border/40 px-1.5 py-0.5 text-muted-foreground">
+                          {executionModeBadgeLabel(streamExecutionMode)}
+                        </span>
+                      )}
+                      {streamActiveAgentKeys.map((key) => (
+                        <AgentBadge
+                          key={key}
+                          agentKey={key}
+                          delegatedFrom="admin"
+                          chainFrom={streamChainFrom ?? undefined}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {agentsWorkingParallelLabel(streamActiveAgentKeys)}
+                    </p>
                   </div>
                 )}
                 {streamPlan && streamPlan.stepTotal > 0 && (
@@ -197,7 +222,13 @@ export default function NaturalLanguageBar() {
                     />
                   </div>
                 )}
-                {liveSteps.length > 0 && <CompoundStepTimeline steps={liveSteps} />}
+                {liveSteps.length > 0 && (
+                  <AgentGroupedTimeline
+                    steps={liveSteps}
+                    plansByAgent={streamPlansByAgent}
+                    executionMode={streamExecutionMode}
+                  />
+                )}
                 <Button
                   type="button"
                   size="sm"

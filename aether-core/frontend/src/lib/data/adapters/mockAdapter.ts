@@ -225,6 +225,8 @@ export const mockDataAdapter: DataAdapter = {
     pendingActions: [],
   }),
 
+  cancelAgentRun: async () => ({ success: true }),
+
   fetchNotifications: async () => {
     const seed = getDemoNotificationSeed();
     return seed

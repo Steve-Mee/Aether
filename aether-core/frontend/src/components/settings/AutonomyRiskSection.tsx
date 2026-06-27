@@ -24,6 +24,8 @@ export default function AutonomyRiskSection() {
   const priceRangeId = useId();
   const adaptiveLearnId = useId();
   const adaptiveAutoExecId = useId();
+  const crossTenantPatternsId = useId();
+  const federatedExecutionId = useId();
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(settings);
 
@@ -45,6 +47,8 @@ export default function AutonomyRiskSection() {
         brainKnowledgeTransferEnabled: draft.brainKnowledgeTransferEnabled,
         brainKnowledgeGovernanceMode: draft.brainKnowledgeGovernanceMode,
         brainFederatedContributionEnabled: draft.brainFederatedContributionEnabled,
+        brainCrossTenantAgentPatternsEnabled: draft.brainCrossTenantAgentPatternsEnabled,
+        brainFederatedExecutionContribute: draft.brainFederatedExecutionContribute,
         brainAdaptiveLearningEnabled: draft.brainAdaptiveLearningEnabled,
         brainAdaptiveAutoExecuteEnabled: draft.brainAdaptiveAutoExecuteEnabled,
       });
@@ -266,6 +270,36 @@ export default function AutonomyRiskSection() {
             setDraft((d) => ({ ...d, brainFederatedContributionEnabled: v }))
           }
           data-testid="brain-federated-contribution"
+        />
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.autonomy.crossTenantPatterns')}
+        description={t('settings.autonomy.crossTenantPatternsHint')}
+        htmlFor={crossTenantPatternsId}
+      >
+        <Switch
+          id={crossTenantPatternsId}
+          checked={draft.brainCrossTenantAgentPatternsEnabled}
+          onCheckedChange={(v) =>
+            setDraft((d) => ({ ...d, brainCrossTenantAgentPatternsEnabled: v }))
+          }
+          data-testid="brain-cross-tenant-patterns"
+        />
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.autonomy.federatedExecutionContribute')}
+        description={t('settings.autonomy.federatedExecutionContributeHint')}
+        htmlFor={federatedExecutionId}
+      >
+        <Switch
+          id={federatedExecutionId}
+          checked={draft.brainFederatedExecutionContribute}
+          onCheckedChange={(v) =>
+            setDraft((d) => ({ ...d, brainFederatedExecutionContribute: v }))
+          }
+          data-testid="brain-federated-execution-contribute"
         />
       </SettingRow>
 

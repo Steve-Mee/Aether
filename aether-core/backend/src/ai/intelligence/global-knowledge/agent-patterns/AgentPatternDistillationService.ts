@@ -19,7 +19,6 @@ export class AgentPatternDistillationService {
       select: {
         agentKey: true,
         status: true,
-        delegationMeta: true,
       },
     });
 
@@ -51,8 +50,36 @@ export class AgentPatternDistillationService {
     return patterns;
   }
 
-  async upsertGlobalPattern(pattern: DistilledAgentPattern): Promise<void> {
-    const tenantCount = pattern.tenantCount;
+  async upsertGlobalPattern(
+    pattern: DistilledAgentPattern,
+    contributingTenantId: string
+  ): Promise<void> {
+    await prisma.agentPatternTenantContribution.upsert({
+      where: {
+        tenantId_category_agentKey_patternType: {
+          tenantId: contributingTenantId,
+          category: pattern.category,
+          agentKey: pattern.agentKey,
+          patternType: pattern.patternType,
+        },
+      },
+      create: {
+        tenantId: contributingTenantId,
+        category: pattern.category,
+        agentKey: pattern.agentKey,
+        patternType: pattern.patternType,
+      },
+      update: {},
+    });
+
+    const tenantCount = await prisma.agentPatternTenantContribution.count({
+      where: {
+        category: pattern.category,
+        agentKey: pattern.agentKey,
+        patternType: pattern.patternType,
+      },
+    });
+
     const kMet = meetsKAnonymity(tenantCount, Number(pattern.payload.sampleSize ?? 0));
     await prisma.globalAgentPattern.upsert({
       where: {

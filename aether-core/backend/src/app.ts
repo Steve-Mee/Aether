@@ -32,6 +32,8 @@ import paymentFulfillmentRouter from './modules/payment-fulfillment';
 import approvalsRouter from './modules/approvals';
 import outcomesRouter from './modules/outcomes';
 import merchantAuthRouter from './modules/merchant-auth';
+import bilateralExchangeRouter from './modules/bilateral-exchange';
+import bilateralAdminRouter from './modules/bilateral-exchange/adminRouter';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -106,6 +108,8 @@ export function createApp(): Express {
   app.use('/api/payments', paymentFulfillmentRouter);
   app.use('/api/approvals', approvalsRouter);
   app.use('/api/outcomes', outcomesRouter);
+  app.use('/api/bilateral', bilateralExchangeRouter);
+  app.use('/api/admin/bilateral', bilateralAdminRouter);
 
   // Feature-gated experimental modules
   app.use('/api/predictive', featureGate('predictive'), predictiveCommerceRouter);

@@ -39,6 +39,9 @@ export interface MerchantSettings {
   brainKnowledgeGovernanceMode: BrainKnowledgeGovernanceMode;
   brainAdaptiveLearningEnabled: boolean;
   brainAdaptiveAutoExecuteEnabled: boolean;
+  brainCrossTenantAgentPatternsEnabled: boolean;
+  brainFederatedExecutionContribute: boolean;
+  brainBilateralExchangeEnabled: boolean;
 }
 
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
@@ -69,6 +72,9 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   brainKnowledgeGovernanceMode: 'full_loop',
   brainAdaptiveLearningEnabled: false,
   brainAdaptiveAutoExecuteEnabled: false,
+  brainCrossTenantAgentPatternsEnabled: false,
+  brainFederatedExecutionContribute: false,
+  brainBilateralExchangeEnabled: false,
 };
 
 export function parseTimeToMinutes(value: string | null | undefined): number | null {

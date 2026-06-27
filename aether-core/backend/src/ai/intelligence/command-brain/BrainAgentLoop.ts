@@ -8,7 +8,7 @@ import type { PersonalBrainToolRegistry } from '../personal-brain/tools/Personal
 import { getBrainToolProposal, getProposalExecutionResult } from '../personal-brain/tools/BrainToolProposalStore';
 import type { BrainToolTraceEntry, ToolProposal } from '../personal-brain/tools/types';
 import { AgentTranscript } from './AgentTranscript';
-import type { AgentStreamCallback, StepProgressStatus } from './AgentStreamEvents';
+import type { AgentStreamCallback, StepProgressStatus, AgentStreamEvent } from './AgentStreamEvents';
 import { emitStreamEvent } from './AgentStreamEvents';
 import { BrainAgentPlanner } from './BrainAgentPlanner';
 import { BrainAgentReflector } from './BrainAgentReflector';
@@ -34,6 +34,14 @@ const MAX_TOTAL_STEPS = 10;
 
 const PLAN_FOLLOW_INSTRUCTION =
   'Volg het plan. Na elke tool: evalueer of het doel bereikt is of ga naar de volgende stap. Bij falen: probeer alternatief of geef duidelijke foutmelding.';
+
+function emitLoopEvent(
+  onEvent: AgentStreamCallback | undefined,
+  agentKey: string | undefined,
+  event: Omit<AgentStreamEvent, 'timestamp'>
+): void {
+  emitStreamEvent(onEvent, agentKey ? { ...event, agentKey } : event);
+}
 
 export interface AgentLoopOutput extends GenerateResponseOutput {
   toolTrace?: BrainToolTraceEntry[];
@@ -64,6 +72,7 @@ export interface AgentLoopRunInput extends GenerateResponseInput {
   allowedTools?: string[];
   parentRunId?: string;
   handoffConstraints?: string[];
+  peerDepth?: number;
   resumeState?: {
     agentRunId: string;
     startStep: number;
@@ -276,7 +285,7 @@ export class BrainAgentLoop {
       });
       transcript.addPlan(plan);
       transcript.addSystem(PLAN_FOLLOW_INSTRUCTION);
-      emitStreamEvent(input.onEvent, {
+      emitLoopEvent(input.onEvent, input.agentKey, {
         type: 'plan_ready',
         goal: plan.goal,
         steps: plan.steps,
@@ -308,7 +317,7 @@ export class BrainAgentLoop {
       agentRunId = run.id;
     }
 
-    emitStreamEvent(input.onEvent, { type: 'thinking', step: startStep });
+    emitLoopEvent(input.onEvent, input.agentKey, { type: 'thinking', step: startStep });
 
     const loopCtx: LoopContext = {
       input,
@@ -368,7 +377,7 @@ export class BrainAgentLoop {
     }
 
     if (!result.checkpoint) {
-      emitStreamEvent(input.onEvent, {
+      emitLoopEvent(input.onEvent, input.agentKey, {
         type: 'done',
         narrative: result.narrative,
         runStatus: result.runStatus,
@@ -431,7 +440,7 @@ export class BrainAgentLoop {
     planStep: number,
     status: StepProgressStatus
   ): void {
-    emitStreamEvent(ctx.onEvent, {
+    emitLoopEvent(ctx.onEvent, ctx.input.agentKey, {
       type: 'step_progress',
       planStep,
       planStepTotal: ctx.plan?.steps.length,
@@ -511,7 +520,7 @@ export class BrainAgentLoop {
     message: string
   ): Promise<AgentLoopOutput | 'replan'> {
     ctx.toolTrace.push({ tool: 'agent_loop', input: { step }, output: message, status: 'error' });
-    emitStreamEvent(ctx.onEvent, { type: 'error', error: message, step });
+    emitLoopEvent(ctx.onEvent, ctx.input.agentKey, { type: 'error', error: message, step });
 
     const planLabel = ctx.plan?.steps[ctx.currentPlanStep]?.label ?? `Stap ${ctx.currentPlanStep + 1}`;
     ctx.failedPlanSteps.push({ label: planLabel, error: message });
@@ -535,7 +544,7 @@ export class BrainAgentLoop {
       ctx.plan = revised;
       ctx.planRevisions += 1;
       ctx.transcript.addPlan(revised);
-      emitStreamEvent(ctx.onEvent, {
+      emitLoopEvent(ctx.onEvent, ctx.input.agentKey, {
         type: 'plan_revised',
         goal: revised.goal,
         steps: revised.steps,
@@ -572,7 +581,7 @@ export class BrainAgentLoop {
       nextAction: reflection.nextAction,
       planStep: ctx.currentPlanStep,
     });
-    emitStreamEvent(ctx.onEvent, {
+    emitLoopEvent(ctx.onEvent, ctx.input.agentKey, {
       type: 'reflection',
       observation: reflection.observation,
       nextAction: reflection.nextAction,
@@ -602,7 +611,7 @@ export class BrainAgentLoop {
       ctx.plan = revised;
       ctx.planRevisions += 1;
       ctx.transcript.addPlan(revised);
-      emitStreamEvent(ctx.onEvent, {
+      emitLoopEvent(ctx.onEvent, ctx.input.agentKey, {
         type: 'plan_revised',
         goal: revised.goal,
         steps: revised.steps,
@@ -655,7 +664,7 @@ export class BrainAgentLoop {
           if (await this.checkCancelled(input, agentRunId)) {
             return this.buildCancelledOutput(ctx, agentRunId, input);
           }
-          emitStreamEvent(onEvent, { type: 'tool_start', step, tool: parsed.tool });
+          emitLoopEvent(onEvent, input.agentKey, { type: 'tool_start', step, tool: parsed.tool });
           const toolResult = await this.executeToolCall(parsed.tool, parsed.input ?? {}, input, step, onEvent);
 
           if (toolResult.trace.status === 'error') {
@@ -787,7 +796,7 @@ export class BrainAgentLoop {
 
         if (response.finishReason === 'stop' && response.message.content) {
           transcript.addAssistant(response.message.content);
-          emitStreamEvent(onEvent, {
+          emitLoopEvent(onEvent, input.agentKey, {
             type: 'narrative_delta',
             narrative: response.message.content,
             step,
@@ -814,7 +823,7 @@ export class BrainAgentLoop {
             toolInput = {};
           }
 
-          emitStreamEvent(onEvent, { type: 'tool_start', step, tool: toolName });
+          emitLoopEvent(onEvent, input.agentKey, { type: 'tool_start', step, tool: toolName });
           if (await this.checkCancelled(input, agentRunId)) {
             return this.buildCancelledOutput(ctx, agentRunId, input);
           }
@@ -899,7 +908,7 @@ export class BrainAgentLoop {
       pendingProposalId: proposal.proposalId,
     });
 
-    emitStreamEvent(onEvent, {
+    emitLoopEvent(onEvent, input.agentKey, {
       type: 'checkpoint',
       step,
       proposalId: proposal.proposalId,
@@ -947,13 +956,16 @@ export class BrainAgentLoop {
         commandId: input.commandId,
         agentKey: input.agentKey,
         allowedTools: input.allowedTools,
+        parentRunId: input.parentRunId,
+        onEvent: onEvent ?? input.onEvent,
+        peerDepth: input.peerDepth ?? 0,
       },
       {
         adaptiveLearningEnabled: input.adaptiveLearningEnabled,
         originalCommand: input.command,
       }
     );
-    emitStreamEvent(onEvent, {
+    emitLoopEvent(onEvent, input.agentKey, {
       type: result.proposal ? 'proposal_ready' : 'tool_result',
       step,
       tool,

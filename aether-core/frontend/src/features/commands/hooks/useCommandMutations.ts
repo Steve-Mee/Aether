@@ -21,7 +21,20 @@ export interface UseCommandMutationsOptions {
 
 export function useCommandMutations(options: UseCommandMutationsOptions = {}) {
   const queryClient = useQueryClient();
-  const { steps: streamSteps, plan: streamPlan, streaming, activeAgentKey, executeWithStream, reset: resetStream, cancel: cancelStream } = useCommandStream();
+  const {
+    steps: streamSteps,
+    plan: streamPlan,
+    plansByAgent: streamPlansByAgent,
+    streaming,
+    activeAgentKey,
+    activeAgentKeys,
+    handoffChain: streamHandoffChain,
+    executionMode: streamExecutionMode,
+    chainFrom: streamChainFrom,
+    executeWithStream,
+    reset: resetStream,
+    cancel: cancelStream,
+  } = useCommandStream();
 
   const executeMutation = useAetherMutation({
     mutationFn: (command: string) =>
@@ -76,8 +89,13 @@ export function useCommandMutations(options: UseCommandMutationsOptions = {}) {
     loading: executeMutation.isPending || undoMutation.isPending,
     streamSteps,
     streamPlan,
+    streamPlansByAgent,
     streaming,
     activeAgentKey,
+    activeAgentKeys,
+    streamHandoffChain,
+    streamExecutionMode,
+    streamChainFrom,
     resetStream,
     cancelStream,
   };

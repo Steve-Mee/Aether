@@ -96,6 +96,9 @@ const settingsPatchSchema = z.object({
   brainActionMode: z.enum(['always_confirm', 'confirm_on_uncertain', 'adaptive']).optional(),
   brainAdaptiveLearningEnabled: z.boolean().optional(),
   brainAdaptiveAutoExecuteEnabled: z.boolean().optional(),
+  brainCrossTenantAgentPatternsEnabled: z.boolean().optional(),
+  brainFederatedExecutionContribute: z.boolean().optional(),
+  brainBilateralExchangeEnabled: z.boolean().optional(),
 });
 
 const brainToolExecuteSchema = z.object({

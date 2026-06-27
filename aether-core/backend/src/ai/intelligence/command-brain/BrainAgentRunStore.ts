@@ -7,6 +7,7 @@ export type BrainAgentRunStatus =
   | 'completed'
   | 'failed'
   | 'awaiting_approval'
+  | 'awaiting_peer'
   | 'cancelled';
 
 export interface AgentRunResumeContext {

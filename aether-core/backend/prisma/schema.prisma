@@ -43,6 +43,8 @@ model TenantSettings {
   brainAdaptiveLearningEnabled Boolean @default(false)
   brainAdaptiveAutoExecuteEnabled Boolean @default(false)
   brainCrossTenantAgentPatternsEnabled Boolean @default(false)
+  brainFederatedExecutionContribute Boolean @default(false)
+  brainBilateralExchangeEnabled Boolean @default(false)
   updatedAt                 DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -300,6 +302,136 @@ model BrainAgentRun {
   @@index([tenantId, delegationId])
 }
 
+/// Async peer delegation job queue (fire-and-forget agent handoffs).
+model AgentPeerJob {
+  id              String    @id @default(cuid())
+  tenantId        String
+  parentRunId     String?
+  sourceAgentKey  String
+  targetAgentKey  String
+  intent          String
+  query           String
+  status          String    @default("pending")
+  resultPayload   String?
+  error           String?
+  idempotencyKey  String?   @unique
+  actorId         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  completedAt     DateTime?
+
+  @@index([tenantId, status])
+  @@index([tenantId, parentRunId])
+}
+
+/// Audit log for federated sandbox execution (no raw cross-tenant payloads).
+model FederatedExecutionAudit {
+  id                   String   @id @default(cuid())
+  tenantId             String
+  requestId            String   @unique
+  sourceAgentKey       String
+  capability           String
+  summaryHash          String
+  summary              String
+  sourceDeploymentId   String?
+  targetDeploymentId   String?
+  remoteExecutionRef   String?
+  responseLatencyMs    Int?
+  queryHintHash        String?
+  createdAt            DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+/// Tracks distinct tenants contributing to a global agent pattern (k-anonymity).
+model AgentPatternTenantContribution {
+  id          String   @id @default(cuid())
+  tenantId    String
+  category    String
+  agentKey    String
+  patternType String
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, category, agentKey, patternType])
+  @@index([category, agentKey, patternType])
+}
+
+/// Governed bilateral data exchange contract between two tenants.
+model BilateralExchangeContract {
+  id                 String    @id @default(cuid())
+  providerTenantId   String
+  consumerTenantId   String
+  status             String    @default("draft")
+  schemaId           String
+  allowedFields      Json      @default("[]")
+  ttlExpiresAt       DateTime?
+  consentProviderAt  DateTime?
+  consentConsumerAt  DateTime?
+  revokedAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  schema   BilateralExchangeSchema @relation(fields: [schemaId], references: [id])
+  packages BilateralExchangePackage[]
+  audits   BilateralExchangeAudit[]
+
+  @@index([providerTenantId, status])
+  @@index([consumerTenantId, status])
+}
+
+/// Platform-defined bilateral exchange schema templates.
+model BilateralExchangeSchema {
+  id          String   @id @default(cuid())
+  schemaKey   String   @unique
+  fields      Json     @default("[]")
+  description String
+  createdAt   DateTime @default(now())
+
+  contracts BilateralExchangeContract[]
+}
+
+/// Audit log for bilateral exchange (no raw payloads).
+model BilateralExchangeAudit {
+  id          String   @id @default(cuid())
+  contractId  String
+  action      String
+  fieldHash   String?
+  recordCount Int?
+  actorTenantId String?
+  createdAt   DateTime @default(now())
+
+  contract BilateralExchangeContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId, createdAt])
+}
+
+/// Immutable bilateral export package snapshot.
+model BilateralExchangePackage {
+  id          String    @id @default(cuid())
+  contractId  String
+  payloadJson Json
+  packageHash String
+  expiresAt   DateTime
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  contract BilateralExchangeContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId, createdAt])
+}
+
+/// Registry of remote federated deployments (v2 RPC).
+model FederatedDeploymentRegistry {
+  id            String   @id @default(cuid())
+  deploymentId  String   @unique
+  baseUrl       String?
+  publicKey     String?
+  capabilities  Json     @default("[]")
+  status        String   @default("active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 /// Cross-agent reflection handoff audit log.
 model ReflectionHandoffLog {
   id              String   @id @default(cuid())
@@ -378,7 +510,10 @@ model DomainEvent {
   payload         String
   idempotencyKey  String?   @unique
   processedAt     DateTime?
+  relayedAt       DateTime?
   createdAt       DateTime  @default(now())
+
+  @@index([relayedAt, processedAt])
 }
 
 model OutcomeRecord {

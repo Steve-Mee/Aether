@@ -60,7 +60,27 @@ import { AgentOrchestrator } from './multi-agent/AgentSupervisorOrchestrator';
 import type { AgentSupervisorPort } from './multi-agent/AgentSupervisorPort';
 import { AgentRegistry } from './multi-agent/AgentRegistry';
 import { AgentRouterService } from './multi-agent/AgentRouterService';
+import { PrismaAgentPerformanceAdapter } from './multi-agent/routing/PrismaAgentPerformanceAdapter';
+import { AgentPeerBus } from './multi-agent/peer/AgentPeerBus';
+import { AgentPeerMesh } from './multi-agent/peer/AgentPeerMesh';
+import { delegateToAgentTool } from './multi-agent/peer/delegateToAgentTool';
+import { delegateToAgentAsyncTool } from './multi-agent/peer/delegateToAgentAsyncTool';
+import { FederatedPeerPort } from './multi-agent/peer/FederatedPeerPort';
+import { FederatedExecutionPort } from './multi-agent/peer/federated/FederatedExecutionPort';
+import { FederatedExecutionWorker } from './multi-agent/peer/federated/FederatedExecutionWorker';
+import { createMessageBroker } from '../../shared/messaging/createMessageBroker';
+import { FederatedExecutionGate } from './multi-agent/peer/federated/FederatedExecutionGate';
+import { PeerDelegationBridge } from './multi-agent/peer/PeerDelegationBridge';
+import { PrismaAgentPeerJobAdapter } from './multi-agent/peer/jobs/PrismaAgentPeerJobAdapter';
+import {
+  AgentPeerJobWorker,
+  registerAgentPeerJobEventHandler,
+  setAgentPeerJobWorker,
+} from './multi-agent/peer/jobs/AgentPeerJobWorker';
+import { CollaborationGraphBuilder } from './multi-agent/graph/CollaborationGraphBuilder';
+import { CollaborationPlannerService } from './multi-agent/CollaborationPlannerService';
 import { ParallelCoordinator } from './multi-agent/ParallelCoordinator';
+import { MultiAgentResultAggregator } from './multi-agent/MultiAgentResultAggregator';
 import { SpecialistAgentRunner } from './multi-agent/SpecialistAgentRunner';
 import { NativeGraphOrchestrator } from './multi-agent/graph/NativeGraphOrchestrator';
 import { LangGraphOrchestrator } from './multi-agent/graph/LangGraphOrchestrator';
@@ -69,12 +89,40 @@ import {
   analyzeMarginsTool,
   suggestOptimalPriceTool,
   createSupplierTool,
+  getSupplierPriceIntelTool,
   getInventoryStatusTool,
   listLowStockTool,
   suggestRestockTool,
+  getCustomerOverviewTool,
+  getTopCustomersTool,
+  getOrderTrendsTool,
+  getRecentOrdersTool,
+  getForecastSummaryTool,
+  listForecastsTool,
+  forecastProductDemandTool,
+  listPendingApprovalsTool,
+  summarizeApprovalsByModuleTool,
+  approveLowRiskTool,
+  getOutcomesSummaryTool,
+  getLatestProposedOutcomeTool,
+  verifyLatestOutcomeTool,
+  listActiveNegotiationsTool,
+  getNegotiationDetailTool,
+  proposeCounterOfferTool,
   getEmailSummaryTool,
+  listProductsTool,
+  searchCatalogProductsTool,
+  proposeCreateProductTool,
+  getAutonomyMetricsTool,
+  listDecisionsTool,
+  evaluateDecisionTool,
+  routeAutonomousDecisionTool,
+  globalAdvisoryAgentDefinition,
 } from './multi-agent/agents';
 import type { DynamicPricingEngine } from '../../modules/inventory-pricing/application/services/DynamicPricingEngine';
+import type { DecisionRepository } from '../../modules/autonomous-operations/domain/repositories/DecisionRepository';
+import { DemandForecaster } from '../../modules/predictive-commerce/application/services/DemandForecaster';
+import { demandForecastAdapter } from '../../modules/predictive-commerce/infrastructure/adapters/PrismaDemandForecastAdapter';
 import { createMemoryConsolidationJob } from './personal-brain/memory/jobs/MemoryConsolidationJob';
 import { PersonalBrainToolRegistry } from './personal-brain/tools/PersonalBrainToolRegistry';
 import { DefaultKnowledgeTransferGate } from './knowledge-transfer/DefaultKnowledgeTransferGate';
@@ -115,12 +163,15 @@ export interface IntelligenceLayer {
   personalBrainMemory: PersonalBrainMemoryService;
   memoryConsolidationJob: ReturnType<typeof createMemoryConsolidationJob>;
   agentSupervisor?: AgentSupervisorPort;
+  multiAgentResultAggregator?: MultiAgentResultAggregator;
   agentRegistry?: AgentRegistry;
   agentOrchestrator?: AgentOrchestrator;
   reflectionDistillationService?: ReflectionDistillationService;
   reflectionExperimentService?: ReflectionExperimentService;
   reflectionMetricsRecorder?: ReflectionMetricsRecorder;
   agentPatternSync?: AgentPatternSyncService;
+  peerDelegationBridge?: PeerDelegationBridge;
+  federatedExecutionWorker?: FederatedExecutionWorker;
 }
 
 export interface IntelligenceLayerDeps {
@@ -130,6 +181,7 @@ export interface IntelligenceLayerDeps {
   adminData?: AdminDataPort;
   supplierMonitor?: SupplierMonitorPort;
   dynamicPricingEngine?: DynamicPricingEngine;
+  decisionRepository?: DecisionRepository;
 }
 
 function resolveEmbedding(): EmbeddingPort {
@@ -258,6 +310,9 @@ export function createIntelligenceLayer(
   let agentLoop: BrainAgentLoop | undefined;
   let planMemoryService: PlanMemoryService | undefined;
   let agentSupervisor: AgentOrchestrator | undefined;
+  let multiAgentResultAggregator: MultiAgentResultAggregator | undefined;
+  let peerDelegationBridge: PeerDelegationBridge | undefined;
+  let federatedExecutionWorker: FederatedExecutionWorker | undefined;
   let agentRegistry: AgentRegistry | undefined;
   let reflectionDistillationService: ReflectionDistillationService | undefined;
   const reflectionExperimentService = new ReflectionExperimentService();
@@ -294,7 +349,7 @@ export function createIntelligenceLayer(
       new ReflectionHandoffService(personalBrainMemory.longTerm, reflectionHandoffStore)
     );
     reflectionDistillationService = new ReflectionDistillationService(personalBrainMemory.longTerm);
-    agentRegistry = new AgentRegistry(DEFAULT_SPECIALIST_AGENTS);
+    agentRegistry = new AgentRegistry([...DEFAULT_SPECIALIST_AGENTS, globalAdvisoryAgentDefinition]);
     toolRegistry = new PersonalBrainToolRegistry(
       {
         adminData: deps.adminData,
@@ -315,10 +370,35 @@ export function createIntelligenceLayer(
       })
     );
     toolRegistry.register(createSupplierTool({ adminData: deps.adminData }));
+    toolRegistry.register(getSupplierPriceIntelTool({ adminData: deps.adminData }));
     toolRegistry.register(getInventoryStatusTool({ adminData: deps.adminData }));
     toolRegistry.register(listLowStockTool({ adminData: deps.adminData }));
     toolRegistry.register(suggestRestockTool({ adminData: deps.adminData }));
+    toolRegistry.register(getCustomerOverviewTool({ adminData: deps.adminData }));
+    toolRegistry.register(getTopCustomersTool({ adminData: deps.adminData }));
+    toolRegistry.register(getOrderTrendsTool({ adminData: deps.adminData }));
+    toolRegistry.register(getRecentOrdersTool({ adminData: deps.adminData }));
+    const demandForecaster = new DemandForecaster(demandForecastAdapter);
+    toolRegistry.register(getForecastSummaryTool({ adminData: deps.adminData, demandForecaster }));
+    toolRegistry.register(listForecastsTool({ adminData: deps.adminData, demandForecaster }));
+    toolRegistry.register(forecastProductDemandTool({ adminData: deps.adminData, demandForecaster }));
+    toolRegistry.register(listPendingApprovalsTool({ adminData: deps.adminData }));
+    toolRegistry.register(summarizeApprovalsByModuleTool({ adminData: deps.adminData }));
+    toolRegistry.register(approveLowRiskTool({ adminData: deps.adminData }));
+    toolRegistry.register(getOutcomesSummaryTool({ adminData: deps.adminData }));
+    toolRegistry.register(getLatestProposedOutcomeTool({ adminData: deps.adminData }));
+    toolRegistry.register(verifyLatestOutcomeTool({ adminData: deps.adminData }));
+    toolRegistry.register(listActiveNegotiationsTool({ adminData: deps.adminData }));
+    toolRegistry.register(getNegotiationDetailTool({ adminData: deps.adminData }));
+    toolRegistry.register(proposeCounterOfferTool({ adminData: deps.adminData }));
     toolRegistry.register(getEmailSummaryTool({ adminData: deps.adminData }));
+    toolRegistry.register(listProductsTool({ adminData: deps.adminData }));
+    toolRegistry.register(searchCatalogProductsTool({ adminData: deps.adminData }));
+    toolRegistry.register(proposeCreateProductTool({ adminData: deps.adminData }));
+    toolRegistry.register(getAutonomyMetricsTool());
+    toolRegistry.register(listDecisionsTool({ decisionRepository: deps.decisionRepository }));
+    toolRegistry.register(evaluateDecisionTool());
+    toolRegistry.register(routeAutonomousDecisionTool());
     agentLoop = new BrainAgentLoop(toolRegistry);
     agentLoop.setPlanMemory(planMemoryService);
     brainResponseService.setAgentLoop(agentLoop);
@@ -330,14 +410,26 @@ export function createIntelligenceLayer(
       merchantKnowledgeIndexer,
       personalBrainMemory
     );
-    const agentRouter = new AgentRouterService(agentRegistry);
+    const collaborationPlanner = new CollaborationPlannerService(agentRegistry);
+    const graphBuilder = new CollaborationGraphBuilder();
+    const performancePort = new PrismaAgentPerformanceAdapter();
+    const agentRouter = new AgentRouterService(
+      agentRegistry,
+      undefined,
+      collaborationPlanner,
+      graphBuilder,
+      performancePort
+    );
     const parallelCoordinator = new ParallelCoordinator(agentRegistry, specialistRunner);
+    const multiAgentResultAggregator = new MultiAgentResultAggregator();
     let orchestratorRef: AgentOrchestrator;
+    let agentPeerBus: AgentPeerBus;
     const nativeGraph = new NativeGraphOrchestrator(
       agentRegistry,
       specialistRunner,
       parallelCoordinator,
-      (requests) => orchestratorRef.executeSequential(requests)
+      (requests) => orchestratorRef.executeSequential(requests),
+      undefined
     );
     const graphOrchestrator = new LangGraphOrchestrator(nativeGraph);
     orchestratorRef = new AgentOrchestrator(
@@ -346,9 +438,48 @@ export function createIntelligenceLayer(
       personalBrainMemory,
       agentRouter,
       parallelCoordinator,
-      graphOrchestrator
+      graphOrchestrator,
+      reflectionMetricsRecorder
     );
+    const federatedPeer = new FederatedPeerPort(agentPatternSync);
+    const federatedGate = new FederatedExecutionGate();
+    const messageBroker = createMessageBroker();
+    const federatedExecution = new FederatedExecutionPort(
+      agentPatternSync,
+      federatedGate,
+      messageBroker
+    );
+    federatedExecutionWorker = new FederatedExecutionWorker(
+      agentPatternSync,
+      federatedGate,
+      messageBroker
+    );
+    agentPeerBus = new AgentPeerBus(
+      agentRegistry,
+      orchestratorRef,
+      federatedPeer,
+      federatedExecution,
+      new AgentPeerMesh(agentRegistry, specialistRunner, agentRegistry)
+    );
+    nativeGraph.setPeerBus(agentPeerBus);
     agentSupervisor = orchestratorRef;
+    const peerJobPort = new PrismaAgentPeerJobAdapter();
+    const peerJobWorker = new AgentPeerJobWorker({
+      jobPort: peerJobPort,
+      peerBus: agentPeerBus,
+      orchestrator: orchestratorRef,
+    });
+    setAgentPeerJobWorker(peerJobWorker);
+    registerAgentPeerJobEventHandler();
+    const peerDelegationBridgeRef = new PeerDelegationBridge(
+      orchestratorRef,
+      agentPeerBus,
+      peerJobPort,
+      agentRegistry
+    );
+    peerDelegationBridge = peerDelegationBridgeRef;
+    toolRegistry.register(delegateToAgentTool({ peerBus: agentPeerBus }));
+    toolRegistry.register(delegateToAgentAsyncTool({ peerBus: agentPeerBus, jobPort: peerJobPort }));
   }
 
   return {
@@ -378,12 +509,15 @@ export function createIntelligenceLayer(
     personalBrainMemory,
     memoryConsolidationJob,
     agentSupervisor,
+    multiAgentResultAggregator,
     agentRegistry,
     agentOrchestrator: agentSupervisor,
     reflectionDistillationService,
     reflectionExperimentService,
     reflectionMetricsRecorder,
     agentPatternSync,
+    peerDelegationBridge,
+    federatedExecutionWorker,
   };
 }
 

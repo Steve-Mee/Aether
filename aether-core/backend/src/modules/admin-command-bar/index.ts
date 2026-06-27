@@ -2,11 +2,13 @@ import { Router } from 'express';
 import { AdminController } from './api/controllers/AdminController';
 import { BrainController } from './api/controllers/BrainController';
 import { ObservabilityController } from './api/controllers/ObservabilityController';
+import { FederatedDeploymentsController } from './api/controllers/FederatedDeploymentsController';
 
 const router = Router();
 const controller = new AdminController();
 const brainController = new BrainController();
 const observability = new ObservabilityController();
+const federatedDeployments = new FederatedDeploymentsController();
 
 router.post('/command', ...controller.executeCommand);
 router.get('/command/:commandId/agent-run', ...controller.getAgentRun);
@@ -39,6 +41,11 @@ router.get('/events/stream', ...controller.streamEvents);
 router.post('/truth-review', ...controller.completeTruthReview);
 router.get('/observability/status', ...observability.getStatus);
 router.post('/observability/probe-error', ...observability.probeError);
+router.get('/federated/deployments', ...federatedDeployments.list);
+router.get('/federated/deployments/status', ...federatedDeployments.status);
+router.post('/federated/deployments', ...federatedDeployments.create);
+router.put('/federated/deployments/:deploymentId', ...federatedDeployments.update);
+router.delete('/federated/deployments/:deploymentId', ...federatedDeployments.deactivate);
 router.get('/brain/collective-insights', ...brainController.getCollectiveInsights);
 router.get('/brain/global-knowledge/status', ...brainController.getGlobalKnowledgeStatus);
 router.get('/brain/global-knowledge/sync-history', ...brainController.getGlobalKnowledgeSyncHistory);

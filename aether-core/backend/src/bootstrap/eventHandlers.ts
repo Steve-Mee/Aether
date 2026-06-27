@@ -9,6 +9,8 @@ import {
   isBlockedOutcomeSource,
 } from '../shared/outcomes/OutcomeVerificationService';
 import { orchestrator } from '../ai/orchestrator/Orchestrator';
+import { getCompositionRoot } from './compositionRoot';
+import { isSupplierPeerEnabled } from '../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
 import { merchantNotificationService } from '../shared/notifications/merchantNotificationService';
 import { DefaultContributionGate } from '../ai/intelligence/knowledge-transfer/contribution/DefaultContributionGate';
 
@@ -157,6 +159,32 @@ export function registerEventHandlers(): void {
         },
       });
     }
+
+    if (
+      isSupplierPeerEnabled() &&
+      event.payload.autoApplied === true &&
+      event.payload.changePercent != null
+    ) {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (bridge?.isAvailable()) {
+        try {
+          await bridge.chainHandoff({
+            tenantId: event.tenantId,
+            fromAgentKey: 'supplier',
+            toAgentKey: 'pricing',
+            intent: 'PRICING_OPTIMIZE',
+            command: `Supplier ${supplierId} price change ${event.payload.changePercent}%`,
+            context: [],
+          });
+        } catch (err) {
+          logger.warn('supplier_peer_chain_failed', {
+            tenantId: event.tenantId,
+            supplierId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    }
   });
   markHandlerRegistered('supplier.price_changed');
 
@@ -208,6 +236,32 @@ export function registerEventHandlers(): void {
       negotiationId: event.payload.negotiationId,
     });
   });
+
+  eventBus.subscribe('agent.peer.completed', async (event: DomainEventPayload) => {
+    logger.info('agent_peer_completed', {
+      tenantId: event.tenantId,
+      jobId: event.payload.jobId,
+      success: event.payload.success,
+    });
+  });
+  markHandlerRegistered('agent.peer.completed');
+
+  eventBus.subscribe('agent.handoff.completed', async (event: DomainEventPayload) => {
+    logger.info('agent_handoff_completed', {
+      tenantId: event.tenantId,
+      jobId: event.payload.jobId,
+      targetAgentKey: event.payload.targetAgentKey,
+    });
+    if (merchantNotificationService.notifyHandoffCompleted) {
+      await merchantNotificationService.notifyHandoffCompleted({
+        tenantId: event.tenantId,
+        jobId: String(event.payload.jobId ?? ''),
+        narrative: String(event.payload.narrative ?? ''),
+        success: event.payload.success !== false,
+      });
+    }
+  });
+  markHandlerRegistered('agent.handoff.completed');
 
   eventBus.subscribe('outcome.recorded', async (event: DomainEventPayload) => {
     logger.info('outcome_recorded', {

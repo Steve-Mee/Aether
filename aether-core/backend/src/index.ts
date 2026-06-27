@@ -14,6 +14,15 @@ import {
 import { federatedHiveJob } from './modules/zero-knowledge-hive-mind/infrastructure/jobs/FederatedHiveJobScheduler';
 import { getOperatingMetrics } from './shared/truth/operatingMetricsService';
 import { processEventOutbox, getCompositionRoot } from './bootstrap/compositionRoot';
+import { startOutboxRelayInterval } from './shared/messaging/OutboxRelayService';
+import { resolveOutboxRelayPollMs, isExternalBrokerEnabled } from './shared/messaging/messagingConfig';
+import {
+  pollPendingPeerJobs,
+  resolvePeerJobPollMs,
+} from './ai/intelligence/multi-agent/peer/jobs/peerJobKafkaConfig';
+import { getAgentPeerJobWorker } from './ai/intelligence/multi-agent/peer/jobs/AgentPeerJobWorker';
+import { PrismaAgentPeerJobAdapter } from './ai/intelligence/multi-agent/peer/jobs/PrismaAgentPeerJobAdapter';
+import { createAgentPatternContributionJob } from './ai/intelligence/global-knowledge/agent-patterns/AgentPatternContributionJob';
 
 const PORT = process.env.PORT || 9000;
 const DEFAULT_TENANT = process.env.AETHER_DEFAULT_TENANT ?? 'tenant_default';
@@ -79,12 +88,28 @@ async function startServer(): Promise<void> {
     void processEventOutbox().then((count) => {
       if (count > 0) logger.info('event_outbox_replayed', { count });
     });
+    if (isExternalBrokerEnabled()) {
+      startOutboxRelayInterval(resolveOutboxRelayPollMs(), 'api');
+    }
+    const peerWorker = getAgentPeerJobWorker();
+    if (peerWorker) {
+      const jobPort = new PrismaAgentPeerJobAdapter();
+      setInterval(() => {
+        void pollPendingPeerJobs(jobPort, (id, tenantId) =>
+          peerWorker.processJob(id, tenantId)
+        );
+      }, resolvePeerJobPollMs());
+    }
     void imapPollingService.start();
     monitorSupplierJob.start();
     knowledgeContributionJob.start();
     knowledgeDistillJob.start();
     knowledgeFederateJob.start();
     getCompositionRoot().memoryConsolidationJob.start();
+    const agentPatternJob = createAgentPatternContributionJob(
+      getCompositionRoot().agentPatternSync
+    );
+    agentPatternJob.start();
     void maybeStartEcosystemJobs();
   });
 

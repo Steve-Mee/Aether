@@ -23,6 +23,9 @@ export interface BrainToolContext {
   actorId?: string;
   commandId?: string;
   originalCommand?: string;
+  parentRunId?: string;
+  onEvent?: import('../../command-brain/AgentStreamEvents').AgentStreamCallback;
+  peerDepth?: number;
 }
 
 export interface BrainToolCall {

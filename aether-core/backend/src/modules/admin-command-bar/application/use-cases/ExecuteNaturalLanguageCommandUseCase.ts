@@ -21,13 +21,31 @@ import { shouldAutoExecuteProposal } from '../../../../ai/intelligence/command-b
 import { shouldPolicyAutoExecuteProposal } from '../../../../ai/intelligence/command-brain/BrainPolicyAutoExecutePolicy';
 import type { ExecuteBrainToolUseCase } from './ExecuteBrainToolUseCase';
 import type { AgentStreamCallback } from '../../../../ai/intelligence/command-brain/AgentStreamEvents';
+import { emitStreamEvent } from '../../../../ai/intelligence/command-brain/AgentStreamEvents';
+import { HandoffChainCollector } from '../../../../ai/intelligence/multi-agent/peer/HandoffChainCollector';
 import type { PlanMemoryService } from '../../../../ai/intelligence/command-brain/PlanMemoryService';
 import type { PersonalBrainMemoryService } from '../../../../ai/intelligence/personal-brain/memory/PersonalBrainMemoryService';
 import { resolveTrigger } from '../../../../ai/intelligence/personal-brain/reflection/ReflectionTriggerPolicy';
 import { setReflectionExperimentOverride } from '../../../../ai/intelligence/personal-brain/reflection/ReflectionExperimentOverrides';
 import type { AgentSupervisorPort } from '../../../../ai/intelligence/multi-agent/AgentSupervisorPort';
+import { isNestedPlansEnabled } from '../../../../ai/intelligence/multi-agent/parallelConfig';
 import { shouldDelegateFromAdmin, shouldSkipHandlerForSpecialist } from '../../../../ai/intelligence/multi-agent/delegationConfig';
-import type { RouteSource, SpecialistMeta } from '../../../../ai/intelligence/multi-agent/types';
+import type { RouteSource, SpecialistMeta, AgentContribution, ActionConflict, SynthesisSource, SpecialistExecuteResult } from '../../../../ai/intelligence/multi-agent/types';
+import type { AgentMessage } from '../../../../ai/intelligence/command-brain/AgentTranscript';
+
+function collectAgentTranscripts(
+  results: Array<Pick<SpecialistExecuteResult, 'transcript'>>,
+  agentKeys: string[]
+): Record<string, AgentMessage[]> | undefined {
+  const map: Record<string, AgentMessage[]> = {};
+  results.forEach((r, i) => {
+    if (r.transcript?.length) {
+      map[agentKeys[i] ?? `agent-${i}`] = r.transcript;
+    }
+  });
+  return Object.keys(map).length > 0 ? map : undefined;
+}
+import type { MultiAgentResultAggregator } from '../../../../ai/intelligence/multi-agent/MultiAgentResultAggregator';
 import type { ReflectionExperimentService } from '../../../../ai/intelligence/personal-brain/reflection/experiments/ReflectionExperimentService';
 import type { ReflectionMetricsRecorder } from '../../../../ai/intelligence/personal-brain/reflection/ReflectionMetricsRecorder';
 import type { ReflectionDistillationService } from '../../../../ai/intelligence/global-knowledge/distillation/ReflectionDistillationService';
@@ -39,7 +57,6 @@ import type { KnowledgeTransferPort } from '../../../../ai/intelligence/knowledg
 import type { KnowledgeContributionService } from '../../../../ai/intelligence/knowledge-transfer/contribution/KnowledgeContributionService';
 import { DefaultKnowledgeTransferGate } from '../../../../ai/intelligence/knowledge-transfer/DefaultKnowledgeTransferGate';
 import type { AgentPatternSyncService } from '../../../../ai/intelligence/global-knowledge/agent-patterns/AgentPatternSyncService';
-import { emitStreamEvent } from '../../../../ai/intelligence/command-brain/AgentStreamEvents';
 import { getMerchantSettings } from '../../../../shared/settings/TenantSettingsService';
 import type { SupplierMonitorPort } from '../ports/SupplierMonitorPort';
 import type { AdminDataPort } from '../ports/AdminDataPort';
@@ -98,6 +115,7 @@ export interface CommandBrainServices {
   planMemory?: PlanMemoryService;
   personalBrainMemory?: PersonalBrainMemoryService;
   agentSupervisor?: AgentSupervisorPort;
+  multiAgentResultAggregator?: MultiAgentResultAggregator;
   reflectionExperimentService?: ReflectionExperimentService;
   reflectionMetricsRecorder?: ReflectionMetricsRecorder;
   reflectionDistillationService?: ReflectionDistillationService;
@@ -149,6 +167,7 @@ export class ExecuteNaturalLanguageCommandUseCase {
   private planMemory?: PlanMemoryService;
   private personalBrainMemory?: PersonalBrainMemoryService;
   private agentSupervisor?: AgentSupervisorPort;
+  private multiAgentResultAggregator?: MultiAgentResultAggregator;
   private reflectionExperimentService?: ReflectionExperimentService;
   private reflectionMetricsRecorder?: ReflectionMetricsRecorder;
   private reflectionDistillationService?: ReflectionDistillationService;
@@ -185,6 +204,7 @@ export class ExecuteNaturalLanguageCommandUseCase {
     this.planMemory = services.planMemory;
     this.personalBrainMemory = services.personalBrainMemory;
     this.agentSupervisor = services.agentSupervisor;
+    this.multiAgentResultAggregator = services.multiAgentResultAggregator;
     this.reflectionExperimentService = services.reflectionExperimentService;
     this.reflectionMetricsRecorder = services.reflectionMetricsRecorder;
     this.reflectionDistillationService = services.reflectionDistillationService;
@@ -209,6 +229,10 @@ export class ExecuteNaturalLanguageCommandUseCase {
     options?: { onEvent?: AgentStreamCallback; abortSignal?: AbortSignal }
   ) {
     let workflowRunId: string | undefined;
+    const handoffCollector = new HandoffChainCollector();
+    const streamOptions = options
+      ? { ...options, onEvent: handoffCollector.wrap(options.onEvent) }
+      : undefined;
     const useOrchestratorPrepare = process.env.COMMAND_BRAIN_USE_ORCHESTRATOR === 'true';
 
     let contextSnippets: string[] = [];
@@ -235,8 +259,8 @@ export class ExecuteNaturalLanguageCommandUseCase {
     if (this.globalKnowledgeService) {
       const syncResult = await this.globalKnowledgeService.syncForTenant(ctx.tenantId);
       globalKnowledgeMeta = this.globalKnowledgeService.buildContextMeta(syncResult);
-      if (globalKnowledgeMeta && options?.onEvent) {
-        emitStreamEvent(options.onEvent, {
+      if (globalKnowledgeMeta && streamOptions?.onEvent) {
+        emitStreamEvent(streamOptions.onEvent, {
           type: 'global_knowledge_synced',
           summary: globalKnowledgeMeta.message,
         });
@@ -322,24 +346,47 @@ export class ExecuteNaturalLanguageCommandUseCase {
 
     const delegationEnabled = this.agentSupervisor?.isDelegationEnabled() ?? false;
 
+    let routePlan =
+      delegationEnabled &&
+      (parsed.intent !== 'COMPOUND_WORKFLOW' || isNestedPlansEnabled()) &&
+      this.agentSupervisor?.routePlan
+        ? await this.agentSupervisor.routePlan(parsed.intent, naturalLanguage, {
+            confidence: parsed.confidence,
+            tenantId: ctx.tenantId,
+          })
+        : null;
+
     let routeDecision =
       delegationEnabled && this.agentSupervisor?.routeDecision
         ? await this.agentSupervisor.routeDecision(parsed.intent, naturalLanguage, {
             confidence: parsed.confidence,
+            tenantId: ctx.tenantId,
           })
         : null;
 
+    const multiAgentPlan =
+      routePlan && (routePlan.agents?.length ?? 0) > 1;
+    const multiAgentParallel = routePlan?.mode === 'parallel';
+    const multiAgentSequential = routePlan?.mode === 'sequential';
+
     const specialistDef =
-      routeDecision?.agent ??
-      (delegationEnabled && this.agentSupervisor?.route
-        ? await this.agentSupervisor.route(parsed.intent, naturalLanguage, {
-            confidence: parsed.confidence,
-            onEvent: options?.onEvent,
-          })
-        : null);
+      multiAgentPlan
+        ? null
+        : routeDecision?.agent ??
+          (routePlan?.agents?.[0]?.agentKey && routeDecision?.agentKey === routePlan.agents[0].agentKey
+            ? routeDecision.agent
+            : null) ??
+          (delegationEnabled && this.agentSupervisor?.route
+            ? await this.agentSupervisor.route(parsed.intent, naturalLanguage, {
+                confidence: parsed.confidence,
+                onEvent: streamOptions?.onEvent,
+              })
+            : null);
 
     const specialistWillHandle =
-      delegationEnabled && specialistDef !== null && shouldSkipHandlerForSpecialist(parsed.intent, true);
+      delegationEnabled &&
+      (multiAgentPlan ||
+        (specialistDef !== null && shouldSkipHandlerForSpecialist(parsed.intent, true)));
 
     let handlerResult = '';
     let operationalMeta: Record<string, unknown> | undefined;
@@ -363,6 +410,12 @@ export class ExecuteNaturalLanguageCommandUseCase {
     if (parsed.intent === 'COMPOUND_WORKFLOW') {
       const stepCount = parsed.compound?.steps.length ?? 0;
       handlerResult = `Compound workflow: ${stepCount} sub-stappen gedetecteerd — agent plant en voert uit.`;
+    } else if (specialistWillHandle && multiAgentPlan) {
+      const label =
+        multiAgentParallel
+          ? routePlan!.agents.map((a) => a.agentKey).join(' + ')
+          : routePlan!.agents.map((a) => a.agentKey).join(' → ');
+      handlerResult = `Multi-agent workflow: ${label}.`;
     } else if (specialistWillHandle) {
       handlerResult = `Specialist ${specialistDef!.agentKey} handles ${parsed.intent}.`;
     } else if (handler && !(deferToTools && isMutatingIntent(parsed.intent))) {
@@ -402,6 +455,35 @@ export class ExecuteNaturalLanguageCommandUseCase {
     let specialistMeta: SpecialistMeta | undefined;
     let specialistAgents: SpecialistMeta[] | undefined;
     let executionMode: 'single' | 'sequential' | 'parallel' | undefined;
+    let agentContributions: AgentContribution[] | undefined;
+    let actionConflicts: ActionConflict[] | undefined;
+    let synthesisSource: SynthesisSource | undefined;
+    let multiAgentResultsForAggregation:
+      | import('../../../../ai/intelligence/multi-agent/types').AgentBranchResult[]
+      | import('../../../../ai/intelligence/multi-agent/types').SpecialistExecuteResult[]
+      | undefined;
+    let multiAgentKeysForAggregation: string[] | undefined;
+    let agentTranscripts: Record<string, AgentMessage[]> | undefined;
+
+    let earlyCommandId: string | undefined;
+    if (streamOptions?.onEvent) {
+      const early = await this.commandLog.save({
+        tenantId: ctx.tenantId,
+        command: naturalLanguage,
+        intent: parsed.intent,
+        result: handlerResult || 'Processing…',
+        confidence: parsed.confidence,
+        actor: ctx.actorId,
+      });
+      earlyCommandId = early.id;
+      emitStreamEvent(streamOptions.onEvent, {
+        type: 'run_started',
+        commandId: early.id,
+        runStatus: 'running',
+      });
+    }
+
+    const abortSignal = options?.abortSignal;
 
     const compoundSteps = parsed.compound?.steps?.map((s) => ({
       intent: s.intent,
@@ -410,8 +492,15 @@ export class ExecuteNaturalLanguageCommandUseCase {
 
     const executionPlan =
       parsed.intent === 'COMPOUND_WORKFLOW' && delegationEnabled && this.agentSupervisor?.resolveExecutionPlan
-        ? this.agentSupervisor.resolveExecutionPlan(naturalLanguage, parsed.intent, compoundSteps)
-        : null;
+        ? this.agentSupervisor.resolveExecutionPlan(
+            naturalLanguage,
+            parsed.intent,
+            compoundSteps,
+            parsed.compound?.connector ?? 'sequential'
+          )
+        : multiAgentPlan && routePlan
+          ? routePlan
+          : null;
 
     let compoundHandled = false;
 
@@ -438,7 +527,9 @@ export class ExecuteNaturalLanguageCommandUseCase {
         memoryPromptBlock: memoryPromptBlock || undefined,
         deferToTools: true,
         adaptiveLearningEnabled: settings.brainAdaptiveLearningEnabled,
-        onEvent: options?.onEvent,
+        graphDefinition: executionPlan.graphDefinition,
+        onEvent: streamOptions?.onEvent,
+        abortSignal,
       });
 
       if (graphResult.mode === 'parallel' && graphResult.parallelResult) {
@@ -460,6 +551,8 @@ export class ExecuteNaturalLanguageCommandUseCase {
           routingSource: 'intent' as RouteSource,
         }));
         specialistMeta = specialistAgents[0];
+        multiAgentResultsForAggregation = parallelResult.results;
+        multiAgentKeysForAggregation = executionPlan.agents.map((a) => a.agentKey);
       } else if (graphResult.sequentialResults?.length) {
         compoundHandled = true;
         const seqResults = graphResult.sequentialResults;
@@ -482,6 +575,8 @@ export class ExecuteNaturalLanguageCommandUseCase {
           routingSource: 'intent' as RouteSource,
         }));
         specialistMeta = specialistAgents[specialistAgents.length - 1];
+        multiAgentResultsForAggregation = seqResults;
+        multiAgentKeysForAggregation = executionPlan.agents.map((a) => a.agentKey);
       }
     }
 
@@ -507,7 +602,8 @@ export class ExecuteNaturalLanguageCommandUseCase {
         memoryPromptBlock: memoryPromptBlock || undefined,
         deferToTools: true,
         adaptiveLearningEnabled: settings.brainAdaptiveLearningEnabled,
-        onEvent: options?.onEvent,
+        onEvent: streamOptions?.onEvent,
+        abortSignal,
       });
 
       brainResponse = {
@@ -524,9 +620,11 @@ export class ExecuteNaturalLanguageCommandUseCase {
         delegatedFrom: 'admin',
         specialistRunId: r.agentRunId,
         handoffSummary: r.handoffPackage?.summary,
-        routingSource: 'intent' as RouteSource,
+        routingSource: (executionPlan.routingSource ?? 'intent') as RouteSource,
       }));
       specialistMeta = specialistAgents[0];
+      multiAgentResultsForAggregation = parallelResult.results;
+      multiAgentKeysForAggregation = executionPlan.agents.map((a) => a.agentKey);
     } else if (
       !compoundHandled &&
       executionPlan &&
@@ -549,7 +647,8 @@ export class ExecuteNaturalLanguageCommandUseCase {
           memoryPromptBlock: memoryPromptBlock || undefined,
           deferToTools: true,
           adaptiveLearningEnabled: settings.brainAdaptiveLearningEnabled,
-          onEvent: options?.onEvent,
+          onEvent: streamOptions?.onEvent,
+          abortSignal,
         }))
       );
 
@@ -567,14 +666,17 @@ export class ExecuteNaturalLanguageCommandUseCase {
 
       specialistAgents = seqResults.map((r, i) => ({
         agentKey: executionPlan.agents[i]?.agentKey ?? 'admin',
-        delegatedFrom: 'admin',
+        delegatedFrom: i === 0 ? 'admin' : (executionPlan.agents[i - 1]?.agentKey ?? 'admin'),
         specialistRunId: r.agentRunId,
         handoffSummary: r.handoffPackage?.summary,
-        routingSource: 'intent' as RouteSource,
+        routingSource: (executionPlan.routingSource ?? 'intent') as RouteSource,
       }));
       specialistMeta = specialistAgents[specialistAgents.length - 1];
+      multiAgentResultsForAggregation = seqResults;
+      multiAgentKeysForAggregation = executionPlan.agents.map((a) => a.agentKey);
     } else if (specialistDef && this.agentSupervisor?.executeSpecialist) {
       executionMode = 'single';
+      const primaryAgentKey = specialistDef.agentKey;
       const specialistResult = await this.agentSupervisor.executeSpecialist({
         tenantId: ctx.tenantId,
         agentKey: specialistDef.agentKey,
@@ -588,7 +690,7 @@ export class ExecuteNaturalLanguageCommandUseCase {
         memoryPromptBlock: memoryPromptBlock || undefined,
         deferToTools: deferToTools || isMutatingIntent(parsed.intent),
         adaptiveLearningEnabled: settings.brainAdaptiveLearningEnabled,
-        onEvent: options?.onEvent,
+        onEvent: streamOptions?.onEvent,
         abortSignal: options?.abortSignal,
       });
 
@@ -607,11 +709,11 @@ export class ExecuteNaturalLanguageCommandUseCase {
       };
 
       specialistMeta = {
-        agentKey: specialistDef.agentKey,
+        agentKey: primaryAgentKey,
         delegatedFrom: 'admin',
         specialistRunId: specialistResult.agentRunId,
         handoffSummary: specialistResult.handoffPackage?.summary,
-        routingSource: routeDecision?.source,
+        routingSource: (routePlan?.routingSource ?? routeDecision?.source) as RouteSource | undefined,
       };
     } else {
       brainResponse = await this.brainResponse.generateResponse(
@@ -629,10 +731,35 @@ export class ExecuteNaturalLanguageCommandUseCase {
           adaptiveLearningEnabled: settings.brainAdaptiveLearningEnabled,
           actorId: ctx.actorId,
           collectiveSnippets: collective.allSnippets,
-          onEvent: options?.onEvent,
+          onEvent: streamOptions?.onEvent,
           abortSignal: options?.abortSignal,
           subGoals: parsed.compound?.steps,
         }
+      );
+    }
+
+    if (
+      this.multiAgentResultAggregator &&
+      multiAgentResultsForAggregation &&
+      multiAgentKeysForAggregation &&
+      multiAgentKeysForAggregation.length > 1
+    ) {
+      const aggregated = await this.multiAgentResultAggregator.aggregate({
+        command: naturalLanguage,
+        results: multiAgentResultsForAggregation,
+        agentKeys: multiAgentKeysForAggregation,
+        fallbackNarrative: brainResponse.narrative,
+      });
+      brainResponse = { ...brainResponse, narrative: aggregated.narrative };
+      agentContributions = aggregated.perAgentContributions;
+      actionConflicts = aggregated.conflicts;
+      synthesisSource = aggregated.synthesisSource;
+    }
+
+    if (multiAgentResultsForAggregation && multiAgentKeysForAggregation) {
+      agentTranscripts = collectAgentTranscripts(
+        multiAgentResultsForAggregation,
+        multiAgentKeysForAggregation
       );
     }
 
@@ -861,7 +988,25 @@ export class ExecuteNaturalLanguageCommandUseCase {
     const handlerExecuted = !(deferToTools && isMutatingIntent(parsed.intent));
     const undoable = handlerExecuted && SuggestionService.isUndoableIntent(parsed.intent);
 
-    const saved = await this.commandLog.save(
+    const saved = earlyCommandId
+      ? await prisma.command
+          .update({
+            where: { id: earlyCommandId },
+            data: {
+              result,
+              intent: parsed.intent,
+              confidence: parsed.confidence,
+            },
+          })
+          .then((row) => ({
+            id: row.id,
+            command: row.command,
+            result: row.result,
+            intent: row.intent,
+            confidence: row.confidence,
+            createdAt: row.createdAt,
+          }))
+      : await this.commandLog.save(
       {
         tenantId: ctx.tenantId,
         command: naturalLanguage,
@@ -1027,6 +1172,11 @@ export class ExecuteNaturalLanguageCommandUseCase {
         specialist: specialistMeta,
         agents: specialistAgents,
         executionMode,
+        handoffChain: handoffCollector.snapshot().length > 0 ? handoffCollector.snapshot() : undefined,
+        agentContributions,
+        actionConflicts,
+        synthesisSource,
+        agentTranscripts,
       },
     };
   }

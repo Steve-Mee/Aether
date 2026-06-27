@@ -1,5 +1,14 @@
 import { prisma } from '../../../../shared/prisma/client';
-import { AdminDataPort, BrainProductRecord, RestockUpdateItem } from '../../application/ports/AdminDataPort';
+import {
+  AdminDataPort,
+  BrainProductRecord,
+  ForecastRecord,
+  NegotiationRecord,
+  OrderTrendSummary,
+  RecentOrderRecord,
+  RestockUpdateItem,
+  TopCustomerRecord,
+} from '../../application/ports/AdminDataPort';
 import { requireTenantId } from '../../../../shared/tenant/tenantContext';
 
 export class PrismaAdminDataAdapter implements AdminDataPort {
@@ -33,12 +42,19 @@ export class PrismaAdminDataAdapter implements AdminDataPort {
   }
 
   async listRecentOrders(tenantId: string, limit = 10) {
-    const tid = requireTenantId(tenantId, 'AdminData.listRecentOrders');
-    return prisma.order.findMany({
+    const detailed = await this.listRecentOrdersDetailed(tenantId, limit);
+    return detailed.map((o) => ({ status: o.status }));
+  }
+
+  async listRecentOrdersDetailed(tenantId: string, limit = 10): Promise<RecentOrderRecord[]> {
+    const tid = requireTenantId(tenantId, 'AdminData.listRecentOrdersDetailed');
+    const orders = await prisma.order.findMany({
       where: { tenantId: tid },
       orderBy: { createdAt: 'desc' },
-      take: limit,
+      take: Math.min(Math.max(limit, 1), 50),
+      select: { id: true, status: true, total: true, customerId: true },
     });
+    return orders;
   }
 
   async countEmailsByStatus(tenantId: string, statuses: string[]) {
@@ -58,6 +74,17 @@ export class PrismaAdminDataAdapter implements AdminDataPort {
     return prisma.forecast.count({ where: { tenantId: tid } });
   }
 
+  async listForecasts(tenantId: string, limit = 20): Promise<ForecastRecord[]> {
+    const tid = requireTenantId(tenantId, 'AdminData.listForecasts');
+    const rows = await prisma.forecast.findMany({
+      where: { tenantId: tid },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(Math.max(limit, 1), 50),
+      select: { id: true, productId: true, prediction: true, confidence: true },
+    });
+    return rows;
+  }
+
   async countPendingApprovals(tenantId: string) {
     const tid = requireTenantId(tenantId, 'AdminData.countPendingApprovals');
     return prisma.approval.count({ where: { tenantId: tid, status: 'pending' } });
@@ -65,9 +92,10 @@ export class PrismaAdminDataAdapter implements AdminDataPort {
 
   async listPendingApprovals(tenantId: string, modules: string[]) {
     const tid = requireTenantId(tenantId, 'AdminData.listPendingApprovals');
-    return prisma.approval.findMany({
+    const rows = await prisma.approval.findMany({
       where: { tenantId: tid, status: 'pending', module: { in: modules } },
     });
+    return rows.map((r) => ({ id: r.id, payload: r.payload, module: r.module }));
   }
 
   async approveLowRisk(tenantId: string, ids: string[], actorId?: string) {
@@ -82,6 +110,25 @@ export class PrismaAdminDataAdapter implements AdminDataPort {
   async createSupplier(tenantId: string, name: string, website: string) {
     const tid = requireTenantId(tenantId, 'AdminData.createSupplier');
     return prisma.supplier.create({ data: { tenantId: tid, name, website } });
+  }
+
+  async createProduct(
+    tenantId: string,
+    data: { name: string; slug: string; description?: string; price?: number; stock?: number }
+  ) {
+    const tid = requireTenantId(tenantId, 'AdminData.createProduct');
+    const product = await prisma.product.create({
+      data: {
+        tenantId: tid,
+        name: data.name,
+        slug: data.slug,
+        description: data.description ?? null,
+        price: data.price ?? 0,
+        stock: data.stock ?? 0,
+        status: 'active',
+      },
+    });
+    return { id: product.id, name: product.name, slug: product.slug };
   }
 
   async listSuppliers(tenantId: string, limit = 5) {
@@ -187,5 +234,117 @@ export class PrismaAdminDataAdapter implements AdminDataPort {
       updated += 1;
     }
     return updated;
+  }
+
+  async countCustomers(tenantId: string): Promise<number> {
+    const tid = requireTenantId(tenantId, 'AdminData.countCustomers');
+    return prisma.customer.count({ where: { tenantId: tid } });
+  }
+
+  async getTopCustomers(tenantId: string, limit = 10): Promise<TopCustomerRecord[]> {
+    const tid = requireTenantId(tenantId, 'AdminData.getTopCustomers');
+    const capped = Math.min(Math.max(limit, 1), 50);
+    const customers = await prisma.customer.findMany({
+      where: { tenantId: tid },
+      take: capped * 3,
+      include: {
+        orders: {
+          select: { total: true },
+        },
+      },
+    });
+
+    return customers
+      .map((c) => {
+        const orderCount = c.orders.length;
+        const totalSpent = c.orders.reduce((sum, o) => sum + o.total, 0);
+        const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email;
+        return {
+          id: c.id,
+          email: c.email,
+          name,
+          orderCount,
+          totalSpent: Math.round(totalSpent * 100) / 100,
+        };
+      })
+      .sort((a, b) => b.totalSpent - a.totalSpent || b.orderCount - a.orderCount)
+      .slice(0, capped);
+  }
+
+  async getOrderTrends(tenantId: string, days = 30): Promise<OrderTrendSummary> {
+    const tid = requireTenantId(tenantId, 'AdminData.getOrderTrends');
+    const windowDays = Math.min(Math.max(days, 7), 90);
+    const now = Date.now();
+    const recentSince = new Date(now - windowDays * 86400000);
+    const priorSince = new Date(now - windowDays * 2 * 86400000);
+
+    const [recentOrders, priorOrders] = await Promise.all([
+      prisma.order.findMany({
+        where: { tenantId: tid, createdAt: { gte: recentSince } },
+        select: { status: true },
+      }),
+      prisma.order.findMany({
+        where: { tenantId: tid, createdAt: { gte: priorSince, lt: recentSince } },
+        select: { status: true },
+      }),
+    ]);
+
+    const statusBreakdown: Record<string, number> = {};
+    for (const order of recentOrders) {
+      statusBreakdown[order.status] = (statusBreakdown[order.status] ?? 0) + 1;
+    }
+
+    const recentCount = recentOrders.length;
+    const priorCount = priorOrders.length;
+    const trendPct =
+      priorCount === 0
+        ? recentCount > 0
+          ? 100
+          : 0
+        : Math.round(((recentCount - priorCount) / priorCount) * 1000) / 10;
+
+    return { recentCount, priorCount, trendPct, statusBreakdown };
+  }
+
+  async listActiveNegotiations(tenantId: string, limit = 20): Promise<NegotiationRecord[]> {
+    const tid = requireTenantId(tenantId, 'AdminData.listActiveNegotiations');
+    const rows = await prisma.negotiation.findMany({
+      where: { tenantId: tid, status: { in: ['active', 'IN_PROGRESS', 'counter'] } },
+      orderBy: { updatedAt: 'desc' },
+      take: Math.min(Math.max(limit, 1), 50),
+      select: {
+        id: true,
+        status: true,
+        productId: true,
+        currentOffer: true,
+        customerAgentId: true,
+        merchantAgentId: true,
+      },
+    });
+    return rows;
+  }
+
+  async getNegotiationDetail(tenantId: string, negotiationId: string) {
+    const tid = requireTenantId(tenantId, 'AdminData.getNegotiationDetail');
+    const row = await prisma.negotiation.findFirst({
+      where: { tenantId: tid, id: negotiationId },
+      include: {
+        offers: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          select: { price: true, status: true },
+        },
+      },
+    });
+    if (!row) return null;
+    return {
+      id: row.id,
+      status: row.status,
+      productId: row.productId,
+      currentOffer: row.currentOffer,
+      customerAgentId: row.customerAgentId,
+      merchantAgentId: row.merchantAgentId,
+      offers: row.offers,
+    };
   }
 }

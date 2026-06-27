@@ -16,6 +16,8 @@ export const PRICING_ALLOWED_TOOLS = [
   'createInsight',
   'analyzeMargins',
   'suggestOptimalPrice',
+  'delegateToAgent',
+  'delegateToAgentAsync',
 ] as const;
 
 export const pricingAgentDefinition: SpecialistAgentDefinition = {
@@ -24,12 +26,12 @@ export const pricingAgentDefinition: SpecialistAgentDefinition = {
   rolePrompt:
     'Je bent de Pricing Agent van AETHER — specialist in marge-analyse, prijsoptimalisatie en prijsvoorstellen. ' +
     'Analyseer marges met analyzeMargins, stel optimale prijzen voor met suggestOptimalPrice, en route mutaties via updatePrice (approval flow). ' +
-    'Gebruik recall_memory voor eerdere pricing-ervaringen. Deel inzichten via createInsight.',
+    'Gebruik recall_memory voor eerdere pricing-ervaringen. Neem inventory context mee bij prijsvoorstellen. Deel inzichten via createInsight.',
   supportedIntents: [...PRICING_SUPPORTED_INTENTS],
   allowedTools: [...PRICING_ALLOWED_TOOLS],
   memoryNamespace: PRICING_AGENT_KEY,
-  canDelegateTo: ['supplier'],
+  canDelegateTo: ['supplier', 'inventory'],
   keywordPatterns: [
-    /\b(prijs|prijzen|price|prices|marge|margin|optimaliseer|optimize)\b/i,
+    /\b(prij\w*|price\w*|marge|margin|optimaliseer|optimize)\b/i,
   ],
 };

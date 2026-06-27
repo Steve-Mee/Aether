@@ -37,6 +37,8 @@ function rowToSettings(row: {
   brainAdaptiveLearningEnabled: boolean;
   brainAdaptiveAutoExecuteEnabled: boolean;
   brainCrossTenantAgentPatternsEnabled?: boolean;
+  brainFederatedExecutionContribute?: boolean;
+  brainBilateralExchangeEnabled?: boolean;
 }): MerchantSettings {
   const level = row.autonomyLevel;
   const autonomyLevel: AutonomyLevel =
@@ -89,6 +91,8 @@ function rowToSettings(row: {
     brainAdaptiveLearningEnabled: row.brainAdaptiveLearningEnabled,
     brainAdaptiveAutoExecuteEnabled: row.brainAdaptiveAutoExecuteEnabled,
     brainCrossTenantAgentPatternsEnabled: row.brainCrossTenantAgentPatternsEnabled ?? false,
+    brainFederatedExecutionContribute: row.brainFederatedExecutionContribute ?? false,
+    brainBilateralExchangeEnabled: row.brainBilateralExchangeEnabled ?? false,
   };
 }
 
@@ -177,6 +181,15 @@ export async function updateMerchantSettings(
   }
   if (patch.brainAdaptiveAutoExecuteEnabled !== undefined) {
     data.brainAdaptiveAutoExecuteEnabled = patch.brainAdaptiveAutoExecuteEnabled;
+  }
+  if (patch.brainCrossTenantAgentPatternsEnabled !== undefined) {
+    data.brainCrossTenantAgentPatternsEnabled = patch.brainCrossTenantAgentPatternsEnabled;
+  }
+  if (patch.brainFederatedExecutionContribute !== undefined) {
+    data.brainFederatedExecutionContribute = patch.brainFederatedExecutionContribute;
+  }
+  if (patch.brainBilateralExchangeEnabled !== undefined) {
+    data.brainBilateralExchangeEnabled = patch.brainBilateralExchangeEnabled;
   }
 
   const row = await prisma.tenantSettings.update({
