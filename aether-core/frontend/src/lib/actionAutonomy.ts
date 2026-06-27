@@ -18,6 +18,9 @@ export function resolveExecutionMode(input: ActionAutonomyInput): ActionExecutio
 }
 
 export function resolveExecutionModeFromResult(result: CommandResult): ActionExecutionMode {
+  if (result.brain?.pendingActions && result.brain.pendingActions.length > 0) {
+    return 'approval_required';
+  }
   return resolveExecutionMode({
     requiresApproval: result.requiresApproval,
     riskBand: result.riskBand,

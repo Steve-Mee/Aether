@@ -94,7 +94,30 @@ async function main() {
           stock: 120,
           status: 'active',
         },
+        {
+          tenantId: tenant.id,
+          name: 'Wireless Earbuds Pro',
+          slug: 'wireless-earbuds-pro',
+          description: 'Premium noise-cancelling wireless earbuds',
+          price: 49.99,
+          stock: 85,
+          status: 'active',
+        },
       ],
+    });
+  } else {
+    await prisma.product.upsert({
+      where: { tenantId_slug: { tenantId: tenant.id, slug: 'wireless-earbuds-pro' } },
+      update: {},
+      create: {
+        tenantId: tenant.id,
+        name: 'Wireless Earbuds Pro',
+        slug: 'wireless-earbuds-pro',
+        description: 'Premium noise-cancelling wireless earbuds',
+        price: 49.99,
+        stock: 85,
+        status: 'active',
+      },
     });
   }
 

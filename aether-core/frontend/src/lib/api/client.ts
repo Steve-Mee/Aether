@@ -329,3 +329,39 @@ export async function apiStreamFetch(path: string, signal?: AbortSignal): Promis
     throw networkErr;
   }
 }
+
+export async function apiStreamPostFetch(
+  path: string,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<Response> {
+  const requestId = createRequestId();
+  const method = 'POST';
+  try {
+    const res = await fetch(`${env.apiUrl}${path}`, {
+      method,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Aether-Api-Key': env.apiKey,
+        'X-Aether-Tenant-Id': getAuthTenantId(),
+        'X-Request-Id': requestId,
+        Accept: 'text/event-stream',
+        ...(authTokenOverride ? { Authorization: `Bearer ${authTokenOverride}` } : {}),
+      },
+      body: JSON.stringify(body),
+      signal,
+    });
+    if (!res.ok) {
+      const apiErr = await parseErrorResponse(res);
+      throw apiErr;
+    }
+    return res;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    if (isAbortError(err)) {
+      throw new NetworkError(err instanceof Error ? err.message : 'Stream aborted', { cause: err });
+    }
+    throw new NetworkError(err instanceof Error ? err.message : String(err), { cause: err });
+  }
+}

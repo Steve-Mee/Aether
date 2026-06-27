@@ -33,6 +33,16 @@ model TenantSettings {
   notificationPrefs         Json     @default("{}")
   locale                    String   @default("nl")
   dataExportEnabled         Boolean  @default(true)
+  brainVectorBackend        String?
+  brainKnowledgeTransferEnabled Boolean?
+  brainKnowledgeUpdateProfile   String   @default("balanced")
+  brainFederatedContributionEnabled Boolean @default(false)
+  brainKnowledgeGovernanceMode  String   @default("full_loop")
+  brainLoRAPath             String?
+  brainActionMode           String   @default("confirm_on_uncertain")
+  brainAdaptiveLearningEnabled Boolean @default(false)
+  brainAdaptiveAutoExecuteEnabled Boolean @default(false)
+  brainCrossTenantAgentPatternsEnabled Boolean @default(false)
   updatedAt                 DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -233,17 +243,109 @@ model Decision {
 }
 
 model Command {
-  id            String    @id @default(cuid())
-  tenantId      String
-  command       String
-  intent        String?
-  result        String?
-  confidence    Float?
-  actor         String?
-  undoable      Boolean   @default(false)
-  revertedAt    DateTime?
-  undoExpiresAt DateTime?
-  createdAt     DateTime  @default(now())
+  id              String    @id @default(cuid())
+  tenantId        String
+  command         String
+  intent          String?
+  result          String?
+  confidence      Float?
+  actor           String?
+  undoable        Boolean   @default(false)
+  revertedAt      DateTime?
+  undoExpiresAt   DateTime?
+  brainMemoryId   String?
+  operationalMeta String?
+  createdAt       DateTime  @default(now())
+}
+
+model BrainToolProposal {
+  id         String   @id @default(cuid())
+  tenantId   String
+  commandId  String?
+  approvalId String?
+  tool       String
+  payload    String
+  summary    String
+  risk       String
+  status     String   @default("pending")
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, status])
+  @@index([commandId])
+  @@index([approvalId])
+}
+
+model BrainAgentRun {
+  id                 String   @id @default(cuid())
+  tenantId           String
+  commandId          String?
+  transcript         String   @default("[]")
+  status             String   @default("running")
+  currentStep        Int      @default(0)
+  totalSteps         Int      @default(0)
+  pendingApprovalId  String?
+  pendingProposalId  String?
+  resumeContext      String?
+  agentKey           String   @default("admin")
+  parentRunId        String?
+  delegationId       String?
+  delegationMeta     Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([tenantId, commandId])
+  @@index([tenantId, pendingApprovalId])
+  @@index([tenantId, parentRunId])
+  @@index([tenantId, delegationId])
+}
+
+/// Cross-agent reflection handoff audit log.
+model ReflectionHandoffLog {
+  id              String   @id @default(cuid())
+  tenantId        String
+  sourceAgentKey  String
+  targetAgentKey  String
+  reflectionIds   Json
+  summary         String
+  delegationId    String?
+  parentRunId     String?
+  childRunId      String?
+  createdAt       DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, sourceAgentKey])
+}
+
+/// A/B experiment for reflection quality / trigger config.
+model ReflectionExperiment {
+  id             String    @id @default(cuid())
+  name           String
+  status         String    @default("running")
+  bucketMin      Int       @default(0)
+  bucketMax      Int       @default(49)
+  variantConfig  Json
+  startAt        DateTime  @default(now())
+  endAt          DateTime?
+  createdAt      DateTime  @default(now())
+
+  outcomes ReflectionExperimentOutcome[]
+}
+
+model ReflectionExperimentOutcome {
+  id           String   @id @default(cuid())
+  experimentId String
+  tenantId     String
+  runId        String?
+  metric       String
+  value        Float
+  variantArm   String
+  recordedAt   DateTime @default(now())
+
+  experiment ReflectionExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId, tenantId])
+  @@index([experimentId, metric])
 }
 
 model Approval {
@@ -534,4 +636,218 @@ model ExperimentAssignment {
   createdAt  DateTime @default(now())
 
   @@unique([tenantId, metric])
+}
+
+/// Per-tenant semantic memory for the Intelligence Layer (embedding via pgvector migration).
+model BrainMemory {
+  id        String   @id @default(cuid())
+  tenantId  String
+  content   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+/// Per-tenant agent session state for PersonalBrain.
+model BrainAgentState {
+  id         String   @id @default(cuid())
+  tenantId   String
+  sessionKey String   @default("default")
+  state      Json
+  updatedAt  DateTime @updatedAt
+
+  @@unique([tenantId, sessionKey])
+}
+
+/// Per-tenant LoRA adapter registry (metadata-only in v1).
+model BrainLoRAAdapter {
+  id          String   @id @default(cuid())
+  tenantId    String
+  adapterId   String
+  version     String   @default("0.0.0")
+  storagePath String
+  traits      Json     @default("[]")
+  enabled     Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, adapterId])
+  @@index([tenantId])
+}
+
+/// Ops-managed global knowledge patches (v2+).
+model GlobalKnowledgePatch {
+  id          String    @id @default(cuid())
+  patchKey    String    @unique
+  version     String    @default("1.0.0")
+  kind        String
+  category    String
+  title       String
+  content     String
+  priority    Int       @default(5)
+  minProfile  String    @default("balanced")
+  tags        Json      @default("[]")
+  payload     Json?
+  status      String    @default("draft")
+  publishedAt DateTime?
+  retiredAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+  @@index([category])
+}
+
+/// Audit log for outbound knowledge contributions (metadata only, no raw values).
+model BrainKnowledgeContributionLog {
+  id           String   @id @default(cuid())
+  tenantId     String
+  source       String
+  category     String
+  metric       String
+  metricFingerprint String?
+  sampleSize   Int      @default(1)
+  submitted    Boolean
+  rejectReason String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+/// Tracks distilled pattern occurrences per tenant for auto-promote governance.
+model DistilledPatternOccurrence {
+  id              String   @id @default(cuid())
+  tenantId        String
+  patternHash     String
+  intent          String
+  occurrenceCount Int      @default(1)
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, patternHash])
+  @@index([tenantId])
+}
+
+/// Secure aggregation round for cross-tenant metric federation.
+model SecAggRound {
+  id               String   @id @default(cuid())
+  category         String
+  metric           String
+  status           String   @default("collecting")
+  minTenants       Int      @default(5)
+  participantCount Int      @default(0)
+  deadlineAt       DateTime
+  noiseEpsilon     Float    @default(1.0)
+  aggregateValue   Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  participants SecAggParticipant[]
+  updates      SecAggMaskedUpdate[]
+
+  @@index([category, metric, status])
+}
+
+model SecAggParticipant {
+  id         String   @id @default(cuid())
+  roundId    String
+  tenantId   String
+  secretSeed String
+  status     String   @default("active")
+  createdAt  DateTime @default(now())
+
+  round SecAggRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, tenantId])
+  @@index([roundId])
+}
+
+model SecAggMaskedUpdate {
+  id            String   @id @default(cuid())
+  roundId       String
+  tenantId      String
+  maskedValue   Float
+  personalMask  Float
+  createdAt     DateTime @default(now())
+
+  round SecAggRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, tenantId])
+  @@index([roundId])
+}
+
+/// Cross-tenant federated aggregates (anonymized).
+model GlobalInsight {
+  id           String   @id @default(cuid())
+  category     String
+  metric       String
+  value        Float
+  sampleSize   Int
+  tenantCount  Int
+  noiseEpsilon Float    @default(0)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([category, metric])
+  @@index([category])
+}
+
+/// Anonymized cross-tenant agent execution patterns (no PII, no transcripts).
+model GlobalAgentPattern {
+  id             String   @id @default(cuid())
+  category       String
+  agentKey       String
+  patternType    String
+  payloadJson    Json
+  tenantCount    Int      @default(0)
+  kAnonymityMet  Boolean  @default(false)
+  version        String   @default("1.0.0")
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@unique([category, agentKey, patternType])
+  @@index([category])
+  @@index([agentKey])
+}
+
+/// Per-tenant global knowledge sync audit log.
+model GlobalKnowledgeSyncLog {
+  id             String   @id @default(cuid())
+  tenantId       String
+  catalogVersion String
+  appliedCount   Int
+  retiredCount   Int      @default(0)
+  profile        String
+  syncedAt       DateTime @default(now())
+
+  @@index([tenantId, syncedAt])
+}
+
+/// A/B experiment for update profiles / patch sets.
+model GlobalKnowledgeExperiment {
+  id           String    @id @default(cuid())
+  name         String
+  profileArm   String
+  patchSetKeys Json?
+  bucketMin    Int       @default(0)
+  bucketMax    Int       @default(49)
+  startAt      DateTime  @default(now())
+  endAt        DateTime?
+  status       String    @default("running")
+  createdAt    DateTime  @default(now())
+
+  outcomes GlobalKnowledgeExperimentOutcome[]
+}
+
+model GlobalKnowledgeExperimentOutcome {
+  id           String   @id @default(cuid())
+  experimentId String
+  tenantId     String
+  metric       String
+  value        Float
+  recordedAt   DateTime @default(now())
+
+  experiment GlobalKnowledgeExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId, tenantId])
 }

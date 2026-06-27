@@ -13,7 +13,7 @@ import type {
   ResolveApprovalResponse,
 } from '@/types/approval';
 import type { ActivityFeedResponse } from '@/types/activity';
-import type { CommandHistoryItem, CommandResult, UndoCommandResponse } from '@/types/command';
+import type { CommandHistoryItem, CommandResult, ExecuteBrainToolResponse, UndoCommandResponse, AgentRunResponse } from '@/types/command';
 import type { AutonomyMetricsResponse, OutcomeReport } from '@/types/insight';
 import type { AppNotification } from '@/types/notification';
 import type {
@@ -106,10 +106,25 @@ export const httpDataAdapter: DataAdapter = {
   undoCommand: (commandId) =>
     apiFetch<UndoCommandResponse>(apiRoutes.admin.commandUndo(commandId), { method: 'POST' }),
 
+  executeToolProposal: (proposalId, commandId) =>
+    apiFetch<ExecuteBrainToolResponse>(apiRoutes.admin.commandToolExecute, {
+      method: 'POST',
+      body: JSON.stringify({ proposalId, commandId }),
+    }),
+
+  rejectToolProposal: (proposalId) =>
+    apiFetch<ExecuteBrainToolResponse>(apiRoutes.admin.commandToolReject, {
+      method: 'POST',
+      body: JSON.stringify({ proposalId }),
+    }),
+
   fetchCommandHistory: async () => {
     const res = await apiFetch<{ commands: CommandHistoryItem[] }>(apiRoutes.admin.commands);
     return res.commands ?? [];
   },
+
+  fetchAgentRun: (commandId) =>
+    apiFetch<AgentRunResponse>(apiRoutes.admin.commandAgentRun(commandId)),
 
   fetchNotifications: async () => {
     const res = await apiFetch<{ notifications: AppNotification[] }>(

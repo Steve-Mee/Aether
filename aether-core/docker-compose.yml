@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -48,6 +48,11 @@ services:
       AETHER_DEFAULT_TENANT: ${AETHER_DEFAULT_TENANT:-tenant_default}
       HIVE_MIND_SALT: ${HIVE_MIND_SALT}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL_DOCKER:-http://ollama:11434}
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-nomic-embed-text}
+      INTELLIGENCE_EMBEDDING: ${INTELLIGENCE_EMBEDDING:-ollama}
+      INTELLIGENCE_VECTOR_BACKEND: ${INTELLIGENCE_VECTOR_BACKEND:-pgvector}
+      INTELLIGENCE_KNOWLEDGE_TRANSFER_ENABLED: ${INTELLIGENCE_KNOWLEDGE_TRANSFER_ENABLED:-false}
+      LANCE_DB_PATH: ${LANCE_DB_PATH:-/data/brain-lance}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4318/v1/traces}
       SUPPLIER_WORKER_URL: ${SUPPLIER_WORKER_URL:-http://supplier-worker:8090}
@@ -77,6 +82,14 @@ services:
       SUPPLIER_ALLOWLIST: ${SUPPLIER_ALLOWLIST:-example.com}
     volumes:
       - .:/app
+    networks:
+      - aether_internal
+
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      - ollama
+    entrypoint: ["/bin/sh", "-c", "sleep 5 && OLLAMA_HOST=http://ollama:11434 ollama pull nomic-embed-text && OLLAMA_HOST=http://ollama:11434 ollama pull llama3.2"]
     networks:
       - aether_internal
 

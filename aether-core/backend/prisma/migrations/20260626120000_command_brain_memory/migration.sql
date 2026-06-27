@@ -1,0 +1,3 @@
+ALTER TABLE "Command"
+  ADD COLUMN IF NOT EXISTS "brainMemoryId" TEXT,
+  ADD COLUMN IF NOT EXISTS "operationalMeta" TEXT;

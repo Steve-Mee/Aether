@@ -48,6 +48,15 @@ function riskFromDetails(details: Record<string, unknown>, action: string): Acti
   const r = details.risk ?? details.riskBand;
   if (r === 'high' || r === 'HIGH') return 'high';
   if (r === 'low' || r === 'LOW') return 'low';
+  if (action === 'brain_tool_proposed') {
+    const proposals = details.proposals;
+    if (Array.isArray(proposals) && proposals.length > 0) {
+      const first = proposals[0] as Record<string, unknown>;
+      if (first.risk === 'high') return 'high';
+      if (first.risk === 'medium') return 'high';
+      if (first.risk === 'low') return 'low';
+    }
+  }
   if (action === 'approved' || action === 'rejected' || action === 'mail_approval_required_received') {
     return 'high';
   }
@@ -60,6 +69,11 @@ function riskFromDetails(details: Record<string, unknown>, action: string): Acti
 function mapAuditStatus(action: string, details: Record<string, unknown>): ActivityStatus {
   if (action === 'approved') return 'approved';
   if (action === 'rejected') return 'rejected';
+  if (action === 'brain_tool_proposed') return 'pending';
+  if (action === 'brain_tool_called') return 'info';
+  if (action === 'brain_approval_created') return 'pending';
+  if (action === 'brain_tool_auto_executed' || action === 'brain_tool_executed') return 'autonomous';
+  if (action === 'brain_tool_rejected') return 'rejected';
   if (
     action === 'autonomy_approve' ||
     action === 'mail_approval_required_received' ||
@@ -84,6 +98,17 @@ function mapExecutor(action: string, actor: string | null, details: Record<strin
 
 function buildDescription(action: string, module: string, details: Record<string, unknown>): string {
   if (typeof details.description === 'string') return details.description;
+  if (action === 'brain_tool_proposed' && Array.isArray(details.proposals)) {
+    const proposals = details.proposals as Array<Record<string, unknown>>;
+    const tools = proposals.map((p) => String(p.tool ?? 'tool')).join(', ');
+    return `Brein stelt voor: ${tools}`;
+  }
+  if (action === 'brain_approval_created' && details.tool) {
+    return `Goedkeuring aangemaakt voor ${String(details.tool)}`;
+  }
+  if (action === 'brain_tool_called' && details.tool) {
+    return `Brein-tool ${String(details.tool)} aangeroepen`;
+  }
   if (typeof details.summary === 'string') return details.summary;
   if (typeof details.message === 'string') return details.message;
   const entity = details.entityName ?? details.productName ?? details.supplierName;
@@ -94,6 +119,14 @@ function buildDescription(action: string, module: string, details: Record<string
 function extractRelated(details: Record<string, unknown>): ActivityFeedItem['related'] {
   const approvalId = details.approvalId ?? details.approval_id;
   if (approvalId) return { type: 'approval', id: String(approvalId) };
+  const proposals = details.proposals;
+  if (Array.isArray(proposals)) {
+    for (const p of proposals) {
+      if (typeof p === 'object' && p !== null && 'approvalId' in p && p.approvalId) {
+        return { type: 'approval', id: String((p as Record<string, unknown>).approvalId) };
+      }
+    }
+  }
   const emailId = details.emailId ?? details.entityId;
   if (emailId && details.entityType === 'email') return { type: 'email', id: String(emailId) };
   if (details.entityType === 'approval' && details.entityId) {

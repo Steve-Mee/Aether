@@ -10,6 +10,8 @@ import type { OrchestratorPort } from '../../../../ai/orchestrator/OrchestratorP
 import { defaultOrchestratorPort } from '../../../../ai/orchestrator/OrchestratorAdapter';
 import { AutonomyLoop } from '../../../../shared/autonomy/AutonomyLoop';
 import { merchantAutonomyKernel } from '../../../../ai/autonomy/DecisionContract';
+import type { PersonalBrainRegistry } from '../../../../ai/intelligence/personal-brain/PersonalBrainRegistry';
+
 import { policyEngine } from '../../../../ai/orchestrator/WorkflowEngine';
 
 export class ProcessIncomingEmailUseCase {
@@ -19,7 +21,8 @@ export class ProcessIncomingEmailUseCase {
     private mailSender: MailSenderPort,
     private contextProvider: EmailContextProvider,
     private policyService: EmailPolicyService = emailPolicyService,
-    private orchestratorPort: OrchestratorPort = defaultOrchestratorPort
+    private orchestratorPort: OrchestratorPort = defaultOrchestratorPort,
+    private personalBrains?: PersonalBrainRegistry
   ) {}
 
   async execute(
@@ -36,10 +39,21 @@ export class ProcessIncomingEmailUseCase {
 
     const context = await this.contextProvider.getContext(rawEmail.from, ctx.tenantId);
     const email = EmailMessage.create(rawEmail);
+
+    let ragSnippets: string[] = [];
+    if (this.personalBrains) {
+      const brain = this.personalBrains.get(ctx.tenantId, 'mail');
+      const recall = await brain.recall(
+        `${rawEmail.subject ?? ''} ${rawEmail.from}`.trim()
+      );
+      ragSnippets = recall.snippets;
+    }
+
     const classification = await this.classifier.classify(rawEmail, {
       customerName: context.customerName,
       recentOrderCount: context.recentOrderCount,
       priorEmailCount: context.priorEmailCount,
+      ragSnippets,
     });
 
     email.markAsProcessed(classification.riskLevel);
@@ -174,6 +188,15 @@ export class ProcessIncomingEmailUseCase {
       task: 'mail.classify',
       input: { emailId: savedEmail.id, category: classification.category, autoSent },
     });
+
+    if (this.personalBrains) {
+      const brain = this.personalBrains.get(ctx.tenantId, 'mail');
+      await brain.remember({
+        command: `email from ${rawEmail.from}: ${rawEmail.subject ?? ''}`,
+        intent: classification.category,
+        result: `${savedEmail.status}${autoSent ? ':auto_sent' : ''}`,
+      });
+    }
 
     await writeAuditLog({
       tenantId: ctx.tenantId,

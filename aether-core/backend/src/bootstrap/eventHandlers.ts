@@ -10,6 +10,9 @@ import {
 } from '../shared/outcomes/OutcomeVerificationService';
 import { orchestrator } from '../ai/orchestrator/Orchestrator';
 import { merchantNotificationService } from '../shared/notifications/merchantNotificationService';
+import { DefaultContributionGate } from '../ai/intelligence/knowledge-transfer/contribution/DefaultContributionGate';
+
+const contributionGate = new DefaultContributionGate();
 
 async function auditEventAlreadyHandled(
   tenantId: string,
@@ -132,6 +135,28 @@ export function registerEventHandlers(): void {
         input: { supplierId, trigger: 'price_changed_event', change: event.payload.change },
       });
     }
+
+    if (
+      event.payload.autoApplied === true &&
+      (await contributionGate.canContribute(event.tenantId))
+    ) {
+      const change = event.payload.change as { type?: string } | undefined;
+      const category = change?.type === 'new_product' ? 'inventory' : 'pricing';
+      await orchestrator.execute({
+        tenantId: event.tenantId,
+        task: 'insight.submit',
+        input: {
+          insights: [
+            {
+              category,
+              metric: 'auto_apply_rate',
+              value: 1,
+              sampleSize: 1,
+            },
+          ],
+        },
+      });
+    }
   });
   markHandlerRegistered('supplier.price_changed');
 
@@ -141,6 +166,26 @@ export function registerEventHandlers(): void {
       emailId: event.payload.emailId,
       status: event.payload.status,
     });
+
+    if (
+      event.payload.autoSent === true &&
+      (await contributionGate.canContribute(event.tenantId))
+    ) {
+      await orchestrator.execute({
+        tenantId: event.tenantId,
+        task: 'insight.submit',
+        input: {
+          insights: [
+            {
+              category: 'conversion',
+              metric: 'mail_auto_reply_rate',
+              value: 1,
+              sampleSize: 1,
+            },
+          ],
+        },
+      });
+    }
   });
 
   eventBus.subscribe('supplier.sync_completed', async (event: DomainEventPayload) => {

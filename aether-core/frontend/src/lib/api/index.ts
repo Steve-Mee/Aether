@@ -1,6 +1,7 @@
 export {
   apiFetch,
   apiStreamFetch,
+  apiStreamPostFetch,
   getApiConfig,
   setAuthToken,
   setAuthTenantId,

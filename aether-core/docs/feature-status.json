@@ -1,6 +1,6 @@
 {
   "version": "0.8.1",
-  "updatedAt": "2026-05-31",
+  "updatedAt": "2026-06-27",
   "claimPolicy": "No feature marked implemented without runtime evidence, automated test, and CI gate.",
   "features": {
     "product-catalog": { "status": "live", "label": "Product catalog CRUD" },
@@ -20,6 +20,58 @@
     "feature-flags": { "status": "live", "label": "Feature flags" },
     "outcomes": { "status": "partial", "label": "Attribution / outcome billing" },
     "orchestration": { "status": "partial", "label": "AI orchestration layer" },
+    "intelligence-layer": {
+      "status": "partial",
+      "label": "Intelligence Layer Phase 2 (RAG, hive-mind bridge, GlobalBrain, LoRA registry, JSON export)"
+    },
+    "intelligence-rag-mail-supplier": {
+      "status": "live",
+      "label": "Mail/Supplier RAG via PersonalBrainRegistry"
+    },
+    "intelligence-event-chaining": {
+      "status": "live",
+      "label": "Event-driven insight.submit via orchestrator"
+    },
+    "intelligence-self-hosted": {
+      "status": "partial",
+      "label": "JsonFile vector store + brain export/import"
+    },
+    "personal-brain-memory": {
+      "status": "live",
+      "label": "PersonalBrain episodic memory (short-term buffer + long-term recall)"
+    },
+    "personal-brain-memory-v2": {
+      "status": "live",
+      "label": "Personal Brain Memory v2 (metadata filter, orchestration, reflection, consolidation job, admin panel)"
+    },
+    "multi-agent-delegation": {
+      "status": "implemented",
+      "label": "Phase 6 multi-agent specialists (pricing/supplier/inventory/mail), LLM routing, parallel orchestration, Command Bar agent badge"
+    },
+    "inventory-restock-suggest": {
+      "status": "implemented",
+      "label": "RESTOCK_SUGGEST suggestRestock propose tool with approval flow"
+    },
+    "graph-orchestration": {
+      "status": "partial",
+      "label": "NativeGraphOrchestrator + LangGraph adapter behind MULTI_AGENT_GRAPH_ORCHESTRATION"
+    },
+    "cross-tenant-agent-patterns": {
+      "status": "partial",
+      "label": "GlobalAgentPattern distillation and opt-in sync (no shared run state)"
+    },
+    "reflection-distillation-hitl": {
+      "status": "partial",
+      "label": "Reflection → GlobalKnowledge patch drafts (HITL, no auto-publish)"
+    },
+    "reflection-experiments": {
+      "status": "partial",
+      "label": "A/B reflection quality experiments with outcome metrics"
+    },
+    "reflection-timeline-ui": {
+      "status": "partial",
+      "label": "Cross-agent reflection timeline (API + Settings panel)"
+    },
     "event-bus": { "status": "live", "label": "Event bus" },
     "approvals-audit": { "status": "live", "label": "Approvals & audit (resolve executes actions)" },
     "activity-log": { "status": "partial", "label": "Activity log / audit trail (GET /api/admin/activity)" },

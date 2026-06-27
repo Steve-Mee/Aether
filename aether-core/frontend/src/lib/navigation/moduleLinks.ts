@@ -17,4 +17,9 @@ export const moduleLinks = {
   settings: '/settings',
 } as const;
 
+/** Deep link to a specific pending approval in Goedkeuringen. */
+export function approvalDetail(id: string): string {
+  return `/approvals?id=${encodeURIComponent(id)}`;
+}
+
 export type ModuleLinkKey = keyof typeof moduleLinks;

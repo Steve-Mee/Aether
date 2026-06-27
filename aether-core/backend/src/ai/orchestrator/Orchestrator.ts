@@ -10,7 +10,16 @@ export type AgentTask =
   | 'supplier.sync'
   | 'admin.command'
   | 'pricing.adjust'
-  | 'negotiation.step';
+  | 'negotiation.step'
+  | 'brain.recall'
+  | 'brain.remember'
+  | 'insight.submit'
+  | 'knowledge.contribute'
+  | 'knowledge.pull'
+  | 'knowledge.distill'
+  | 'knowledge.federate'
+  | 'knowledge.experiment.record'
+  | 'command.brain.prepare';
 
 export interface OrchestratorContext {
   tenantId: string;

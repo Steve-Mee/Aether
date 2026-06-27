@@ -267,18 +267,29 @@ export function CompoundStepTimeline({
   steps,
   className,
 }: {
-  steps: { label: string; summary: string; done: boolean }[];
+  steps: { label: string; summary: string; done: boolean; checkpoint?: boolean }[];
   className?: string;
 }) {
   return (
     <ul className={cn('space-y-2 border-t border-border/20 pt-3', className)}>
-      {steps.map((step) => (
-        <li key={step.label} className="flex items-start gap-2 text-sm">
+      {steps.map((step, index) => (
+        <li
+          key={`${step.label}-${index}`}
+          className={cn(
+            'flex items-start gap-2 text-sm',
+            step.checkpoint && 'rounded-md border border-amber-500/25 bg-amber-500/5 px-2 py-1'
+          )}
+          data-testid={step.checkpoint ? 'agent-timeline-checkpoint' : undefined}
+        >
           <Check
             size={14}
             className={cn(
               'mt-0.5 shrink-0',
-              step.done ? 'text-success' : 'text-caption-accessible',
+              step.checkpoint
+                ? 'text-amber-500'
+                : step.done
+                  ? 'text-success'
+                  : 'text-caption-accessible',
             )}
           />
           <span>

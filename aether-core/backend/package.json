@@ -23,6 +23,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:validate": "prisma validate",
+    "brain:reembed": "ts-node scripts/reembed-brain-memory.ts",
+    "brain:verify-schema": "ts-node scripts/verify-brain-schema.ts",
     "setup:env": "node ../scripts/generate-env.js",
     "setup": "npm run setup:env && npm run prisma:generate"
   },

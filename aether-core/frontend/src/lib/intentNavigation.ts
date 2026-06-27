@@ -13,6 +13,11 @@ export type RiskBand = 'low' | 'medium' | 'high';
 
 export function assessApprovalRisk(module: string, actionType: string): RiskBand {
   const action = actionType.toLowerCase();
+  if (module === 'admin-command-bar' && action.startsWith('brain.')) {
+    if (/createapproval|delete/.test(action.replace('brain.', ''))) return 'high';
+    if (/updateprice|syncsupplier/.test(action.replace('brain.', ''))) return 'medium';
+    return 'low';
+  }
   if (/refund|delete|blacklist/.test(action)) return 'high';
   if (module === 'aether-mail' && /reply|auto/.test(action)) return 'low';
   if (/price|prijs/.test(action)) return 'medium';

@@ -9,6 +9,7 @@ import { orchestrator } from '../../../../ai/orchestrator/Orchestrator';
 import { SupplierDecisionEngine } from '../services/SupplierDecisionEngine';
 import type { SupplierChangePort } from '../ports/SupplierChangePort';
 import { merchantAutonomyKernel } from '../../../../ai/autonomy/DecisionContract';
+import type { PersonalBrainRegistry } from '../../../../ai/intelligence/personal-brain/PersonalBrainRegistry';
 
 export class MonitorSupplierUseCase {
   constructor(
@@ -16,7 +17,8 @@ export class MonitorSupplierUseCase {
     private scraper: WebScraperService,
     private detector: PriceChangeDetectorService,
     private decisionEngine: SupplierDecisionEngine,
-    private supplierChanges: SupplierChangePort
+    private supplierChanges: SupplierChangePort,
+    private personalBrains?: PersonalBrainRegistry
   ) {}
 
   async execute(supplierId: string, ctx: { tenantId: string; actorId?: string }): Promise<any> {
@@ -34,6 +36,13 @@ export class MonitorSupplierUseCase {
     const scrapedProducts = await this.scraper.scrape(supplier.website, { tenantId: ctx.tenantId });
     const existingProducts = await this.supplierRepository.findProductsBySupplier(supplierId);
     const changes = this.detector.detectChanges(existingProducts, scrapedProducts);
+
+    let supplierRecall: string[] = [];
+    if (this.personalBrains && changes.length > 0) {
+      const brain = this.personalBrains.get(ctx.tenantId, 'supplier');
+      const recall = await brain.recall(`${supplier.name} ${changes[0].type}`);
+      supplierRecall = recall.snippets;
+    }
 
     for (const product of scrapedProducts) {
       const withSupplier = new SupplierProduct(
@@ -105,14 +114,43 @@ export class MonitorSupplierUseCase {
           tenantId: ctx.tenantId,
           module: 'supplier-intelligence',
           actionType: change.type,
-          payload: { supplierId, ...change, decision: decision.action },
+          payload: {
+            supplierId,
+            ...change,
+            decision: decision.action,
+            brainContext: supplierRecall,
+          },
           requestedBy: ctx.actorId,
         });
       } else {
         await eventBus.publish({
           tenantId: ctx.tenantId,
           type: 'supplier.price_changed',
-          payload: { supplierId, change, decision: decision.action },
+          payload: {
+            supplierId,
+            change,
+            changePercent: changePct,
+            decision: decision.action,
+            autoApplied: true,
+          },
+        });
+
+        if (this.personalBrains) {
+          const brain = this.personalBrains.get(ctx.tenantId, 'supplier');
+          await brain.remember({
+            command: `${supplier.name} ${change.type} ${changePct}%`,
+            intent: `supplier.${decision.action}`,
+            result: 'auto_applied',
+          });
+        }
+      }
+
+      if (this.personalBrains && needsApproval) {
+        const brain = this.personalBrains.get(ctx.tenantId, 'supplier');
+        await brain.remember({
+          command: `${supplier.name} ${change.type} ${changePct}%`,
+          intent: `supplier.${decision.action}`,
+          result: 'approval_required',
         });
       }
     }

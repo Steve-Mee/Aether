@@ -29,6 +29,7 @@ interface ApprovalCardProps {
   outcomeLabel?: string;
   /** When false, approve/reject are hidden for high-risk items. */
   allowHighRiskActions?: boolean;
+  highlighted?: boolean;
 }
 
 export default function ApprovalCard({
@@ -42,6 +43,7 @@ export default function ApprovalCard({
   readOnly,
   outcomeLabel,
   allowHighRiskActions = true,
+  highlighted = false,
 }: ApprovalCardProps) {
   const navigate = useNavigate();
   const [explainOpen, setExplainOpen] = useState(false);
@@ -59,6 +61,7 @@ export default function ApprovalCard({
     accent,
     deepLink,
     executionMode,
+    ktSnippets,
   } = enriched;
   const email = toEmailPayload(item.payload);
   const entityId = email.emailId ?? item.id;
@@ -134,6 +137,7 @@ export default function ApprovalCard({
           'flex gap-4 transition-opacity duration-fast',
           actionsReadOnly && 'opacity-80',
           resolving && !actionsReadOnly && 'opacity-70',
+          highlighted && 'ring-2 ring-primary/50 rounded-2xl',
         )}
         data-testid={`approval-card-${item.id}`}
       >
@@ -172,6 +176,13 @@ export default function ApprovalCard({
           </div>
           <p className="text-meta text-muted-foreground">{impact}</p>
           <p className="text-body text-muted-foreground/80 line-clamp-2">{rationale}</p>
+          {ktSnippets && ktSnippets.length > 0 && (
+            <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground/75 list-disc list-inside">
+              {ktSnippets.map((snippet) => (
+                <li key={snippet}>{snippet}</li>
+              ))}
+            </ul>
+          )}
           <div className="flex flex-wrap items-center gap-3 text-caption text-muted-foreground">
             <span>{formatDate(item.createdAt)}</span>
             <span className="text-muted-foreground/40">·</span>

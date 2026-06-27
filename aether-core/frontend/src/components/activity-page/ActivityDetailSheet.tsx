@@ -12,6 +12,7 @@ import {
   SheetTitle,
 } from '@/components/ui';
 import { cn, focusRing } from '@/lib/utils';
+import { approvalDetail } from '@/lib/navigation/moduleLinks';
 import { canExplainApproval } from '@/lib/activityRelated';
 import type { ActivityItem } from '@/types/activity';
 import type { RiskBand } from '@/lib/intentNavigation';
@@ -141,7 +142,7 @@ export default function ActivityDetailSheet({
                   </Button>
                 )}
                 <Link
-                  to="/approvals"
+                  to={approvalDetail(item.related.id)}
                   className={cn(
                     'inline-flex items-center gap-2 text-sm text-primary hover:underline',
                     focusRing('rounded px-0.5'),

@@ -12,7 +12,7 @@ import type {
   ResolveApprovalResponse,
 } from '@/types/approval';
 import type { ActivityFeedResponse } from '@/types/activity';
-import type { CommandHistoryItem, CommandResult, UndoCommandResponse } from '@/types/command';
+import type { CommandHistoryItem, CommandResult, ExecuteBrainToolResponse, UndoCommandResponse, AgentRunResponse } from '@/types/command';
 import type { AutonomyMetricsResponse, OutcomeReport } from '@/types/insight';
 import type { AppNotification } from '@/types/notification';
 import type {
@@ -89,7 +89,10 @@ export interface DataAdapter {
 
   executeCommand(command: string): Promise<CommandResult>;
   undoCommand(commandId: string): Promise<UndoCommandResponse>;
+  executeToolProposal(proposalId: string, commandId?: string): Promise<ExecuteBrainToolResponse>;
+  rejectToolProposal(proposalId: string): Promise<ExecuteBrainToolResponse>;
   fetchCommandHistory(): Promise<CommandHistoryItem[]>;
+  fetchAgentRun(commandId: string): Promise<AgentRunResponse>;
 
   fetchNotifications(): Promise<AppNotification[]>;
   markNotificationRead(id: string): Promise<void>;

@@ -6,9 +6,14 @@ import { initOtelSdk, shutdownOtelSdk } from './shared/observability/otelBootstr
 import { initSentry, shutdownSentry } from './shared/observability/sentry';
 import { imapPollingService } from './modules/aether-mail/infrastructure/imap/ImapPollingService';
 import { monitorSupplierJob } from './modules/supplier-intelligence/infrastructure/jobs/MonitorSupplierJob';
+import {
+  knowledgeContributionJob,
+  knowledgeDistillJob,
+  knowledgeFederateJob,
+} from './ai/intelligence/knowledge-transfer/jobs/KnowledgeContributionJob';
 import { federatedHiveJob } from './modules/zero-knowledge-hive-mind/infrastructure/jobs/FederatedHiveJobScheduler';
 import { getOperatingMetrics } from './shared/truth/operatingMetricsService';
-import { processEventOutbox } from './bootstrap/compositionRoot';
+import { processEventOutbox, getCompositionRoot } from './bootstrap/compositionRoot';
 
 const PORT = process.env.PORT || 9000;
 const DEFAULT_TENANT = process.env.AETHER_DEFAULT_TENANT ?? 'tenant_default';
@@ -76,12 +81,20 @@ async function startServer(): Promise<void> {
     });
     void imapPollingService.start();
     monitorSupplierJob.start();
+    knowledgeContributionJob.start();
+    knowledgeDistillJob.start();
+    knowledgeFederateJob.start();
+    getCompositionRoot().memoryConsolidationJob.start();
     void maybeStartEcosystemJobs();
   });
 
   process.on('SIGTERM', async () => {
     imapPollingService.stop();
     monitorSupplierJob.stop();
+    knowledgeContributionJob.stop();
+    knowledgeDistillJob.stop();
+    knowledgeFederateJob.stop();
+    getCompositionRoot().memoryConsolidationJob.stop();
     federatedHiveJob.stop();
     server.close(async () => {
       await shutdownOtelSdk();

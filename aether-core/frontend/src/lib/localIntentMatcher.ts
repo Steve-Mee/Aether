@@ -649,6 +649,22 @@ export function buildCompoundDemoResponse(command: string): DemoCommandResponse 
 export function getExplainTimeline(intentId: DemoIntentId): DemoExplainStep[] {
   return EXPLAIN_TIMELINES[intentId] ?? EXPLAIN_TIMELINES.UNKNOWN;
 }
+
+function demoSpecialistBrain(intentId: DemoIntentId): CommandResult['brain'] | undefined {
+  const agentMap: Partial<Record<DemoIntentId, string>> = {
+    PRICING_OPTIMIZATION: 'pricing',
+    PRODUCT_PRICE_PROPOSAL: 'pricing',
+    MARGIN_INSIGHT: 'pricing',
+    SUPPLIER_CHECK: 'supplier',
+  };
+  const agentKey = agentMap[intentId];
+  if (!agentKey) return undefined;
+  return {
+    contextSnippets: [],
+    specialist: { agentKey, delegatedFrom: 'admin', routingSource: 'intent' },
+  };
+}
+
 export function buildDemoResponse(
   command: string,
   intentOverride?: DemoIntentId,
@@ -667,6 +683,7 @@ export function buildDemoResponse(
     confidence: intent.confidence,
     timestamp: new Date().toISOString(),
     preparedHeadline: 'AETHER heeft dit voorbereid',
+    brain: demoSpecialistBrain(intent.id),
   };
   switch (intent.id) {
     case 'PRODUCT_PRICE_PROPOSAL':

@@ -18,6 +18,8 @@ export class PrismaCommandLogRepository {
       result?: string;
       confidence?: number;
       actor?: string;
+      brainMemoryId?: string;
+      operationalMeta?: Record<string, unknown>;
     },
     options?: { undoable?: boolean; undoExpiresAt?: Date }
   ): Promise<CommandLogEntry> {
@@ -29,9 +31,11 @@ export class PrismaCommandLogRepository {
         result: entry.result,
         confidence: entry.confidence,
         actor: entry.actor,
+        brainMemoryId: entry.brainMemoryId,
+        operationalMeta: entry.operationalMeta ? JSON.stringify(entry.operationalMeta) : undefined,
         undoable: options?.undoable ?? false,
         undoExpiresAt: options?.undoExpiresAt,
-      },
+      } as Parameters<typeof prisma.command.create>[0]['data'],
     });
     return {
       id: row.id,

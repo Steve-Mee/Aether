@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { activityApi } from '@/features/activity/api';
 import { useDashboard } from '@/lib/DashboardContext';
 import { approvalsApi } from '@/features/approvals/api';
@@ -32,6 +33,10 @@ import type {
 } from '@/types/approval';
 
 export function useApprovalsPage() {
+  const [searchParams] = useSearchParams();
+  const focusedApprovalId = searchParams.get('id');
+  const focusScrollDone = useRef<string | null>(null);
+
   const { data: dashboard } = useDashboard();
   const [activeTab, setActiveTab] = useState<ApprovalTab>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,6 +91,15 @@ export function useApprovalsPage() {
     setPendingApprovalsCount(pending);
   }, [approvals, setPendingApprovalsCount]);
 
+  useEffect(() => {
+    if (!focusedApprovalId || !approvals?.length) return;
+    const target = approvals.find((a) => a.id === focusedApprovalId);
+    if (!target) return;
+    setActiveTab('all');
+    setSearchQuery('');
+    setDateFilter('all');
+  }, [focusedApprovalId, approvals]);
+
   const reload = useCallback(() => {
     void refetch();
   }, [refetch]);
@@ -121,6 +135,16 @@ export function useApprovalsPage() {
 
   const showGroupedSections =
     activeTab === 'all' && highRiskItems.length > 0 && otherItems.length > 0;
+
+  useEffect(() => {
+    if (!focusedApprovalId || loading) return;
+    if (focusScrollDone.current === focusedApprovalId) return;
+    const el = document.querySelector(`[data-testid="approval-card-${focusedApprovalId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      focusScrollDone.current = focusedApprovalId;
+    }
+  }, [focusedApprovalId, loading, filteredPending]);
 
   const afterMutation = useCallback(
     async (message: string) => {
@@ -278,5 +302,6 @@ export function useApprovalsPage() {
     pendingCount,
     dashboard,
     enriched,
+    focusedApprovalId,
   };
 }

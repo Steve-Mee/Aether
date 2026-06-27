@@ -1,11 +1,34 @@
 import { prisma } from '../../../../shared/prisma/client';
 import { writeAuditLog } from '../../../../shared/audit/auditService';
+import type { AdminDataPort } from '../ports/AdminDataPort';
+import type { PersonalBrainRegistry } from '../../../../ai/intelligence/personal-brain/PersonalBrainRegistry';
+import type { PersonalBrainMemoryService } from '../../../../ai/intelligence/personal-brain/memory/PersonalBrainMemoryService';
+
+export interface UndoCommandDeps {
+  personalBrainRegistry: PersonalBrainRegistry;
+  personalBrainMemory?: PersonalBrainMemoryService;
+  adminData: AdminDataPort;
+}
+
+interface CommandUndoRow {
+  id: string;
+  tenantId: string;
+  command: string;
+  intent: string | null;
+  undoable: boolean;
+  revertedAt: Date | null;
+  undoExpiresAt: Date | null;
+  brainMemoryId?: string | null;
+  operationalMeta?: string | null;
+}
 
 export class UndoCommandUseCase {
+  constructor(private deps?: UndoCommandDeps) {}
+
   async execute(commandId: string, ctx: { tenantId: string; actorId?: string }) {
-    const row = await prisma.command.findFirst({
+    const row = (await prisma.command.findFirst({
       where: { id: commandId, tenantId: ctx.tenantId },
-    });
+    })) as CommandUndoRow | null;
 
     if (!row) {
       throw new Error('Command not found');
@@ -20,6 +43,42 @@ export class UndoCommandUseCase {
       throw new Error('Undo window expired');
     }
 
+    let brainMemoryDeleted = false;
+    if (row.brainMemoryId && this.deps?.personalBrainMemory) {
+      try {
+        await this.deps.personalBrainMemory.removeByBrainMemoryId(ctx.tenantId, row.brainMemoryId);
+        brainMemoryDeleted = true;
+      } catch {
+        // Best-effort memory rollback
+      }
+    } else if (row.brainMemoryId && this.deps?.personalBrainRegistry) {
+      try {
+        const brain = this.deps.personalBrainRegistry.get(ctx.tenantId, 'admin');
+        await brain.forgetMemory(row.brainMemoryId);
+        brainMemoryDeleted = true;
+      } catch {
+        // Best-effort memory rollback
+      }
+    }
+
+    let priceRollbackCount = 0;
+    if (row.intent === 'PRICE_UPDATE' && row.operationalMeta && this.deps?.adminData) {
+      try {
+        const meta = JSON.parse(row.operationalMeta) as {
+          priceRollback?: { previousPrices?: Array<{ id: string; price: number }> };
+        };
+        const previousPrices = meta.priceRollback?.previousPrices;
+        if (previousPrices?.length) {
+          priceRollbackCount = await this.deps.adminData.restoreProductPrices(
+            ctx.tenantId,
+            previousPrices
+          );
+        }
+      } catch {
+        // Best-effort price rollback
+      }
+    }
+
     await prisma.command.update({
       where: { id: commandId },
       data: { revertedAt: new Date() },
@@ -30,7 +89,13 @@ export class UndoCommandUseCase {
       module: 'admin-command-bar',
       action: 'command.undo',
       actor: ctx.actorId,
-      details: { commandId, intent: row.intent, originalCommand: row.command },
+      details: {
+        commandId,
+        intent: row.intent,
+        originalCommand: row.command,
+        brainMemoryDeleted,
+        priceRollbackCount,
+      },
     });
 
     return {
@@ -38,6 +103,8 @@ export class UndoCommandUseCase {
       commandId,
       message: 'Commando teruggedraaid',
       intent: row.intent,
+      brainMemoryDeleted,
+      priceRollbackCount,
     };
   }
 }

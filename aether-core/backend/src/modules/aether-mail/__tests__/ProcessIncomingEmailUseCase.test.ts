@@ -26,6 +26,7 @@ import { ProcessIncomingEmailUseCase } from '../application/use-cases/ProcessInc
 import { EmailMessage } from '../domain/entities/EmailMessage';
 import { EmailClassifierService } from '../application/services/EmailClassifierService';
 import { EmailContextProvider } from '../application/services/EmailContextProvider';
+import { createInMemoryIntelligenceLayer } from '../../../ai/intelligence/createIntelligenceLayer';
 
 const mockContextProvider = new EmailContextProvider({
   loadContext: jest.fn().mockResolvedValue({
@@ -128,5 +129,50 @@ describe('ProcessIncomingEmailUseCase', () => {
 
     expect(result.approvalId).toBe('appr_1');
     expect(result.autoSent).toBeFalsy();
+  });
+
+  it('passes RAG snippets to classifier and remembers interaction', async () => {
+    const intelligence = createInMemoryIntelligenceLayer();
+    const brain = intelligence.personalBrainRegistry.get('tenant_default', 'mail');
+    await brain.remember({
+      command: 'prior order status question',
+      intent: 'order_status',
+      result: 'replied',
+    });
+
+    const classifySpy = jest.spyOn(classifier, 'classify').mockResolvedValue({
+      category: 'order_status',
+      riskLevel: 'low',
+      confidence: 0.9,
+      reason: 'test',
+      source: 'ollama',
+    });
+    const rememberSpy = jest.spyOn(brain, 'remember');
+
+    const useCase = new ProcessIncomingEmailUseCase(
+      mockRepo as any,
+      classifier,
+      mockMailSender,
+      mockContextProvider,
+      undefined,
+      undefined,
+      intelligence.personalBrainRegistry
+    );
+    await useCase.execute(
+      { from: 'buyer@shop.com', subject: 'Order status', body: 'Where is my order?' },
+      { tenantId: 'tenant_default' }
+    );
+
+    expect(classifySpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        ragSnippets: expect.arrayContaining([
+          expect.stringContaining('order_status'),
+        ]),
+      })
+    );
+    expect(rememberSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ intent: 'order_status' })
+    );
   });
 });

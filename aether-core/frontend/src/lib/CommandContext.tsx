@@ -21,6 +21,11 @@ interface CommandContextValue {
   undoLastCommand: () => Promise<void>;
   lastResult: CommandResult | null;
   loading: boolean;
+  streaming: boolean;
+  streamSteps: import('@/lib/useCommandStream').CommandStreamStep[];
+  streamPlan: import('@/lib/useCommandStream').CommandStreamPlan | null;
+  streamActiveAgentKey: string | null;
+  cancelStream: () => void;
   error: string | null;
   paletteOpen: boolean;
   openPalette: () => void;
@@ -80,7 +85,7 @@ export function CommandProvider({ children }: { children: ReactNode }) {
     });
   }, [serverHistory]);
 
-  const { executeMutation, undoMutation, loading } = useCommandMutations({
+  const { executeMutation, undoMutation, loading, streamSteps, streamPlan, streaming, activeAgentKey, cancelStream } = useCommandMutations({
     onExecuteSuccess: (data) => {
       setLastResult(data);
       setHistory((prev) => [data, ...prev].slice(0, 20));
@@ -127,6 +132,11 @@ export function CommandProvider({ children }: { children: ReactNode }) {
         undoLastCommand,
         lastResult,
         loading,
+        streaming,
+        streamSteps,
+        streamPlan,
+        streamActiveAgentKey: activeAgentKey,
+        cancelStream,
         error,
         paletteOpen,
         openPalette,

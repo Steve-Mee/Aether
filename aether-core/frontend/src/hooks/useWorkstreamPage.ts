@@ -43,9 +43,11 @@ function buildStream(
       priority: enriched.riskBand === 'high' ? 100 : enriched.riskBand === 'medium' ? 80 : 60,
       module: a.module.includes('mail')
         ? 'mail'
-        : a.module.includes('supplier')
-          ? 'supplier'
-          : 'commerce',
+        : a.module === 'admin-command-bar'
+          ? 'autonomy'
+          : a.module.includes('supplier')
+            ? 'supplier'
+            : 'commerce',
       title: enriched.title,
       detail: enriched.impact,
       href: '/approvals',

@@ -16,6 +16,11 @@ export interface NotificationPrefs {
   frequency: NotificationFrequency;
 }
 
+export type BrainVectorBackend = 'pgvector' | 'lancedb' | 'memory';
+export type BrainActionMode = 'always_confirm' | 'confirm_on_uncertain' | 'adaptive';
+export type BrainKnowledgeUpdateProfile = 'conservative' | 'balanced' | 'aggressive';
+export type BrainKnowledgeGovernanceMode = 'contribute_only' | 'receive_only' | 'full_loop';
+
 export interface MerchantSettings {
   autonomyLevel: AutonomyLevel;
   autoApproveLowRisk: boolean;
@@ -29,6 +34,16 @@ export interface MerchantSettings {
   notificationPrefs: NotificationPrefs;
   locale: Locale;
   dataExportEnabled: boolean;
+  brainVectorBackend: BrainVectorBackend | null;
+  brainKnowledgeTransferEnabled: boolean | null;
+  brainKnowledgeUpdateProfile: BrainKnowledgeUpdateProfile;
+  brainFederatedContributionEnabled: boolean;
+  brainKnowledgeGovernanceMode: BrainKnowledgeGovernanceMode;
+  brainLoRAPath: string | null;
+  brainActionMode: BrainActionMode;
+  brainAdaptiveLearningEnabled: boolean;
+  brainAdaptiveAutoExecuteEnabled: boolean;
+  brainCrossTenantAgentPatternsEnabled: boolean;
 }
 
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
@@ -52,6 +67,16 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
   locale: 'nl',
   dataExportEnabled: true,
+  brainVectorBackend: null,
+  brainKnowledgeTransferEnabled: null,
+  brainKnowledgeUpdateProfile: 'balanced',
+  brainFederatedContributionEnabled: false,
+  brainKnowledgeGovernanceMode: 'full_loop',
+  brainLoRAPath: null,
+  brainActionMode: 'confirm_on_uncertain',
+  brainAdaptiveLearningEnabled: false,
+  brainAdaptiveAutoExecuteEnabled: false,
+  brainCrossTenantAgentPatternsEnabled: false,
 };
 
 export function parseNotificationPrefs(raw: unknown): NotificationPrefs {

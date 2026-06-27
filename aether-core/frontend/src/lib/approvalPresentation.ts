@@ -2,7 +2,7 @@ import type { ActionExecutionMode } from './actionAutonomy';
 import { resolveExecutionMode } from './actionAutonomy';
 import { assessApprovalRisk, type RiskBand } from './intentNavigation';
 import type { ApprovalItem } from '@/types/approval';
-import { moduleLinks } from '@/lib/navigation/moduleLinks';
+import { moduleLinks, approvalDetail } from '@/lib/navigation/moduleLinks';
 
 export type InsightAccent = 'default' | 'success' | 'warning' | 'danger';
 
@@ -26,6 +26,8 @@ export interface EnrichedApproval {
   executionMode: ActionExecutionMode;
   accent: InsightAccent;
   deepLink: ApprovalDeepLink | null;
+  inboxDeepLink: string;
+  ktSnippets?: string[];
   searchText: string;
 }
 
@@ -65,6 +67,14 @@ function riskToAccent(risk: RiskBand): InsightAccent {
 }
 
 function buildTitle(item: ApprovalItem, email: EmailPayload): string {
+  if (item.module === 'admin-command-bar' && item.actionType.startsWith('brain.')) {
+    const summary = item.payload.summary;
+    if (typeof summary === 'string' && summary.length > 0) {
+      return summary.length > 80 ? `${summary.slice(0, 77)}…` : summary;
+    }
+    const tool = item.actionType.replace(/^brain\./, '');
+    return `Brein-actie: ${tool}`;
+  }
   const action = item.actionType.toLowerCase();
   if (item.module === 'aether-mail' && email.subject) {
     return `Beantwoord mail: ${email.subject}`;
@@ -106,6 +116,14 @@ function buildTitle(item: ApprovalItem, email: EmailPayload): string {
 }
 
 function buildImpact(item: ApprovalItem, email: EmailPayload): string {
+  if (item.module === 'admin-command-bar' && item.actionType.startsWith('brain.')) {
+    const expectedImpact = item.payload.expectedImpact;
+    if (typeof expectedImpact === 'string' && expectedImpact.length > 0) {
+      return expectedImpact;
+    }
+    const tool = item.actionType.replace(/^brain\./, '');
+    return `Command Bar brein-voorstel (${tool}) — bevestig of wijs af in de inbox.`;
+  }
   const action = item.actionType.toLowerCase();
   if (item.module === 'aether-mail') {
     const base = 'Klantcommunicatie en responstijd — direct zichtbaar voor de klant.';
@@ -144,6 +162,16 @@ function buildImpact(item: ApprovalItem, email: EmailPayload): string {
 }
 
 function buildRationale(item: ApprovalItem, email: EmailPayload): string {
+  if (item.module === 'admin-command-bar' && item.actionType.startsWith('brain.')) {
+    const rationale = item.payload.rationale;
+    if (typeof rationale === 'string' && rationale.length > 0) {
+      return rationale;
+    }
+    const source = item.payload.source;
+    if (source === 'personal-brain') {
+      return 'Voorgesteld door het persoonlijke brein — review en keur goed of wijs af.';
+    }
+  }
   if (item.module === 'aether-mail' && email.from) {
     const parts = [`Van ${email.from}`];
     if (email.category) parts.push(`· ${email.category}`);
@@ -157,6 +185,9 @@ function buildRationale(item: ApprovalItem, email: EmailPayload): string {
 }
 
 function buildDeepLink(item: ApprovalItem, email: EmailPayload): ApprovalDeepLink | null {
+  if (item.module === 'admin-command-bar' && item.actionType.startsWith('brain.')) {
+    return { path: '/command-center', labelKey: 'command.result.openCommandCenter' };
+  }
   if (email.emailId) {
     return { path: moduleLinks.emails, labelKey: 'approvals.adjust.emails' };
   }
@@ -200,9 +231,22 @@ function computeUrgencyFixed(createdAt: string): { urgency: UrgencyLabel; urgenc
   return { urgency: 'recent', urgencyLabel: 'Recent' };
 }
 
+function parseKtSnippets(payload: Record<string, unknown>): string[] | undefined {
+  const raw = payload.ktSnippets;
+  if (!Array.isArray(raw)) return undefined;
+  const snippets = raw.filter((s): s is string => typeof s === 'string' && s.length > 0);
+  return snippets.length > 0 ? snippets : undefined;
+}
+
 export function enrichApproval(item: ApprovalItem): EnrichedApproval {
   const email = toEmailPayload(item.payload);
-  const riskBand = assessApprovalRisk(item.module, item.actionType);
+  const payloadRisk = item.payload.risk;
+  const riskBand: RiskBand =
+    item.module === 'admin-command-bar' &&
+    item.actionType.startsWith('brain.') &&
+    (payloadRisk === 'low' || payloadRisk === 'medium' || payloadRisk === 'high')
+      ? payloadRisk
+      : assessApprovalRisk(item.module, item.actionType);
   const confidence = parseConfidence(item.payload, riskBand);
   const { urgency, urgencyLabel } = computeUrgencyFixed(item.createdAt);
   const executionMode = resolveExecutionMode({
@@ -235,6 +279,8 @@ export function enrichApproval(item: ApprovalItem): EnrichedApproval {
     executionMode,
     accent: riskToAccent(riskBand),
     deepLink: buildDeepLink(item, email),
+    inboxDeepLink: approvalDetail(item.id),
+    ktSnippets: parseKtSnippets(item.payload),
     searchText,
   };
 }

@@ -15,6 +15,7 @@ interface ApprovalListSectionProps {
   onReject: (id: string) => void;
   /** When false, high-risk cards show without approve/reject actions. */
   allowHighRiskActions?: boolean;
+  highlightedId?: string | null;
 }
 
 export default function ApprovalListSection({
@@ -28,6 +29,7 @@ export default function ApprovalListSection({
   onApprove,
   onReject,
   allowHighRiskActions = true,
+  highlightedId,
 }: ApprovalListSectionProps) {
   if (items.length === 0) return null;
 
@@ -45,6 +47,7 @@ export default function ApprovalListSection({
           >
             <ApprovalCard
               enriched={enriched}
+              highlighted={highlightedId === enriched.item.id}
               selected={selectedIds.has(enriched.item.id)}
               onToggleSelect={() => onToggleSelect(enriched.item.id)}
               showCheckbox={showCheckboxes && enriched.riskBand === 'low'}

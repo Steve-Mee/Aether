@@ -15,6 +15,7 @@ import { writeAuditLog } from '../../../../shared/audit/auditService';
 import { z } from 'zod';
 import { Request, Response } from 'express';
 import { getCompositionRoot } from '../../../../bootstrap/compositionRoot';
+import { getBrainAgentRunByCommandId, cancelBrainAgentRunByCommandId } from '../../../../ai/intelligence/command-brain/BrainAgentRunStore';
 import {
   getTenantApprovalPolicy,
   setTenantApprovalPolicy,
@@ -86,6 +87,20 @@ const settingsPatchSchema = z.object({
     .optional(),
   locale: z.enum(['nl', 'en']).optional(),
   dataExportEnabled: z.boolean().optional(),
+  brainVectorBackend: z.enum(['pgvector', 'lancedb', 'memory']).nullable().optional(),
+  brainKnowledgeTransferEnabled: z.boolean().nullable().optional(),
+  brainKnowledgeUpdateProfile: z.enum(['conservative', 'balanced', 'aggressive']).optional(),
+  brainFederatedContributionEnabled: z.boolean().optional(),
+  brainKnowledgeGovernanceMode: z.enum(['contribute_only', 'receive_only', 'full_loop']).optional(),
+  brainLoRAPath: z.string().max(500).nullable().optional(),
+  brainActionMode: z.enum(['always_confirm', 'confirm_on_uncertain', 'adaptive']).optional(),
+  brainAdaptiveLearningEnabled: z.boolean().optional(),
+  brainAdaptiveAutoExecuteEnabled: z.boolean().optional(),
+});
+
+const brainToolExecuteSchema = z.object({
+  proposalId: z.string().min(1),
+  commandId: z.string().optional(),
 });
 
 async function buildDashboardPayload(tenantId: string) {
@@ -145,6 +160,32 @@ export class AdminController {
       try {
         const { command } = req.body as { command: string };
         const { executeNaturalLanguageCommand } = getCompositionRoot();
+        const acceptStream = req.headers.accept?.includes('text/event-stream');
+
+        if (acceptStream && process.env.COMMAND_BRAIN_STREAMING_ENABLED === 'true') {
+          res.setHeader('Content-Type', 'text/event-stream');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+          res.flushHeaders?.();
+
+          const abortController = new AbortController();
+          req.on('close', () => abortController.abort());
+
+          const result = await executeNaturalLanguageCommand.execute(
+            command,
+            { tenantId: req.tenantId!, actorId: req.actorId },
+            {
+              onEvent: (event) => {
+                res.write(`data: ${JSON.stringify(event)}\n\n`);
+              },
+              abortSignal: abortController.signal,
+            }
+          );
+          res.write(`data: ${JSON.stringify({ type: 'result', result })}\n\n`);
+          res.end();
+          return;
+        }
+
         const result = await executeNaturalLanguageCommand.execute(command, {
           tenantId: req.tenantId!,
           actorId: req.actorId,
@@ -152,6 +193,62 @@ export class AdminController {
         res.json(result);
       } catch {
         res.status(500).json({ error: 'Failed to execute command' });
+      }
+    },
+  ];
+
+  resumeAgentRun = [
+    requireOperator,
+    async (req: Request, res: Response) => {
+      try {
+        const { resumeBrainAgentRun } = getCompositionRoot();
+        if (!resumeBrainAgentRun) {
+          res.status(503).json({ error: 'Agent loop not available' });
+          return;
+        }
+        const run = await getBrainAgentRunByCommandId(req.params.commandId, req.tenantId!);
+        if (!run) {
+          res.status(404).json({ error: 'Agent run not found' });
+          return;
+        }
+        const result = await resumeBrainAgentRun.execute(run.id, req.tenantId!);
+        res.json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Resume failed';
+        res.status(400).json({ error: message });
+      }
+    },
+  ];
+
+  cancelAgentRun = [
+    requireOperator,
+    async (req: Request, res: Response) => {
+      try {
+        const { cancelled, agentRunId } = await cancelBrainAgentRunByCommandId(
+          req.params.commandId,
+          req.tenantId!
+        );
+        if (!cancelled) {
+          res.status(404).json({ error: 'No cancellable agent run found' });
+          return;
+        }
+        res.json({ success: true, agentRunId, status: 'cancelled' });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Cancel failed';
+        res.status(400).json({ error: message });
+      }
+    },
+  ];
+
+  getAgentRun = [
+    requireViewer,
+    async (req: Request, res: Response) => {
+      try {
+        const { getAgentRun } = getCompositionRoot();
+        const result = await getAgentRun.execute(req.params.commandId, req.tenantId!);
+        res.json(result);
+      } catch {
+        res.status(500).json({ error: 'Failed to load agent run' });
       }
     },
   ];
@@ -169,6 +266,45 @@ export class AdminController {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Undo failed';
         res.status(400).json({ error: message });
+      }
+    },
+  ];
+
+  executeBrainTool = [
+    requireOperator,
+    validateBody(brainToolExecuteSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const { proposalId, commandId } = req.body as { proposalId: string; commandId?: string };
+        const { executeBrainTool } = getCompositionRoot();
+        const result = await executeBrainTool.execute(proposalId, {
+          tenantId: req.tenantId!,
+          actorId: req.actorId,
+          commandId,
+        });
+        res.status(result.success ? 200 : 400).json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Tool execution failed';
+        res.status(500).json({ success: false, error: message });
+      }
+    },
+  ];
+
+  rejectBrainTool = [
+    requireOperator,
+    validateBody(brainToolExecuteSchema),
+    async (req: Request, res: Response) => {
+      try {
+        const { proposalId } = req.body as { proposalId: string };
+        const { executeBrainTool } = getCompositionRoot();
+        const result = await executeBrainTool.reject(proposalId, {
+          tenantId: req.tenantId!,
+          actorId: req.actorId,
+        });
+        res.json(result);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Reject failed';
+        res.status(500).json({ success: false, error: message });
       }
     },
   ];

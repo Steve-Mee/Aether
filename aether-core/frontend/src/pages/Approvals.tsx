@@ -107,6 +107,7 @@ export default function Approvals() {
                   onToggleSelect={page.toggleSelect}
                   showCheckboxes={false}
                   resolvingId={page.resolvingId}
+                  highlightedId={page.focusedApprovalId}
                   onApprove={(id) => page.resolveOne(id, true)}
                   onReject={(id) => page.resolveOne(id, false)}
                 />
@@ -117,6 +118,7 @@ export default function Approvals() {
                   onToggleSelect={page.toggleSelect}
                   showCheckboxes
                   resolvingId={page.resolvingId}
+                  highlightedId={page.focusedApprovalId}
                   onApprove={(id) => page.resolveOne(id, true)}
                   onReject={(id) => page.resolveOne(id, false)}
                 />
@@ -130,6 +132,7 @@ export default function Approvals() {
                 onToggleSelect={page.toggleSelect}
                 showCheckboxes={page.activeTab === 'low' || page.activeTab === 'all'}
                 resolvingId={page.resolvingId}
+                highlightedId={page.focusedApprovalId}
                 onApprove={(id) => page.resolveOne(id, true)}
                 onReject={(id) => page.resolveOne(id, false)}
               />

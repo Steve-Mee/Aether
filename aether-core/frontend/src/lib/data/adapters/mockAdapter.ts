@@ -203,7 +203,27 @@ export const mockDataAdapter: DataAdapter = {
     intent: 'mock.intent',
   }),
 
+  executeToolProposal: async (proposalId) => ({
+    success: true,
+    message: 'Mock tool executed',
+    proposalId,
+  }),
+
+  rejectToolProposal: async (proposalId) => ({
+    success: true,
+    message: 'Mock tool rejected',
+    proposalId,
+  }),
+
   fetchCommandHistory: async () => [],
+
+  fetchAgentRun: async (commandId) => ({
+    commandId,
+    agentRunId: null,
+    transcript: [],
+    status: 'unknown' as const,
+    pendingActions: [],
+  }),
 
   fetchNotifications: async () => {
     const seed = getDemoNotificationSeed();

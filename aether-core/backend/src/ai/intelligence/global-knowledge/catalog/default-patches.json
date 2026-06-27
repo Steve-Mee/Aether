@@ -1,0 +1,115 @@
+{
+  "version": "1.0.0",
+  "patches": [
+    {
+      "id": "pricing-margin-floor",
+      "version": "1.0.0",
+      "kind": "pattern",
+      "category": "pricing",
+      "title": "Minimale marge bij prijsaanpassingen",
+      "content": "Bij prijsverhogingen: controleer altijd of de bruto marge minimaal 15% blijft. Verlaag nooit prijzen onder inkoopprijs + 10% zonder expliciete goedkeuring.",
+      "priority": 9,
+      "minProfile": "conservative",
+      "tags": ["pricing", "margin"]
+    },
+    {
+      "id": "pricing-competitive-check",
+      "version": "1.0.0",
+      "kind": "pattern",
+      "category": "pricing",
+      "title": "Concurrentiecheck voor grote prijswijzigingen",
+      "content": "Bij prijswijzigingen > 10%: vergelijk eerst met marktgemiddelde en recente verkoopcijfers voordat je voorstelt uit te voeren.",
+      "priority": 7,
+      "minProfile": "balanced",
+      "tags": ["pricing", "competition"]
+    },
+    {
+      "id": "inventory-low-stock-alert",
+      "version": "1.0.0",
+      "kind": "pattern",
+      "category": "inventory",
+      "title": "Lage voorraad signalering",
+      "content": "Producten met voorraad onder 5 eenheden verdienen prioriteit in aanbevelingen. Overweeg prijsverhoging bij schaarse items met hoge vraag.",
+      "priority": 8,
+      "minProfile": "conservative",
+      "tags": ["inventory", "stock"]
+    },
+    {
+      "id": "inventory-dead-stock",
+      "version": "1.0.0",
+      "kind": "optimization_rule",
+      "category": "inventory",
+      "title": "Dode voorraad opruimen",
+      "content": "Producten zonder verkoop in 90 dagen met voorraad > 10: stel korting of bundel voor in plaats van nieuwe inkoop.",
+      "priority": 6,
+      "minProfile": "balanced",
+      "tags": ["inventory", "clearance"]
+    },
+    {
+      "id": "conversion-approval-friction",
+      "version": "1.0.0",
+      "kind": "optimization_rule",
+      "category": "conversion",
+      "title": "Goedkeuringswrijving minimaliseren",
+      "content": "Bij lage risico-acties (lezen, rapporteren, kleine prijswijzigingen < 5%): stel directe uitvoering voor. Reserveer goedkeuring voor high-impact wijzigingen.",
+      "priority": 8,
+      "minProfile": "conservative",
+      "tags": ["conversion", "approval"]
+    },
+    {
+      "id": "conversion-bundle-suggestion",
+      "version": "1.0.0",
+      "kind": "pattern",
+      "category": "conversion",
+      "title": "Bundel-suggesties bij lage marge",
+      "content": "Bij producten met marge < 20%: overweeg bundel met complementair product om gemiddelde orderwaarde te verhogen.",
+      "priority": 5,
+      "minProfile": "balanced",
+      "tags": ["conversion", "bundling"]
+    },
+    {
+      "id": "marketing-seasonal-pricing",
+      "version": "1.0.0",
+      "kind": "pattern",
+      "category": "marketing",
+      "title": "Seizoensgebonden prijsstrategie",
+      "content": "In piekperiodes (Q4, feestdagen): verhoog prijzen geleidelijk 5-15% op populaire items. Na piek: herstel binnen 2 weken.",
+      "priority": 6,
+      "minProfile": "balanced",
+      "tags": ["marketing", "seasonal"]
+    },
+    {
+      "id": "prompt-structured-reasoning",
+      "version": "1.0.0",
+      "kind": "prompt_template",
+      "category": "general",
+      "title": "Gestructureerde redenering",
+      "content": "Bij complexe vragen: begin met doel, noem relevante data, geef opties met voor/nadelen, eindig met concrete aanbeveling.",
+      "priority": 7,
+      "minProfile": "aggressive",
+      "tags": ["prompting", "reasoning"]
+    },
+    {
+      "id": "prompt-merchant-context-first",
+      "version": "1.0.0",
+      "kind": "prompt_template",
+      "category": "general",
+      "title": "Merchant-context eerst",
+      "content": "Prioriteer altijd merchant-specifieke data boven algemene patronen. Globale patronen zijn richtlijnen, geen harde regels.",
+      "priority": 9,
+      "minProfile": "aggressive",
+      "tags": ["prompting", "context"]
+    },
+    {
+      "id": "trend-demand-spike",
+      "version": "1.0.0",
+      "kind": "optimization_rule",
+      "category": "trend",
+      "title": "Vraagpieken benutten",
+      "content": "Bij detectie van vraagstijging > 20% week-op-week: stel voorraadcontrole en tijdelijke prijsoptimalisatie voor binnen 48 uur.",
+      "priority": 7,
+      "minProfile": "balanced",
+      "tags": ["trend", "demand"]
+    }
+  ]
+}

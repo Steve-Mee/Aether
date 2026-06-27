@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Sparkles } from 'lucide-react';
 import React from 'react';
 import { useCommand } from '../lib/CommandContext';
+import AgentBadge from '@/components/command/AgentBadge';
 import { useDashboard } from '../lib/DashboardContext';
 import { toUserMessage } from '../lib/api/errors';
 import { showErrorToast } from '../lib/toast';
@@ -15,7 +16,8 @@ import { cn, focusRing } from '@/lib/utils';
 const PALETTE_LISTBOX_ID = 'command-palette-listbox';
 
 export default function CommandPalette() {
-  const { paletteOpen, closePalette, executeCommand, loading, history } = useCommand();
+  const { paletteOpen, closePalette, executeCommand, loading, history, streaming, streamActiveAgentKey } =
+    useCommand();
   const { data: dashboard } = useDashboard();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(0);
@@ -179,6 +181,26 @@ export default function CommandPalette() {
             <p className="text-caption text-muted-foreground mb-1">
               {t('command.palette.lastResult')}
             </p>
+            {(streaming && streamActiveAgentKey) || history[0].brain?.specialist || history[0].brain?.agents ? (
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                {streaming && streamActiveAgentKey ? (
+                  <AgentBadge agentKey={streamActiveAgentKey} delegatedFrom="admin" />
+                ) : (
+                  (history[0].brain?.agents?.length
+                    ? history[0].brain.agents
+                    : history[0].brain?.specialist
+                      ? [history[0].brain.specialist]
+                      : []
+                  ).map((agent) => (
+                    <AgentBadge
+                      key={`${agent.agentKey}-${agent.specialistRunId ?? 'result'}`}
+                      agentKey={agent.agentKey}
+                      delegatedFrom={agent.delegatedFrom}
+                    />
+                  ))
+                )}
+              </div>
+            ) : null}
             <p className="text-sm text-success">{history[0].result}</p>
             <ConfidenceChip confidence={history[0].confidence} />
           </div>

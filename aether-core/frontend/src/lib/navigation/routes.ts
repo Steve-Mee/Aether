@@ -354,6 +354,7 @@ export const INTENT_ROUTES: Record<string, string> = {
   SUPPLIER_MONITOR: '/suppliers',
   SUPPLIER_CREATE: '/suppliers',
   INVENTORY_STATUS: '/products',
+  RESTOCK_SUGGEST: '/products',
   ORDER_STATUS: '/orders',
   OUTCOMES_REPORT: '/outcomes',
   OUTCOME_VERIFY: '/outcomes',

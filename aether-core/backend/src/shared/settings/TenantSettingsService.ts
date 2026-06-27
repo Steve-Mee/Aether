@@ -27,6 +27,16 @@ function rowToSettings(row: {
   notificationPrefs: unknown;
   locale: string;
   dataExportEnabled: boolean;
+  brainVectorBackend: string | null;
+  brainKnowledgeTransferEnabled: boolean | null;
+  brainKnowledgeUpdateProfile?: string;
+  brainFederatedContributionEnabled?: boolean;
+  brainKnowledgeGovernanceMode?: string;
+  brainLoRAPath: string | null;
+  brainActionMode: string;
+  brainAdaptiveLearningEnabled: boolean;
+  brainAdaptiveAutoExecuteEnabled: boolean;
+  brainCrossTenantAgentPatternsEnabled?: boolean;
 }): MerchantSettings {
   const level = row.autonomyLevel;
   const autonomyLevel: AutonomyLevel =
@@ -35,6 +45,26 @@ function rowToSettings(row: {
   const autoRunWindow: AutoRunWindow =
     window === 'outside_office' || window === 'custom' ? window : 'always';
   const locale: Locale = row.locale === 'en' ? 'en' : 'nl';
+  const brainBackend = row.brainVectorBackend;
+  const brainVectorBackend: MerchantSettings['brainVectorBackend'] =
+    brainBackend === 'pgvector' || brainBackend === 'lancedb' || brainBackend === 'memory'
+      ? brainBackend
+      : null;
+  const actionMode = row.brainActionMode;
+  const brainActionMode: MerchantSettings['brainActionMode'] =
+    actionMode === 'always_confirm' || actionMode === 'adaptive'
+      ? actionMode
+      : 'confirm_on_uncertain';
+  const updateProfile = row.brainKnowledgeUpdateProfile ?? 'balanced';
+  const brainKnowledgeUpdateProfile: MerchantSettings['brainKnowledgeUpdateProfile'] =
+    updateProfile === 'conservative' || updateProfile === 'aggressive'
+      ? updateProfile
+      : 'balanced';
+  const governanceMode = row.brainKnowledgeGovernanceMode;
+  const brainKnowledgeGovernanceMode: MerchantSettings['brainKnowledgeGovernanceMode'] =
+    governanceMode === 'contribute_only' || governanceMode === 'receive_only'
+      ? governanceMode
+      : 'full_loop';
 
   return {
     autonomyLevel,
@@ -49,6 +79,16 @@ function rowToSettings(row: {
     notificationPrefs: parseNotificationPrefs(row.notificationPrefs),
     locale,
     dataExportEnabled: row.dataExportEnabled,
+    brainVectorBackend,
+    brainKnowledgeTransferEnabled: row.brainKnowledgeTransferEnabled,
+    brainKnowledgeUpdateProfile,
+    brainFederatedContributionEnabled: row.brainFederatedContributionEnabled ?? false,
+    brainKnowledgeGovernanceMode,
+    brainLoRAPath: row.brainLoRAPath,
+    brainActionMode,
+    brainAdaptiveLearningEnabled: row.brainAdaptiveLearningEnabled,
+    brainAdaptiveAutoExecuteEnabled: row.brainAdaptiveAutoExecuteEnabled,
+    brainCrossTenantAgentPatternsEnabled: row.brainCrossTenantAgentPatternsEnabled ?? false,
   };
 }
 
@@ -117,6 +157,27 @@ export async function updateMerchantSettings(
   }
   if (patch.locale !== undefined) data.locale = patch.locale;
   if (patch.dataExportEnabled !== undefined) data.dataExportEnabled = patch.dataExportEnabled;
+  if (patch.brainVectorBackend !== undefined) data.brainVectorBackend = patch.brainVectorBackend;
+  if (patch.brainKnowledgeTransferEnabled !== undefined) {
+    data.brainKnowledgeTransferEnabled = patch.brainKnowledgeTransferEnabled;
+  }
+  if (patch.brainKnowledgeUpdateProfile !== undefined) {
+    data.brainKnowledgeUpdateProfile = patch.brainKnowledgeUpdateProfile;
+  }
+  if (patch.brainFederatedContributionEnabled !== undefined) {
+    data.brainFederatedContributionEnabled = patch.brainFederatedContributionEnabled;
+  }
+  if (patch.brainKnowledgeGovernanceMode !== undefined) {
+    data.brainKnowledgeGovernanceMode = patch.brainKnowledgeGovernanceMode;
+  }
+  if (patch.brainLoRAPath !== undefined) data.brainLoRAPath = patch.brainLoRAPath;
+  if (patch.brainActionMode !== undefined) data.brainActionMode = patch.brainActionMode;
+  if (patch.brainAdaptiveLearningEnabled !== undefined) {
+    data.brainAdaptiveLearningEnabled = patch.brainAdaptiveLearningEnabled;
+  }
+  if (patch.brainAdaptiveAutoExecuteEnabled !== undefined) {
+    data.brainAdaptiveAutoExecuteEnabled = patch.brainAdaptiveAutoExecuteEnabled;
+  }
 
   const row = await prisma.tenantSettings.update({
     where: { tenantId },

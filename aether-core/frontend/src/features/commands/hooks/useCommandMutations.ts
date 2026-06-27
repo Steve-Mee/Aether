@@ -9,6 +9,7 @@ import { t } from '@/lib/i18n';
 import { commandsApi } from '@/features/commands/api';
 import { trackBusinessEvent, trackMutationFailure } from '@/lib/observability/businessEvents';
 import { withBusinessSpan } from '@/lib/observability/performanceSpans';
+import { useCommandStream } from '@/lib/useCommandStream';
 import type { CommandResult } from '@/types/command';
 
 export interface UseCommandMutationsOptions {
@@ -20,12 +21,15 @@ export interface UseCommandMutationsOptions {
 
 export function useCommandMutations(options: UseCommandMutationsOptions = {}) {
   const queryClient = useQueryClient();
+  const { steps: streamSteps, plan: streamPlan, streaming, activeAgentKey, executeWithStream, reset: resetStream, cancel: cancelStream } = useCommandStream();
 
   const executeMutation = useAetherMutation({
     mutationFn: (command: string) =>
-      withBusinessSpan('command.execute', { domain: 'commands' }, () =>
-        commandsApi.execute(command),
-      ),
+      withBusinessSpan('command.execute', { domain: 'commands' }, async () => {
+        const streamed = await executeWithStream(command);
+        if (streamed) return streamed;
+        return commandsApi.execute(command);
+      }),
     meta: { domain: 'commands', handled: true },
     showToastOnError: false,
     onSuccess: (data) => {
@@ -70,5 +74,11 @@ export function useCommandMutations(options: UseCommandMutationsOptions = {}) {
     executeMutation,
     undoMutation,
     loading: executeMutation.isPending || undoMutation.isPending,
+    streamSteps,
+    streamPlan,
+    streaming,
+    activeAgentKey,
+    resetStream,
+    cancelStream,
   };
 }

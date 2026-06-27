@@ -47,6 +47,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+## Local AI tool overrides (canonical skills live in project-dna/)
+.grok/
+
+## Local intelligence runtime data (LanceDB, LoRA artifacts)
+aether-core/backend/data/
+
 ## OS/editor files
 .DS_Store
 Thumbs.db

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
-import type { AutonomyLevel, AutoRunWindow } from '@/lib/settings/merchantSettingsTypes';
+import type { AutonomyLevel, AutoRunWindow, BrainActionMode, BrainKnowledgeGovernanceMode, BrainKnowledgeUpdateProfile } from '@/lib/settings/merchantSettingsTypes';
 
 export default function AutonomyRiskSection() {
   const { settings, updateSettings } = useMerchantSettings();
@@ -22,6 +22,8 @@ export default function AutonomyRiskSection() {
   const autoMailId = useId();
   const marginRangeId = useId();
   const priceRangeId = useId();
+  const adaptiveLearnId = useId();
+  const adaptiveAutoExecId = useId();
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(settings);
 
@@ -38,6 +40,13 @@ export default function AutonomyRiskSection() {
         autoRunWindow: draft.autoRunWindow,
         autoRunWindowStart: draft.autoRunWindowStart,
         autoRunWindowEnd: draft.autoRunWindowEnd,
+        brainActionMode: draft.brainActionMode,
+        brainKnowledgeUpdateProfile: draft.brainKnowledgeUpdateProfile,
+        brainKnowledgeTransferEnabled: draft.brainKnowledgeTransferEnabled,
+        brainKnowledgeGovernanceMode: draft.brainKnowledgeGovernanceMode,
+        brainFederatedContributionEnabled: draft.brainFederatedContributionEnabled,
+        brainAdaptiveLearningEnabled: draft.brainAdaptiveLearningEnabled,
+        brainAdaptiveAutoExecuteEnabled: draft.brainAdaptiveAutoExecuteEnabled,
       });
     } finally {
       setSaving(false);
@@ -59,6 +68,37 @@ export default function AutonomyRiskSection() {
     { value: 'outside_office', label: t('settings.autonomy.autoRunOutside') },
     { value: 'custom', label: t('settings.autonomy.autoRunCustom') },
   ];
+
+  const brainModeOptions: { value: BrainActionMode; label: string }[] = [
+    { value: 'confirm_on_uncertain', label: t('settings.autonomy.brainModeUncertain') },
+    { value: 'always_confirm', label: t('settings.autonomy.brainModeAlways') },
+    { value: 'adaptive', label: t('settings.autonomy.brainModeAdaptive') },
+  ];
+
+  const knowledgeProfileOptions: { value: BrainKnowledgeUpdateProfile; label: string }[] = [
+    { value: 'conservative', label: t('settings.autonomy.knowledgeProfileConservative') },
+    { value: 'balanced', label: t('settings.autonomy.knowledgeProfileBalanced') },
+    { value: 'aggressive', label: t('settings.autonomy.knowledgeProfileAggressive') },
+  ];
+
+  const knowledgeTransferOptions: { value: 'inherit' | 'on' | 'off'; label: string }[] = [
+    { value: 'inherit', label: t('settings.autonomy.knowledgeTransferInherit') },
+    { value: 'on', label: t('settings.autonomy.knowledgeTransferOn') },
+    { value: 'off', label: t('settings.autonomy.knowledgeTransferOff') },
+  ];
+
+  const governanceOptions: { value: BrainKnowledgeGovernanceMode; label: string }[] = [
+    { value: 'full_loop', label: t('settings.autonomy.governanceFullLoop') },
+    { value: 'receive_only', label: t('settings.autonomy.governanceReceiveOnly') },
+    { value: 'contribute_only', label: t('settings.autonomy.governanceContributeOnly') },
+  ];
+
+  const knowledgeTransferValue =
+    draft.brainKnowledgeTransferEnabled === null || draft.brainKnowledgeTransferEnabled === undefined
+      ? 'inherit'
+      : draft.brainKnowledgeTransferEnabled
+        ? 'on'
+        : 'off';
 
   const marginHint = t('settings.autonomy.maxMarginHintDynamic').replace(
     '{max}',
@@ -153,6 +193,105 @@ export default function AutonomyRiskSection() {
             setDraft((d) => ({ ...d, maxAutoPriceChangePct: Number(e.target.value) }))
           }
           valueLabel={`${draft.maxAutoPriceChangePct}%`}
+        />
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.autonomy.brainActionMode')}
+        description={t('settings.autonomy.brainActionModeHint')}
+      >
+        <SegmentedControl
+          options={brainModeOptions}
+          value={draft.brainActionMode}
+          onChange={(v) => setDraft((d) => ({ ...d, brainActionMode: v }))}
+          data-testid="brain-action-mode"
+          aria-label={t('settings.autonomy.brainActionMode')}
+        />
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.autonomy.knowledgeUpdateProfile')}
+        description={t('settings.autonomy.knowledgeUpdateProfileHint')}
+      >
+        <SegmentedControl
+          options={knowledgeProfileOptions}
+          value={draft.brainKnowledgeUpdateProfile}
+          onChange={(v) => setDraft((d) => ({ ...d, brainKnowledgeUpdateProfile: v }))}
+          data-testid="brain-knowledge-profile"
+          aria-label={t('settings.autonomy.knowledgeUpdateProfile')}
+        />
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.autonomy.knowledgeTransfer')}
+        description={t('settings.autonomy.knowledgeTransferHint')}
+      >
+        <SegmentedControl
+          options={knowledgeTransferOptions}
+          value={knowledgeTransferValue}
+          onChange={(v) =>
+            setDraft((d) => ({
+              ...d,
+              brainKnowledgeTransferEnabled:
+                v === 'inherit' ? null : v === 'on',
+            }))
+          }
+          data-testid="brain-knowledge-transfer"
+          aria-label={t('settings.autonomy.knowledgeTransfer')}
+        />
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.autonomy.knowledgeGovernance')}
+        description={t('settings.autonomy.knowledgeGovernanceHint')}
+      >
+        <SegmentedControl
+          options={governanceOptions}
+          value={draft.brainKnowledgeGovernanceMode}
+          onChange={(v) => setDraft((d) => ({ ...d, brainKnowledgeGovernanceMode: v }))}
+          data-testid="brain-knowledge-governance"
+          aria-label={t('settings.autonomy.knowledgeGovernance')}
+        />
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.autonomy.federatedContribution')}
+        description={t('settings.autonomy.federatedContributionHint')}
+        htmlFor="federated-contribution"
+      >
+        <Switch
+          id="federated-contribution"
+          checked={draft.brainFederatedContributionEnabled}
+          onCheckedChange={(v) =>
+            setDraft((d) => ({ ...d, brainFederatedContributionEnabled: v }))
+          }
+          data-testid="brain-federated-contribution"
+        />
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.autonomy.adaptiveLearning')}
+        description={t('settings.autonomy.adaptiveLearningHint')}
+        htmlFor={adaptiveLearnId}
+      >
+        <Switch
+          id={adaptiveLearnId}
+          checked={draft.brainAdaptiveLearningEnabled}
+          onCheckedChange={(v) => setDraft((d) => ({ ...d, brainAdaptiveLearningEnabled: v }))}
+          data-testid="brain-adaptive-learning"
+        />
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.autonomy.adaptiveAutoExecute')}
+        description={t('settings.autonomy.adaptiveAutoExecuteHint')}
+        htmlFor={adaptiveAutoExecId}
+      >
+        <Switch
+          id={adaptiveAutoExecId}
+          checked={draft.brainAdaptiveAutoExecuteEnabled}
+          onCheckedChange={(v) => setDraft((d) => ({ ...d, brainAdaptiveAutoExecuteEnabled: v }))}
+          data-testid="brain-adaptive-auto-execute"
         />
       </SettingRow>
 

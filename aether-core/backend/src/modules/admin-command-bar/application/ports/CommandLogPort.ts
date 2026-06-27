@@ -5,6 +5,8 @@ export interface CommandLogEntry {
   result: string;
   confidence: number;
   actor?: string;
+  brainMemoryId?: string;
+  operationalMeta?: Record<string, unknown>;
 }
 
 export interface CommandLogRecord {

@@ -1,5 +1,5 @@
 import { prisma } from '../../../../shared/prisma/client';
-import { AdminDataPort } from '../../application/ports/AdminDataPort';
+import { AdminDataPort, BrainProductRecord, RestockUpdateItem } from '../../application/ports/AdminDataPort';
 import { requireTenantId } from '../../../../shared/tenant/tenantContext';
 
 export class PrismaAdminDataAdapter implements AdminDataPort {
@@ -108,5 +108,84 @@ export class PrismaAdminDataAdapter implements AdminDataPort {
     return prisma.inventoryItem.findMany({
       where: { tenantId: tid, quantity: { lt: threshold } },
     });
+  }
+
+  async listProductsForBrain(tenantId: string, limit = 200): Promise<BrainProductRecord[]> {
+    const tid = requireTenantId(tenantId, 'AdminData.listProductsForBrain');
+    return prisma.product.findMany({
+      where: { tenantId: tid, status: 'active' },
+      take: limit,
+      select: { id: true, name: true, price: true, stock: true, slug: true, description: true },
+    });
+  }
+
+  async searchProductsByName(tenantId: string, query: string, limit = 5): Promise<BrainProductRecord[]> {
+    const tid = requireTenantId(tenantId, 'AdminData.searchProductsByName');
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+
+    return prisma.product.findMany({
+      where: {
+        tenantId: tid,
+        status: 'active',
+        OR: [
+          { name: { contains: trimmed, mode: 'insensitive' } },
+          { slug: { contains: trimmed, mode: 'insensitive' } },
+          { description: { contains: trimmed, mode: 'insensitive' } },
+        ],
+      },
+      take: limit,
+      select: { id: true, name: true, price: true, stock: true, slug: true, description: true },
+    });
+  }
+
+  async updateProductPricesByIds(tenantId: string, productIds: string[], percentage: number): Promise<number> {
+    const tid = requireTenantId(tenantId, 'AdminData.updateProductPricesByIds');
+    if (productIds.length === 0) return 0;
+
+    const products = await prisma.product.findMany({
+      where: { tenantId: tid, id: { in: productIds } },
+    });
+    let updated = 0;
+    for (const p of products) {
+      await prisma.product.update({
+        where: { id: p.id },
+        data: { price: p.price * (1 + percentage / 100) },
+      });
+      updated += 1;
+    }
+    return updated;
+  }
+
+  async restoreProductPrices(
+    tenantId: string,
+    restores: Array<{ id: string; price: number }>
+  ): Promise<number> {
+    const tid = requireTenantId(tenantId, 'AdminData.restoreProductPrices');
+    let restored = 0;
+    for (const item of restores) {
+      const product = await prisma.product.findFirst({ where: { tenantId: tid, id: item.id } });
+      if (!product) continue;
+      await prisma.product.update({ where: { id: product.id }, data: { price: item.price } });
+      restored += 1;
+    }
+    return restored;
+  }
+
+  async applyRestockUpdates(tenantId: string, items: RestockUpdateItem[]): Promise<number> {
+    const tid = requireTenantId(tenantId, 'AdminData.applyRestockUpdates');
+    let updated = 0;
+    for (const item of items) {
+      const row = await prisma.inventoryItem.findFirst({
+        where: { tenantId: tid, id: item.id, productId: item.productId },
+      });
+      if (!row) continue;
+      await prisma.inventoryItem.update({
+        where: { id: row.id },
+        data: { quantity: item.suggestedQty },
+      });
+      updated += 1;
+    }
+    return updated;
   }
 }

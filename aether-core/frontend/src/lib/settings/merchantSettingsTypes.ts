@@ -1,5 +1,8 @@
 export type AutonomyLevel = 'low' | 'medium' | 'high';
 export type AutoRunWindow = 'always' | 'outside_office' | 'custom';
+export type BrainActionMode = 'always_confirm' | 'confirm_on_uncertain' | 'adaptive';
+export type BrainKnowledgeUpdateProfile = 'conservative' | 'balanced' | 'aggressive';
+export type BrainKnowledgeGovernanceMode = 'contribute_only' | 'receive_only' | 'full_loop';
 export type Locale = 'nl' | 'en';
 export type NotificationFrequency = 'immediate' | 'daily' | 'weekly';
 
@@ -29,6 +32,13 @@ export interface MerchantSettings {
   notificationPrefs: NotificationPrefs;
   locale: Locale;
   dataExportEnabled: boolean;
+  brainActionMode: BrainActionMode;
+  brainKnowledgeTransferEnabled?: boolean | null;
+  brainKnowledgeUpdateProfile: BrainKnowledgeUpdateProfile;
+  brainFederatedContributionEnabled: boolean;
+  brainKnowledgeGovernanceMode: BrainKnowledgeGovernanceMode;
+  brainAdaptiveLearningEnabled: boolean;
+  brainAdaptiveAutoExecuteEnabled: boolean;
 }
 
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
@@ -52,6 +62,13 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   notificationPrefs: DEFAULT_NOTIFICATION_PREFS,
   locale: 'nl',
   dataExportEnabled: true,
+  brainActionMode: 'confirm_on_uncertain',
+  brainKnowledgeTransferEnabled: null,
+  brainKnowledgeUpdateProfile: 'balanced',
+  brainFederatedContributionEnabled: false,
+  brainKnowledgeGovernanceMode: 'full_loop',
+  brainAdaptiveLearningEnabled: false,
+  brainAdaptiveAutoExecuteEnabled: false,
 };
 
 export function parseTimeToMinutes(value: string | null | undefined): number | null {

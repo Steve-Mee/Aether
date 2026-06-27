@@ -3,6 +3,7 @@ import { EmailApprovalHandler } from './handlers/emailApprovalHandler';
 import { SupplierApprovalHandler } from './handlers/supplierApprovalHandler';
 import { RefundApprovalHandler } from './handlers/refundApprovalHandler';
 import { SelfEvolvingApprovalHandler } from './handlers/selfEvolvingApprovalHandler';
+import { BrainToolApprovalHandler } from './handlers/brainToolApprovalHandler';
 import type { ApprovalActionHandler, ApprovalExecutionContext } from './types';
 
 const handlers: ApprovalActionHandler[] = [
@@ -11,6 +12,13 @@ const handlers: ApprovalActionHandler[] = [
   new RefundApprovalHandler(),
   new SelfEvolvingApprovalHandler(),
 ];
+
+let brainToolHandler: BrainToolApprovalHandler | null = null;
+
+export function registerBrainToolApprovalHandler(handler: BrainToolApprovalHandler): void {
+  brainToolHandler = handler;
+  handlers.push(handler);
+}
 
 export function registerApprovalHandler(handler: ApprovalActionHandler): void {
   handlers.push(handler);

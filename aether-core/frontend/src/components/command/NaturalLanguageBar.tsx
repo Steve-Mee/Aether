@@ -5,19 +5,32 @@ import { announceAssertive, announceStatus } from '@/lib/a11y/announceBus';
 import { useDashboard } from '@/lib/DashboardContext';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import { t } from '../../lib/i18n';
-import { CommandBar } from '@/components/ui';
+import { CommandBar, Button } from '@/components/ui';
 import { useSmartCommandInput } from '@/hooks/useSmartCommandInput';
 import { useRotatingPlaceholder } from '@/hooks/useRotatingPlaceholder';
 import type { DemoSuggestion } from '@/lib/localIntentMatcher';
-import { IntentPill } from '@/components/command-center/primitives';
+import { IntentPill, CompoundStepTimeline, StepProgressRail } from '@/components/command-center/primitives';
 import CommandSuggestionsList from './CommandSuggestionsList';
 import CommandResultCard from './CommandResultCard';
 import CommandErrorCard from './CommandErrorCard';
+import AgentBadge from './AgentBadge';
 
 export const COMMAND_PREFILL_STORAGE_KEY = 'aether_command_prefill';
 
 export default function NaturalLanguageBar() {
-  const { executeCommand, undoLastCommand, lastResult, loading, error, openPalette } = useCommand();
+  const {
+    executeCommand,
+    undoLastCommand,
+    lastResult,
+    loading,
+    streaming,
+    streamSteps,
+    streamPlan,
+    streamActiveAgentKey,
+    cancelStream,
+    error,
+    openPalette,
+  } = useCommand();
   const { data: dashboard } = useDashboard();
   const { settings } = useMerchantSettings();
   const [optimistic, setOptimistic] = useState(false);
@@ -70,6 +83,12 @@ export default function NaturalLanguageBar() {
 
   const placeholder = useRotatingPlaceholder(!smart.isActive && !loading && !optimistic);
   const showLoading = loading || optimistic;
+  const liveSteps = streamSteps.map((s) => ({
+    label: s.label,
+    summary: s.summary,
+    done: s.done,
+    checkpoint: s.checkpoint,
+  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,6 +142,7 @@ export default function NaturalLanguageBar() {
         onSubmit={handleSubmit}
         placeholder={placeholder}
         loading={showLoading}
+        loadingLabel={t('command.brain.thinking')}
         disabled={showLoading}
         inputRef={smart.inputRef}
         onInputFocus={() => smart.setFocused(true)}
@@ -159,6 +179,37 @@ export default function NaturalLanguageBar() {
         suggestions={suggestionsContent}
         responseSlot={
           <>
+            {streaming && (
+              <div className="mt-3 space-y-2" role="status" data-testid="command-stream-steps">
+                {streamActiveAgentKey && (
+                  <div className="flex items-center gap-2">
+                    <AgentBadge agentKey={streamActiveAgentKey} delegatedFrom="admin" />
+                  </div>
+                )}
+                {streamPlan && streamPlan.stepTotal > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {t('command.brain.planTitle')}: {streamPlan.goal}
+                    </p>
+                    <StepProgressRail
+                      stepIndex={streamPlan.currentStep}
+                      stepTotal={streamPlan.stepTotal}
+                    />
+                  </div>
+                )}
+                {liveSteps.length > 0 && <CompoundStepTimeline steps={liveSteps} />}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 rounded-lg"
+                  onClick={cancelStream}
+                  data-testid="command-stream-stop"
+                >
+                  {t('command.brain.stopAgent')}
+                </Button>
+              </div>
+            )}
             {lastResult && (
               <div className="mt-3" role="status">
                 <CommandResultCard

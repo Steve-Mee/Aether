@@ -11,9 +11,17 @@ import NotificationsSection from '@/components/settings/NotificationsSection';
 import ConnectedServicesSection from '@/components/settings/ConnectedServicesSection';
 import GeneralPreferencesSection from '@/components/settings/GeneralPreferencesSection';
 import DataPrivacySection from '@/components/settings/DataPrivacySection';
+import GlobalKnowledgePanel from '@/components/settings/GlobalKnowledgePanel';
+import MemoryPanel from '@/components/settings/MemoryPanel';
+import ReflectionTimelinePanel from '@/components/settings/ReflectionTimelinePanel';
+import ContributionHistoryPanel from '@/components/settings/ContributionHistoryPanel';
 
 const SECTIONS = [
   { id: 'autonomy', labelKey: 'settings.section.autonomy' },
+  { id: 'personalMemory', labelKey: 'settings.section.personalMemory' },
+  { id: 'reflectionTimeline', labelKey: 'settings.section.reflectionTimeline' },
+  { id: 'globalKnowledge', labelKey: 'settings.section.globalKnowledge' },
+  { id: 'contributionHistory', labelKey: 'settings.section.contributionHistory' },
   { id: 'notifications', labelKey: 'settings.section.notifications' },
   { id: 'services', labelKey: 'settings.section.services' },
   { id: 'general', labelKey: 'settings.section.general' },
@@ -26,6 +34,14 @@ function SectionContent({ id }: { id: SectionId }) {
   switch (id) {
     case 'autonomy':
       return <AutonomyRiskSection />;
+    case 'personalMemory':
+      return <MemoryPanel />;
+    case 'reflectionTimeline':
+      return <ReflectionTimelinePanel />;
+    case 'globalKnowledge':
+      return <GlobalKnowledgePanel />;
+    case 'contributionHistory':
+      return <ContributionHistoryPanel />;
     case 'notifications':
       return <NotificationsSection />;
     case 'services':
