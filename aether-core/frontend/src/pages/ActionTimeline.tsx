@@ -1,15 +1,18 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { History } from 'lucide-react';
 import ActivityPageHeader from '@/components/activity-page/ActivityPageHeader';
 import ActivityPeriodToolbar from '@/components/activity-page/ActivityPeriodToolbar';
 import ActivityFilterBar from '@/components/activity-page/ActivityFilterBar';
 import ActivityList from '@/components/activity-page/ActivityList';
 import ActivityDetailSheet from '@/components/activity-page/ActivityDetailSheet';
+import AgentExplainabilitySheet from '@/components/explainability/AgentExplainabilitySheet';
 import ModulePageLayout from '@/components/shell/ModulePageLayout';
 import { useActivityPage } from '@/hooks/useActivityPage';
+import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import { ActivityPageSkeleton, AsyncBoundary, EmptyState } from '@/components/ui';
 import { t } from '@/lib/i18n';
-import type { ActivityFilters } from '@/types/activity';
+import type { ActivityFilters, ActivityItem } from '@/types/activity';
+import type { ExplainEntityType } from '@/types/explainability';
 
 function hasActiveFilters(filters: ActivityFilters): boolean {
   return (
@@ -18,12 +21,17 @@ function hasActiveFilters(filters: ActivityFilters): boolean {
     filters.executor !== 'all' ||
     filters.status !== 'all' ||
     filters.agentKey !== 'all' ||
+    filters.module !== 'all' ||
+    filters.executionMode !== 'all' ||
     filters.searchQuery.trim().length > 0
   );
 }
 
 export default function ActionTimeline() {
   const page = useActivityPage();
+  const { settings } = useMerchantSettings();
+  const [explainItem, setExplainItem] = useState<ActivityItem | null>(null);
+  const showInlineExplain = settings.explainabilityPrefs.detailLevel !== 'off';
   const filteredEmpty = useMemo(
     () => page.filtered.length === 0 && hasActiveFilters(page.filters),
     [page.filtered.length, page.filters],
@@ -59,6 +67,8 @@ export default function ActionTimeline() {
         onExecutorChange={(e) => page.updateFilter('executor', e)}
         onStatusChange={(s) => page.updateFilter('status', s)}
         onAgentChange={(a) => page.updateFilter('agentKey', a)}
+        onModuleChange={(m) => page.updateFilter('module', m)}
+        onExecutionModeChange={(m) => page.updateFilter('executionMode', m)}
       />
 
       <AsyncBoundary
@@ -83,7 +93,12 @@ export default function ActionTimeline() {
             />
           </div>
         ) : (
-          <ActivityList groups={page.groups} onSelect={(id) => page.setSelectedId(id)} />
+          <ActivityList
+            groups={page.groups}
+            onSelect={(id) => page.setSelectedId(id)}
+            showInlineExplain={showInlineExplain}
+            onExplain={setExplainItem}
+          />
         )}
       </AsyncBoundary>
 
@@ -92,6 +107,16 @@ export default function ActionTimeline() {
         open={page.selectedId != null}
         onClose={() => page.setSelectedId(null)}
       />
+
+      {explainItem && (
+        <AgentExplainabilitySheet
+          entityType={explainItem.details?.explainabilitySourceType as ExplainEntityType}
+          entityId={String(explainItem.details?.explainabilitySourceId)}
+          title={explainItem.description}
+          open={Boolean(explainItem)}
+          onClose={() => setExplainItem(null)}
+        />
+      )}
     </ModulePageLayout>
   );
 }

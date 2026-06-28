@@ -98,6 +98,15 @@ export default function AetherOverviewPage() {
             highlightedId={
               page.highlight?.kind === 'activity' ? page.highlightId : null
             }
+            onProactiveExecute={page.proactive.execute}
+            onProactiveDismiss={page.proactive.dismiss}
+            onProactiveSnooze={page.proactive.snooze}
+            proactiveExecutingId={page.proactive.executingId}
+            proactiveStreaming={page.proactive.streaming}
+            showProactiveAutoExecute={page.proactiveAllowAutoExecute}
+            onApprove={page.approve}
+            onReject={page.reject}
+            resolvingApprovalId={page.resolvingApprovalId}
           />
         ) : (
           <OverviewActivityFeed

@@ -10,8 +10,14 @@ import {
 import {
   executePlaywrightCommand,
   getPlaywrightActivityFeed,
+  getPlaywrightAgentActivity,
+  getPlaywrightAgentsRoster,
   getPlaywrightApprovals,
   getPlaywrightAutonomyMetrics,
+  getPlaywrightExplainTimeline,
+  getPlaywrightNotificationsInbox,
+  getPlaywrightNotificationGroup,
+  getPlaywrightProactiveSuggestions,
   getPlaywrightSupplierOverview,
   getPlaywrightSupplierDetail,
   monitorPlaywrightSupplier,
@@ -92,8 +98,51 @@ export async function setupMockAdminApi(page: Page) {
       await route.fulfill({ json: getPlaywrightActivityFeed() });
       return;
     }
+    if (/\/api\/admin\/agents\/[^/]+\/activity/.test(url) && method === 'GET') {
+      const match = url.match(/\/api\/admin\/agents\/([^/]+)\/activity/);
+      const agentKey = match?.[1] ?? 'inventory';
+      await route.fulfill({ json: getPlaywrightAgentActivity(agentKey) });
+      return;
+    }
+    if (url.includes('/api/admin/agents/metrics') && method === 'GET') {
+      await route.fulfill({
+        json: {
+          agents: [
+            {
+              agentKey: 'inventory',
+              successRate: 0.92,
+              recentFailures: 0,
+              sampleSize: 14,
+              displayName: 'Inventory',
+            },
+            {
+              agentKey: 'pricing',
+              successRate: 0.81,
+              recentFailures: 1,
+              sampleSize: 11,
+              displayName: 'Pricing',
+            },
+          ],
+        },
+      });
+      return;
+    }
+    if (url.includes('/api/admin/agents') && method === 'GET') {
+      await route.fulfill({ json: getPlaywrightAgentsRoster() });
+      return;
+    }
     if (url.includes('/api/admin/notifications')) {
-      await route.fulfill({ json: { notifications: [] } });
+      try {
+        const parsed = new URL(url);
+        const groupKey = parsed.searchParams.get('groupKey');
+        if (groupKey) {
+          await route.fulfill({ json: getPlaywrightNotificationGroup(groupKey) });
+          return;
+        }
+      } catch {
+        /* relative URL in some environments */
+      }
+      await route.fulfill({ json: getPlaywrightNotificationsInbox() });
       return;
     }
     if (url.includes('/api/suppliers/overview')) {
@@ -146,6 +195,10 @@ export async function setupMockAdminApi(page: Page) {
       await route.fulfill({ json: { applied: 0, skipped: 0, skippedIds: [] } });
       return;
     }
+    if (url.includes('/api/admin/goals') && method === 'GET') {
+      await route.fulfill({ json: { goals: [] } });
+      return;
+    }
     if (url.includes('/api/admin/suggestions')) {
       await route.fulfill({
         json: {
@@ -154,6 +207,27 @@ export async function setupMockAdminApi(page: Page) {
           suggestions: [],
         },
       });
+      return;
+    }
+    if (
+      /\/api\/admin\/proactive-suggestions\/[^/]+\/(dismiss|snooze|execute)/.test(url) &&
+      method === 'POST'
+    ) {
+      await route.fulfill({ json: { success: true } });
+      return;
+    }
+    if (url.includes('/api/admin/proactive-suggestions') && method === 'GET') {
+      await route.fulfill({ json: getPlaywrightProactiveSuggestions() });
+      return;
+    }
+    if (
+      url.includes('/api/admin/explain') &&
+      !url.includes('/explain/diff') &&
+      !url.includes('/explain/export') &&
+      !url.includes('/explain/audit-export') &&
+      method === 'GET'
+    ) {
+      await route.fulfill({ json: getPlaywrightExplainTimeline() });
       return;
     }
     if (url.includes('/api/emails') || url.includes('/api/autonomous')) {

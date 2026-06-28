@@ -5,6 +5,8 @@ import { Button, Card, CardContent } from '@/components/ui';
 import type { MerchantGoal } from '@/types/goals';
 import type { ApiProactiveSuggestion } from '@/types/suggestions';
 import GoalProgressBar from './GoalProgressBar';
+import { GoalLinkedSuggestionRow, GoalStatusBadge } from '@/components/intelligence';
+import { useProactiveSuggestions } from '@/hooks/useProactiveSuggestions';
 import { getDataAdapter } from '@/lib/data';
 import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -36,6 +38,7 @@ export default function GoalCard({
   onRefresh,
 }: GoalCardProps) {
   const [linkedSuggestions, setLinkedSuggestions] = useState<ApiProactiveSuggestion[]>([]);
+  const { execute, dismiss } = useProactiveSuggestions();
 
   useEffect(() => {
     if (goal.status !== 'active' && goal.status !== 'paused') return;
@@ -71,6 +74,7 @@ export default function GoalCard({
               ) : null}
             </div>
             <div className="flex flex-col items-end gap-1">
+              <GoalStatusBadge status={goal.status} progressPct={progress} />
               <span className="text-xs rounded-full px-2 py-1 bg-muted/50 capitalize">
                 {t(`goals.pursuit.${goal.pursuitMode}`)}
               </span>
@@ -83,7 +87,13 @@ export default function GoalCard({
             </div>
           </div>
 
-          <GoalProgressBar value={progress} />
+          <GoalProgressBar
+            value={progress}
+            variant={
+              goal.status === 'completed' ? 'completed' : behind ? 'behind' : 'default'
+            }
+            showMilestones
+          />
 
           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
             <span>
@@ -93,16 +103,20 @@ export default function GoalCard({
             <span>
               {t('goals.card.deadline')}: {daysLeft}d
             </span>
-            <span className="capitalize">{t(`goals.status.${goal.status}`)}</span>
           </div>
 
           {linkedSuggestions.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground">{t('goals.card.linkedSuggestions')}</p>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                {t('goals.card.linkedSuggestions')}
+              </p>
               {linkedSuggestions.map((s) => (
-                <p key={s.id} className="text-xs text-muted-foreground truncate">
-                  • {s.label}
-                </p>
+                <GoalLinkedSuggestionRow
+                  key={s.id}
+                  suggestion={s}
+                  onExecute={(id) => execute(id)}
+                  onDismiss={(id) => dismiss(id)}
+                />
               ))}
             </div>
           ) : null}

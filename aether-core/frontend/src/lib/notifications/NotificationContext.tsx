@@ -79,6 +79,7 @@ function mergeWithLocalState(
 interface NotificationContextValue {
   notifications: AetherNotification[];
   unreadCount: number;
+  inboxLoading: boolean;
   lastActivityAt: string | null;
   recentActivityCount: number;
   panelOpen: boolean;
@@ -105,14 +106,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const setPanelOpen = useNotificationUiStore((s) => s.setPanelOpen);
   const openPanel = useNotificationUiStore((s) => s.openPanel);
 
-  const { data: mockInbox } = useQuery({
+  const { data: mockInbox, isLoading: mockLoading } = useQuery({
     queryKey: queryKeys.notifications.inbox(),
     queryFn: () => notificationsRepository.list(),
     enabled: env.isMockMode && !settingsLoading,
     staleTime: Infinity,
   });
 
-  const { data: liveInbox, dataUpdatedAt: liveInboxUpdatedAt } = useQuery({
+  const { data: liveInbox, dataUpdatedAt: liveInboxUpdatedAt, isLoading: liveLoading } = useQuery({
     queryKey: queryKeys.notifications.inbox(),
     queryFn: () => notificationsRepository.list(),
     enabled: env.isLiveMode && !settingsLoading,
@@ -308,10 +309,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     return notifInWindow + liveInWindow;
   }, [notifications, liveActivityTimes]);
 
+  const inboxLoading =
+    settingsLoading ||
+    (env.isMockMode && mockLoading) ||
+    (env.isLiveMode && liveLoading && !seedApplied);
+
   const value = useMemo(
     () => ({
       notifications: sortedNotifications,
       unreadCount,
+      inboxLoading,
       lastActivityAt,
       recentActivityCount,
       panelOpen,
@@ -325,6 +332,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     [
       sortedNotifications,
       unreadCount,
+      inboxLoading,
       lastActivityAt,
       recentActivityCount,
       panelOpen,

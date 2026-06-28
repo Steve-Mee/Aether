@@ -33,6 +33,7 @@ import { isCommandCenterHome } from './navigation/AppNavConfig';
 
 import LiveExplainPanel from '@/components/explainability/LiveExplainPanel';
 import { useCommand } from '@/lib/CommandContext';
+import { useRouteContext } from '@/lib/RouteContext';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 
 interface Signal {
@@ -304,8 +305,8 @@ export default function ProactiveSidecar({ compact = false }: ProactiveSidecarPr
 
       <div className="flex-1 overflow-auto px-4 py-4 space-y-2.5">
         {streaming &&
-          settings.explainabilityPrefs.showLiveExplain !== false &&
-          settings.explainabilityPrefs.detailLevel !== 'off' && (
+          settings.explainabilityPrefs?.showLiveExplain !== false &&
+          settings.explainabilityPrefs?.detailLevel !== 'off' && (
             <LiveExplainPanel
               live={streamLiveExplain}
               handoffChainLength={streamHandoffChain.length}

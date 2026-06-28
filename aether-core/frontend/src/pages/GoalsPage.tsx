@@ -5,6 +5,7 @@ import ModulePageLayout from '@/components/shell/ModulePageLayout';
 import GoalCard from '@/components/goals/GoalCard';
 import GoalFormDialog from '@/components/goals/GoalFormDialog';
 import GoalSummaryStrip from '@/components/goals/GoalSummaryStrip';
+import { ProactiveActionBar } from '@/components/intelligence';
 import { useGoalMutations, useGoals } from '@/hooks/useGoals';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import { getDataAdapter } from '@/lib/data';
@@ -106,14 +107,16 @@ export default function GoalsPage() {
                         <p className="font-medium">{s.title}</p>
                         <p className="text-sm text-muted-foreground mt-1">{s.rationale}</p>
                       </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => void acceptSuggestion(s.id)}>
-                          {t('goals.suggestions.accept')}
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => void dismissSuggestion(s.id)}>
-                          {t('goals.suggestions.dismiss')}
-                        </Button>
-                      </div>
+                      <ProactiveActionBar
+                        suggestionId={s.id}
+                        title={s.title}
+                        variant="accept"
+                        showExplain={false}
+                        showSnooze={false}
+                        onExecute={() => void acceptSuggestion(s.id)}
+                        onDismiss={() => void dismissSuggestion(s.id)}
+                        onSnooze={() => {}}
+                      />
                     </CardContent>
                   </Card>
                 ))}

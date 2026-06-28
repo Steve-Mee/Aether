@@ -44,6 +44,9 @@ export function getDemoNotificationSeed(): AetherNotification[] {
       actionLabel: 'Open goedkeuringen',
       source: 'system',
       category: 'high_risk_approval',
+      kind: 'approval_needed',
+      groupKey: 'approval-batch-demo',
+      groupCount: 3,
     },
     {
       id: 'seed-4',

@@ -226,6 +226,230 @@ export function getPlaywrightAutonomyMetrics() {
   return { ...autonomyMetrics };
 }
 
+const playwrightAgentsRoster = {
+  agents: [
+    {
+      agentKey: 'inventory',
+      displayName: 'Inventory',
+      description: 'Voorraad en sync agent',
+      supportedIntents: [],
+      canDelegateTo: [],
+      status: 'active' as const,
+      proactiveCount: 1,
+      recentActionCount: 3,
+    },
+    {
+      agentKey: 'pricing',
+      displayName: 'Pricing',
+      description: 'Prijsoptimalisatie agent',
+      supportedIntents: [],
+      canDelegateTo: [],
+      status: 'idle' as const,
+      proactiveCount: 0,
+      recentActionCount: 2,
+    },
+  ],
+};
+
+const playwrightAgentActivity: Record<string, import('../../src/types/agents').AgentActivityResponse> = {
+  inventory: {
+    agentKey: 'inventory',
+    activity: [
+      {
+        id: 'e2e-agent-act-1',
+        source: 'audit',
+        at: '2026-06-04T09:00:00.000Z',
+        actionType: 'autonomy_execute',
+        actionLabel: 'Autonome sync',
+        description: 'Voorraad gesynchroniseerd (42 SKU)',
+        module: 'inventory-pricing',
+        risk: 'low',
+        status: 'autonomous',
+        executor: 'aether',
+        agentKeys: ['inventory'],
+        details: {
+          explainabilitySourceType: 'command',
+          explainabilitySourceId: 'e2e-explain-1',
+        },
+      },
+      {
+        id: 'e2e-agent-act-3',
+        source: 'audit',
+        at: '2026-06-04T08:30:00.000Z',
+        actionType: 'stock_alert',
+        actionLabel: 'Voorraadmelding',
+        description: 'Lage voorraad op 3 SKU',
+        module: 'inventory-pricing',
+        risk: 'low',
+        status: 'info',
+        executor: 'aether',
+        agentKeys: ['inventory'],
+      },
+    ],
+    proactiveSuggestions: [
+      {
+        id: 'e2e-proactive-inventory',
+        title: 'Voorraad aanvullen voor top SKU',
+        summary: '3 SKU onder drempel',
+        command: 'Check voorraad',
+        triggerId: 'stock-low',
+        status: 'open',
+        createdAt: '2026-06-04T08:00:00.000Z',
+      },
+    ],
+    explainability: [],
+  },
+  pricing: {
+    agentKey: 'pricing',
+    activity: [
+      {
+        id: 'e2e-agent-act-2',
+        source: 'audit',
+        at: '2026-06-04T09:15:00.000Z',
+        actionType: 'price_adjust',
+        actionLabel: 'Prijsaanpassing',
+        description: '12 SKU prijs geoptimaliseerd',
+        module: 'inventory-pricing',
+        risk: 'low',
+        status: 'autonomous',
+        executor: 'aether',
+        agentKeys: ['pricing'],
+      },
+    ],
+    proactiveSuggestions: [],
+    explainability: [],
+  },
+};
+
+const playwrightProactiveSuggestions = {
+  suggestions: [
+    {
+      id: 'e2e-proactive-1',
+      label: '3 low-risk prijsaanpassingen kunnen automatisch worden uitgevoerd',
+      command: 'Voer low-risk prijsaanpassingen automatisch uit',
+      intentId: 'AUTONOMOUS_ACTION',
+      category: 'prijs',
+      hint: '+€870 marge',
+      executionMode: 'autonomous',
+      source: 'brain',
+      priority: 1,
+      hasExplainability: true,
+    },
+    {
+      id: 'e2e-proactive-2',
+      label: 'Bulkprijs voor 23 SKU wacht op goedkeuring',
+      command: 'Toon high-risk goedkeuringen',
+      intentId: 'HIGH_RISK_APPROVALS',
+      category: 'prijs',
+      hint: 'Hoog risico',
+      executionMode: 'approval_required',
+      source: 'brain',
+      priority: 2,
+      hasExplainability: true,
+    },
+  ],
+};
+
+const playwrightNotificationGroupMembers: Record<string, import('../../src/types/notification').AppNotification[]> = {
+  'approval-batch-demo': [
+    {
+      id: 'e2e-group-child-1',
+      title: 'Terugbetaling € 89,50',
+      body: 'High-risk refund — wacht op goedkeuring',
+      severity: 'action',
+      read: false,
+      createdAt: '2026-06-04T09:35:00.000Z',
+      href: '/approvals',
+      source: 'system',
+      category: 'high_risk_approval',
+      kind: 'approval_needed',
+      groupKey: 'approval-batch-demo',
+    },
+    {
+      id: 'e2e-group-child-2',
+      title: 'Prijsbulk wijziging',
+      body: '23 SKU — high-risk batch',
+      severity: 'action',
+      read: false,
+      createdAt: '2026-06-04T09:32:00.000Z',
+      href: '/approvals',
+      source: 'system',
+      category: 'high_risk_approval',
+      kind: 'approval_needed',
+      groupKey: 'approval-batch-demo',
+    },
+  ],
+};
+
+export function getPlaywrightAgentsRoster() {
+  return playwrightAgentsRoster;
+}
+
+export function getPlaywrightAgentActivity(agentKey: string) {
+  return playwrightAgentActivity[agentKey] ?? {
+    agentKey,
+    activity: [],
+    proactiveSuggestions: [],
+    explainability: [],
+  };
+}
+
+export function getPlaywrightProactiveSuggestions() {
+  return playwrightProactiveSuggestions;
+}
+
+export function getPlaywrightNotificationGroup(groupKey: string) {
+  return {
+    notifications: playwrightNotificationGroupMembers[groupKey] ?? [],
+    hasMore: false,
+  };
+}
+
+export function getPlaywrightNotificationsInbox() {
+  return {
+    notifications: [
+      {
+        id: 'e2e-notif-unread',
+        title: 'Prijsdaling gedetecteerd',
+        body: 'Nordic Supply Co. — 4 SKU met −6,8% inkoopprijs',
+        severity: 'action' as const,
+        read: false,
+        createdAt: '2026-06-04T09:52:00.000Z',
+        href: '/suppliers',
+        source: 'system' as const,
+        category: 'supplier_change' as const,
+      },
+      {
+        id: 'e2e-notif-grouped',
+        title: 'Goedkeuring vereist',
+        body: 'Terugbetaling € 89,50 — high-risk, wacht op jou',
+        severity: 'action' as const,
+        read: false,
+        createdAt: '2026-06-04T09:35:00.000Z',
+        href: '/approvals',
+        actionLabel: 'Open goedkeuringen',
+        source: 'system' as const,
+        category: 'high_risk_approval' as const,
+        kind: 'approval_needed' as const,
+        groupKey: 'approval-batch-demo',
+        groupCount: 3,
+      },
+    ],
+    hasMore: false,
+  };
+}
+
+export function getPlaywrightExplainTimeline() {
+  return {
+    entityType: 'command',
+    entityId: 'e2e-explain-1',
+    detailLevel: 'simple',
+    summary: 'E2E explain summary',
+    summarySource: 'template',
+    events: [],
+  };
+}
+
 export function undoPlaywrightCommand(commandId: string) {
   return {
     success: true,

@@ -398,6 +398,7 @@ export function useAetherOverviewPage() {
       executingId: proactive.executingId,
       streaming: proactive.streaming,
     },
+    proactiveAllowAutoExecute: settings.proactivePrefs.allowAutoExecute,
     goals: activeGoals,
     activityGroups,
     unifiedItems,

@@ -1,5 +1,7 @@
 /** Canonical API fixtures for Vitest (MSW), Playwright routes, and test adapters. */
 
+import { DEFAULT_MERCHANT_SETTINGS } from '@/lib/settings/merchantSettingsTypes';
+
 export const FIXTURE_TIMESTAMP = '2026-06-04T10:00:00.000Z';
 export const FIXTURE_TIMESTAMP_OLD = '2026-06-03T08:00:00.000Z';
 
@@ -65,26 +67,41 @@ export const mockPolicy = {
 export const mockMerchantSettings = {
   status: 'live',
   settings: {
-    autonomyLevel: 'medium',
-    autoApproveLowRisk: true,
-    autoApproveMediumRiskMail: false,
-    maxAutoPriceChangePct: 5,
-    maxMarginImpactEuro: 500,
-    policyEnabled: true,
-    autoRunWindow: 'always',
-    autoRunWindowStart: '18:00',
-    autoRunWindowEnd: '08:00',
+    ...DEFAULT_MERCHANT_SETTINGS,
     notificationPrefs: {
-      autonomousLowRisk: { inApp: true, email: false },
-      highRiskApproval: { inApp: true, email: true },
-      supplierChanges: { inApp: true, email: false },
-      weeklyDigest: { inApp: true, email: true },
-      proactiveSuggestions: { inApp: true, email: false },
-      goalProgress: { inApp: true, email: false },
-      frequency: 'immediate',
+      ...DEFAULT_MERCHANT_SETTINGS.notificationPrefs,
+      autonomousLowRisk: { inApp: true, email: false, push: false },
+      highRiskApproval: { inApp: true, email: true, push: false },
+      supplierChanges: { inApp: true, email: false, push: false },
+      weeklyDigest: { inApp: true, email: true, push: false },
+      proactiveSuggestions: { inApp: true, email: false, push: false },
+      goalProgress: { inApp: true, email: false, push: false },
+      frequency: 'immediate' as const,
     },
-    locale: 'nl',
-    dataExportEnabled: true,
+    explainabilityPrefs: {
+      ...DEFAULT_MERCHANT_SETTINGS.explainabilityPrefs,
+      detailLevel: 'extended' as const,
+      showLiveExplain: true,
+      showSimilarActions: true,
+    },
+    proactivePrefs: {
+      ...DEFAULT_MERCHANT_SETTINGS.proactivePrefs,
+      enabled: true,
+      visibility: 'all' as const,
+      allowAutoExecute: true,
+      categories: {
+        ...DEFAULT_MERCHANT_SETTINGS.proactivePrefs.categories,
+        prijs: true,
+        leverancier: true,
+        voorraad: true,
+        algemeen: true,
+      },
+    },
+    goalPrefs: {
+      ...DEFAULT_MERCHANT_SETTINGS.goalPrefs,
+      enabled: true,
+      showOnCommandCenter: true,
+    },
   },
 };
 

@@ -1,6 +1,9 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import AgentBadge from '@/components/command/AgentBadge';
+import { StatChip } from '@/components/ui';
+import { StatusDot } from '@/components/intelligence';
+import { t } from '@/lib/i18n';
 import type { AgentRosterEntry } from '@/types/agents';
 
 interface AgentCardProps {
@@ -18,32 +21,32 @@ export default function AgentCard({ agent, selected, onSelect }: AgentCardProps)
       data-testid={`agent-card-${agent.agentKey}`}
       onClick={onSelect}
       className={cn(
-        'flex flex-col gap-2 rounded-xl border p-4 text-left transition-colors duration-150',
+        'flex flex-col gap-3 rounded-xl border p-5 text-left transition-colors duration-fast',
         'hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25',
-        selected ? 'border-primary/40 bg-surface-elevated' : 'border-border/60 bg-card',
+        selected ? 'border-primary/40 bg-surface-elevated' : 'border-border/60 bg-card/40',
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <AgentBadge agentKey={agent.agentKey} size="md" />
-        <span
-          className={cn(
-            'inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide',
-            isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground',
-          )}
-        >
-          <span
-            className={cn(
-              'h-1.5 w-1.5 rounded-full',
-              isActive ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/40',
-            )}
-          />
-          {isActive ? 'Actief' : 'Idle'}
-        </span>
+        <StatusDot
+          variant={isActive ? 'active' : 'idle'}
+          label={isActive ? t('agents.status.active') : t('agents.status.idle')}
+        />
       </div>
-      <p className="text-xs text-muted-foreground line-clamp-2">{agent.description}</p>
-      <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-        {agent.proactiveCount > 0 && <span>{agent.proactiveCount} proactief</span>}
-        {agent.recentActionCount > 0 && <span>{agent.recentActionCount} acties (7d)</span>}
+      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+        {agent.description}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {agent.proactiveCount > 0 && (
+          <StatChip className="text-[10px]">
+            {t('agents.metric.proactive').replace('{count}', String(agent.proactiveCount))}
+          </StatChip>
+        )}
+        {agent.recentActionCount > 0 && (
+          <StatChip className="text-[10px]">
+            {t('agents.metric.actions').replace('{count}', String(agent.recentActionCount))}
+          </StatChip>
+        )}
       </div>
     </button>
   );

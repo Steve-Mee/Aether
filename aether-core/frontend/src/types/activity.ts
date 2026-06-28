@@ -25,7 +25,15 @@ export type ActivityRiskFilter = 'all' | 'low' | 'high';
 
 export type ActivityExecutorFilter = 'all' | 'aether' | 'merchant';
 
-export type ActivityStatusFilter = 'all' | 'autonomous' | 'approved' | 'rejected' | 'pending';
+export type ActivityStatusFilter = 'all' | 'autonomous' | 'approved' | 'rejected' | 'pending' | 'info';
+
+export type ActivityModuleFilter = 'all' | string;
+
+export type ActivityExecutionModeFilter =
+  | 'all'
+  | 'autonomous'
+  | 'approval_required'
+  | 'inform_only';
 
 export interface ActivityImpact {
   label: string;
@@ -72,6 +80,8 @@ export interface ActivityFilters {
   status: ActivityStatusFilter;
   searchQuery: string;
   agentKey: ActivityAgentFilter;
+  module: ActivityModuleFilter;
+  executionMode: ActivityExecutionModeFilter;
 }
 
 export interface ActivityCustomRange {

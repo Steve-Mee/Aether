@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
-import { Button, Card, CardContent, EmptyState } from '@/components/ui';
+import { Button, EmptyState } from '@/components/ui';
 import AgentExplainabilitySheet from '@/components/explainability/AgentExplainabilitySheet';
-import { AutonomyModeBadge, SectionLabel, StatChip } from '@/components/command-center/primitives';
+import { SectionLabel } from '@/components/command-center/primitives';
+import { ProactiveSuggestionCard } from '@/components/intelligence';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
-import { cn } from '@/lib/utils';
 import { t } from '@/lib/i18n';
 import type { ProactiveSuggestion } from '@/lib/proactiveSuggestionsDemo';
 
@@ -51,74 +51,31 @@ export default function OverviewProactiveSection({
       ) : (
         <div className="space-y-2">
           {items.map((suggestion) => (
-            <Card
+            <ProactiveSuggestionCard
               key={suggestion.id}
-              data-testid={`overview-proactive-${suggestion.id}`}
-              className={cn(
-                'rounded-xl border-border/25 bg-card/40',
-                executingId === suggestion.id && streaming && 'ring-1 ring-primary/30',
-                highlightedId === suggestion.id && 'ring-2 ring-primary/40',
-              )}
-            >
-              <CardContent className="p-3.5 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <AutonomyModeBadge mode={suggestion.executionMode} />
-                  {suggestion.impactHint && (
-                    <StatChip className="text-caption-accessible">{suggestion.impactHint}</StatChip>
-                  )}
-                </div>
-                <p className="text-sm font-medium leading-snug">{suggestion.title}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => onExecute(suggestion.id)}
-                  >
-                    {t('commandCenter.proactive.run')}
-                  </Button>
-                  {showExplain && suggestion.hasExplainability !== false && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs"
-                      onClick={() => setExplainTarget(suggestion)}
-                    >
-                      {t('explain.why')}
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 text-xs text-muted-foreground"
-                    onClick={() => onDismiss(suggestion.id)}
-                  >
-                    {t('goals.suggestions.dismiss')}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 text-xs text-muted-foreground"
-                    onClick={() => onSnooze(suggestion.id)}
-                  >
-                    {t('command.suggestions.snooze')}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              suggestion={suggestion}
+              layout="list"
+              highlighted={highlightedId === suggestion.id}
+              executing={executingId === suggestion.id}
+              streaming={streaming}
+              showExplain={showExplain}
+              showAutoExecute={settings.proactivePrefs.allowAutoExecute}
+              onExecute={() => onExecute(suggestion.id)}
+              onExplain={() => setExplainTarget(suggestion)}
+              onDismiss={() => onDismiss(suggestion.id)}
+              onSnooze={() => onSnooze(suggestion.id)}
+              onAutoExecute={() => onExecute(suggestion.id)}
+            />
           ))}
         </div>
       )}
-
       {explainTarget && (
         <AgentExplainabilitySheet
-          open={Boolean(explainTarget)}
-          onClose={() => setExplainTarget(null)}
           entityType="proactive_suggestion"
           entityId={explainTarget.id}
+          title={explainTarget.title}
+          open={Boolean(explainTarget)}
+          onClose={() => setExplainTarget(null)}
         />
       )}
     </section>

@@ -30,6 +30,9 @@ describe('activityPresentation', () => {
       executor: 'all',
       status: 'all',
       searchQuery: '',
+      agentKey: 'all',
+      module: 'all',
+      executionMode: 'all',
     });
     expect(result).toHaveLength(1);
     const empty = filterActivityItems([sample], '30d', {
@@ -38,6 +41,9 @@ describe('activityPresentation', () => {
       executor: 'all',
       status: 'all',
       searchQuery: '',
+      agentKey: 'all',
+      module: 'all',
+      executionMode: 'all',
     });
     expect(empty).toHaveLength(0);
   });

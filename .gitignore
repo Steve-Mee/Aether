@@ -17,6 +17,8 @@
 **/playwright-report/
 **/blob-report/
 **/playwright/.cache/
+**/*.spec.ts-snapshots/*-actual.png
+**/*.spec.ts-snapshots/*-diff.png
 
 ## Local CI debug logs (not release artifacts)
 test-ci-out*.txt

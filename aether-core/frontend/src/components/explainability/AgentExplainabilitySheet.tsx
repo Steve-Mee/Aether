@@ -12,7 +12,6 @@ import type { ExplainEntityType, ExplainabilityDiff } from '@/types/explainabili
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import ExplainabilityDiffPanel from './ExplainabilityDiffPanel';
 import { apiFetch } from '@/lib/api/client';
-import { apiRoutes } from '@/lib/api/routes';
 
 const AgentFlowDiagram = lazy(() => import('./AgentFlowDiagram'));
 

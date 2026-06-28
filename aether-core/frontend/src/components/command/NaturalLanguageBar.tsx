@@ -191,8 +191,8 @@ export default function NaturalLanguageBar() {
           <>
             {streaming && (
               <div className="mt-3 space-y-2" role="status" data-testid="command-stream-steps">
-                {settings.explainabilityPrefs.showLiveExplain !== false &&
-                  settings.explainabilityPrefs.detailLevel !== 'off' && (
+                {settings.explainabilityPrefs?.showLiveExplain !== false &&
+                  settings.explainabilityPrefs?.detailLevel !== 'off' && (
                     <LiveExplainPanel
                       live={streamLiveExplain}
                       handoffChainLength={streamHandoffChain.length}

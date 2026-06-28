@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { activityApi } from '@/features/activity/api';
 import { useCommand } from '@/lib/CommandContext';
 import { useAetherQuery } from '@/lib/query/hooks';
@@ -30,7 +30,26 @@ const defaultFilters: ActivityFilters = {
   status: 'all',
   searchQuery: '',
   agentKey: 'all',
+  module: 'all',
+  executionMode: 'all',
 };
+
+function parseTimelineFiltersFromSearch(params: URLSearchParams): Partial<ActivityFilters> {
+  const next: Partial<ActivityFilters> = {};
+  const module = params.get('module');
+  if (module) next.module = module;
+  const executionMode = params.get('executionMode');
+  if (
+    executionMode === 'autonomous' ||
+    executionMode === 'approval_required' ||
+    executionMode === 'inform_only'
+  ) {
+    next.executionMode = executionMode;
+  }
+  const agent = params.get('agent');
+  if (agent) next.agentKey = agent;
+  return next;
+}
 
 function sessionToActivityItems(history: CommandResult[]): ActivityItem[] {
   return history.map((h, idx) => ({
@@ -59,33 +78,54 @@ type ActivityLocationState = {
 export function useActivityPage() {
   const { history } = useCommand();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [period, setPeriod] = useState<ActivityPeriod>('30d');
   const [customRange, setCustomRange] = useState<ActivityCustomRange>({ from: '', to: '' });
-  const [filters, setFilters] = useState<ActivityFilters>(defaultFilters);
+  const [filters, setFilters] = useState<ActivityFilters>(() => ({
+    ...defaultFilters,
+    ...parseTimelineFiltersFromSearch(new URLSearchParams(window.location.search)),
+  }));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [ephemeralItems, setEphemeralItems] = useState<ActivityItem[]>([]);
 
+  const syncFiltersToUrl = useCallback(
+    (next: ActivityFilters) => {
+      const params = new URLSearchParams(searchParams);
+      if (next.module !== 'all') params.set('module', next.module);
+      else params.delete('module');
+      if (next.executionMode !== 'all') params.set('executionMode', next.executionMode);
+      else params.delete('executionMode');
+      if (next.agentKey !== 'all') params.set('agent', next.agentKey);
+      else params.delete('agent');
+      setSearchParams(params, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
   const activityParams = useMemo(() => {
     const agentKey = filters.agentKey !== 'all' ? filters.agentKey : undefined;
+    const module = filters.module !== 'all' ? filters.module : undefined;
     if (period === 'custom' && customRange.from) {
-      return { since: new Date(customRange.from).toISOString(), limit: 100, agentKey };
+      return { since: new Date(customRange.from).toISOString(), limit: 100, agentKey, module };
     }
-    return { days: periodToApiDays(period), limit: 100, agentKey };
-  }, [period, customRange.from, filters.agentKey]);
+    return { days: periodToApiDays(period), limit: 100, agentKey, module };
+  }, [period, customRange.from, filters.agentKey, filters.module]);
 
   const activityQuery = useAetherQuery(
     queryKeys.activity(activityParams),
     () => {
       const limit = 100;
       const agentKey = filters.agentKey !== 'all' ? filters.agentKey : undefined;
+      const module = filters.module !== 'all' ? filters.module : undefined;
       if (period === 'custom' && customRange.from) {
         return activityApi.fetch({
           since: new Date(customRange.from).toISOString(),
           limit,
           agentKey,
+          module,
         });
       }
-      return activityApi.fetch({ days: periodToApiDays(period), limit, agentKey });
+      return activityApi.fetch({ days: periodToApiDays(period), limit, agentKey, module });
     },
     {
       enabled: period !== 'custom' || Boolean(customRange.from),
@@ -114,12 +154,13 @@ export function useActivityPage() {
   }, [location.state]);
 
   useEffect(() => {
-    const id = new URLSearchParams(location.search).get('id');
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
     if (id) setSelectedId(id);
-    const agent = new URLSearchParams(location.search).get('agent');
-    if (agent) {
-      setFilters((f) => ({ ...f, agentKey: agent }));
-    }
+    setFilters((f) => ({
+      ...f,
+      ...parseTimelineFiltersFromSearch(params),
+    }));
   }, [location.search]);
 
   useEffect(() => {
@@ -178,14 +219,19 @@ export function useActivityPage() {
 
   const updateFilter = useCallback(
     <K extends keyof ActivityFilters>(key: K, value: ActivityFilters[K]) => {
-      setFilters((f) => ({ ...f, [key]: value }));
+      setFilters((f) => {
+        const next = { ...f, [key]: value };
+        syncFiltersToUrl(next);
+        return next;
+      });
     },
-    [],
+    [syncFiltersToUrl],
   );
 
   const clearFilters = useCallback(() => {
     setFilters(defaultFilters);
-  }, []);
+    syncFiltersToUrl(defaultFilters);
+  }, [syncFiltersToUrl]);
 
   return {
     period,

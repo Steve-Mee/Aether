@@ -42,3 +42,11 @@ export const shadows = {
   focus: 'var(--shadow-focus)',
   glowFocus: 'var(--shadow-glow-focus)',
 } as const;
+
+/**
+ * Status tints on intelligence surfaces (badges, activity rows, goals):
+ * use semantic utilities `text-success`, `text-warning`, `text-danger` and
+ * `bg-success/15`, `bg-warning/15` — not raw Tailwind emerald/amber/green.
+ */
+export const statusTintGuidance =
+  'Use semantic success/warning/danger tokens on intelligence UI; avoid emerald/amber utilities.';

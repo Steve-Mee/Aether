@@ -1,4 +1,6 @@
+import { matchesExecutionMode, matchesModule } from './activityFilterUtils';
 import { t } from './i18n';
+import { AUTONOMY_AGENT_KEYS } from '@/lib/settings/autonomyTypes';
 import type {
   ActivityCategory,
   ActivityCustomRange,
@@ -66,6 +68,8 @@ export function matchesFilters(item: ActivityItem, filters: ActivityFilters): bo
   }
   if (filters.executor !== 'all' && item.executor !== filters.executor) return false;
   if (filters.status !== 'all' && item.status !== filters.status) return false;
+  if (!matchesModule(item, filters.module)) return false;
+  if (!matchesExecutionMode(item, filters.executionMode)) return false;
   return true;
 }
 
@@ -173,14 +177,17 @@ export const STATUS_FILTER_OPTIONS: ActivityStatusFilter[] = [
   'approved',
   'rejected',
   'pending',
+  'info',
 ];
 
-export const AGENT_FILTER_OPTIONS: import('@/types/activity').ActivityAgentFilter[] = [
-  'all',
-  'inventory',
-  'customer',
-  'pricing',
-  'supplier',
-  'promotion',
-  'mail',
-];
+/** Dynamic agent filter options; falls back to full autonomy roster. */
+export function buildAgentFilterOptions(
+  rosterKeys?: string[],
+): import('@/types/activity').ActivityAgentFilter[] {
+  const keys = rosterKeys?.length ? rosterKeys : AUTONOMY_AGENT_KEYS;
+  return ['all', ...keys];
+}
+
+/** @deprecated use buildAgentFilterOptions() */
+export const AGENT_FILTER_OPTIONS: import('@/types/activity').ActivityAgentFilter[] =
+  buildAgentFilterOptions();
