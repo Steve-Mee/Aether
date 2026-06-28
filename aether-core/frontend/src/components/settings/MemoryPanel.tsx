@@ -157,15 +157,18 @@ export default function MemoryPanel() {
               {entries.map((entry) => (
                 <tr key={entry.id} className="border-b border-border/40">
                   <td className="py-2 pr-3">
-                    <span className="text-xs uppercase tracking-wide text-primary/90">{entry.kind}</span>
+                    <span className="text-xs uppercase tracking-wide text-primary/90">
+                      {entry.kind}
+                    </span>
                   </td>
-                  <td className="py-2 pr-3 max-w-xs truncate" title={entry.summary || entry.command}>
+                  <td
+                    className="py-2 pr-3 max-w-xs truncate"
+                    title={entry.summary || entry.command}
+                  >
                     {entry.summary || entry.command}
                   </td>
                   <td className="py-2 pr-3 text-muted-foreground">
-                    {entry.rememberedAt ?
-                      new Date(entry.rememberedAt).toLocaleDateString()
-                    : '—'}
+                    {entry.rememberedAt ? new Date(entry.rememberedAt).toLocaleDateString() : '—'}
                   </td>
                   <td className="py-2 text-right">
                     <button

@@ -18,13 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Undo2 } from 'lucide-react';
-import {
-  Button,
-  Card,
-  SegmentedControl,
-  SettingRow,
-  Switch,
-} from '@/components/ui';
+import { Button, Card, SegmentedControl, SettingRow, Switch } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import { showCalmToast } from '@/lib/toast';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
@@ -96,11 +90,7 @@ function SortableSectionRow({
           <GripVertical size={16} />
         </button>
         <SettingRow label={sectionLabel(sectionKey)}>
-          <Switch
-            checked={checked}
-            onCheckedChange={onCheckedChange}
-            disabled={!enabled}
-          />
+          <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={!enabled} />
         </SettingRow>
       </div>
     </div>
@@ -211,7 +201,9 @@ export default function OverviewLayoutSection() {
     <Card className="rounded-2xl border-border/30 bg-card/50 p-6" id="overview">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-foreground mb-1">{t('settings.overview.title')}</h3>
+          <h3 className="text-base font-semibold text-foreground mb-1">
+            {t('settings.overview.title')}
+          </h3>
           <p className="text-sm text-muted-foreground">{t('settings.overview.subtitle')}</p>
         </div>
         <Button
@@ -242,7 +234,9 @@ export default function OverviewLayoutSection() {
         <SettingRow label={t('settings.overview.defaultPeriod')}>
           <SegmentedControl
             value={draft.defaultPeriod}
-            onChange={(v) => updateDraft((d) => ({ ...d, defaultPeriod: v as OverviewDefaultPeriod }))}
+            onChange={(v) =>
+              updateDraft((d) => ({ ...d, defaultPeriod: v as OverviewDefaultPeriod }))
+            }
             options={periodOptions.map((opt) => ({
               ...opt,
               disabled: !draft.enabled,

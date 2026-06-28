@@ -21,9 +21,8 @@ export default function AutonomyConfigPanel() {
   const [draft, setDraft] = useState<MerchantSettings>(settings);
   const [saving, setSaving] = useState(false);
 
-  const [simulatorPrefill, setSimulatorPrefill] = useState<
-    Parameters<typeof AutonomySimulatorPanel>[0]['prefill']
-  >();
+  const [simulatorPrefill, setSimulatorPrefill] =
+    useState<Parameters<typeof AutonomySimulatorPanel>[0]['prefill']>();
 
   React.useEffect(() => {
     setDraft(settings);

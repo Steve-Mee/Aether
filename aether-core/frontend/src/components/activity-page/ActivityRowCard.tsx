@@ -5,10 +5,7 @@ import { cn, focusRing } from '@/lib/utils';
 import { t } from '@/lib/i18n';
 import { relatedRowLinkKey, itemHasExplainability } from '@/lib/activityRelated';
 import { Button, ConfidenceChip, RiskBadge } from '@/components/ui';
-import {
-  ActivityStatusBadge,
-  AgentKeyBadges,
-} from '@/components/intelligence';
+import { ActivityStatusBadge, AgentKeyBadges } from '@/components/intelligence';
 import type { ActivityItem } from '@/types/activity';
 import type { RiskBand } from '@/lib/intentNavigation';
 
@@ -75,8 +72,7 @@ export default function ActivityRowCard({
   const rowLabel = relatedLabel
     ? `${item.description}, ${item.actionLabel}, ${timeStr}. ${relatedLabel}`
     : `${item.description}, ${item.actionLabel}, ${timeStr}`;
-  const canInlineExplain =
-    showInlineExplain && onExplain && itemHasExplainability(item);
+  const canInlineExplain = showInlineExplain && onExplain && itemHasExplainability(item);
 
   return (
     <article
@@ -111,8 +107,7 @@ export default function ActivityRowCard({
             </div>
             {item.impact && (
               <p className="text-caption text-muted-foreground">
-                {item.impact.label}:{' '}
-                <span className="text-foreground/90">{item.impact.value}</span>
+                {item.impact.label}: <span className="text-foreground/90">{item.impact.value}</span>
               </p>
             )}
           </div>
@@ -122,11 +117,7 @@ export default function ActivityRowCard({
             {item.confidence != null && item.confidence > 0 && (
               <ConfidenceChip confidence={item.confidence} />
             )}
-            <ChevronRight
-              size={14}
-              className="text-muted-foreground/50 mt-1"
-              aria-hidden
-            />
+            <ChevronRight size={14} className="text-muted-foreground/50 mt-1" aria-hidden />
           </div>
         </div>
       </button>

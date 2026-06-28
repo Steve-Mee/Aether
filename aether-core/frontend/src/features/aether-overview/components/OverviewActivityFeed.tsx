@@ -62,11 +62,7 @@ export default function OverviewActivityFeed({
               </h3>
               <div className="space-y-2">
                 {group.items.map((item) => (
-                  <ActivityRowCard
-                    key={item.id}
-                    item={item}
-                    onSelect={() => onSelect(item.id)}
-                  />
+                  <ActivityRowCard key={item.id} item={item} onSelect={() => onSelect(item.id)} />
                 ))}
               </div>
             </div>

@@ -47,6 +47,7 @@ export interface ProposeBilateralContractInput {
 
 export function displayContractStatus(contract: BilateralContractDto): string {
   if (contract.status === 'revoked' || contract.revokedAt) return 'revoked';
-  if (contract.ttlExpiresAt && new Date(contract.ttlExpiresAt).getTime() < Date.now()) return 'expired';
+  if (contract.ttlExpiresAt && new Date(contract.ttlExpiresAt).getTime() < Date.now())
+    return 'expired';
   return contract.status;
 }

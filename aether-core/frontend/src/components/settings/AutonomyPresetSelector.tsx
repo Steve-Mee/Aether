@@ -19,11 +19,9 @@ interface Props {
 
 export default function AutonomyPresetSelector({ preset, onPresetChange, draft }: Props) {
   const id = useId();
-  const activePreset =
-    preset === 'custom' ? null : preset;
+  const activePreset = preset === 'custom' ? null : preset;
 
-  const preview =
-    activePreset != null ? AUTONOMY_PRESET_BUNDLES[activePreset] : null;
+  const preview = activePreset != null ? AUTONOMY_PRESET_BUNDLES[activePreset] : null;
 
   return (
     <Card variant="elevated" padding="lg" data-testid="autonomy-preset-selector">
@@ -42,9 +40,7 @@ export default function AutonomyPresetSelector({ preset, onPresetChange, draft }
             value: o.value,
             label: t(o.labelKey),
           }))}
-          value={
-            (activePreset ?? 'balanced') as Exclude<AutonomyPreset, 'custom'>
-          }
+          value={(activePreset ?? 'balanced') as Exclude<AutonomyPreset, 'custom'>}
           onChange={(v) => onPresetChange(v as Exclude<AutonomyPreset, 'custom'>)}
           data-testid="autonomy-preset-control"
           aria-label={t('settings.autonomy.preset.label')}
@@ -59,10 +55,15 @@ export default function AutonomyPresetSelector({ preset, onPresetChange, draft }
 
       {preview && (
         <div className="mt-4 rounded-xl border border-border/30 bg-muted/20 p-4 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground mb-2">{t('settings.autonomy.preset.preview')}</p>
+          <p className="font-medium text-foreground mb-2">
+            {t('settings.autonomy.preset.preview')}
+          </p>
           <ul className="space-y-1 list-disc list-inside">
             <li>
-              {t('settings.autonomy.level')}: {t(`settings.autonomy.level${preview.autonomyLevel === 'low' ? 'Low' : preview.autonomyLevel === 'high' ? 'High' : 'Medium'}`)}
+              {t('settings.autonomy.level')}:{' '}
+              {t(
+                `settings.autonomy.level${preview.autonomyLevel === 'low' ? 'Low' : preview.autonomyLevel === 'high' ? 'High' : 'Medium'}`,
+              )}
             </li>
             <li>
               {t('settings.autonomy.autoLowRisk')}:{' '}
@@ -73,8 +74,7 @@ export default function AutonomyPresetSelector({ preset, onPresetChange, draft }
               {preview.proactiveAllowAutoExecute ? t('common.yes') : t('common.no')}
             </li>
             <li>
-              {t('settings.goals.defaultPursuit')}:{' '}
-              {t(`goals.pursuit.${preview.goalPursuitMode}`)}
+              {t('settings.goals.defaultPursuit')}: {t(`goals.pursuit.${preview.goalPursuitMode}`)}
             </li>
           </ul>
           <p className="mt-2 text-xs">

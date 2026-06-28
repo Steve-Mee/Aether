@@ -20,9 +20,7 @@ function patchOverviewCache(
       if (event === 'removed') {
         first.items = first.items.filter((i) => !(i.kind === item.kind && i.id === item.id));
       } else if (event === 'updated') {
-        first.items = first.items.map((i) =>
-          i.kind === item.kind && i.id === item.id ? item : i,
-        );
+        first.items = first.items.map((i) => (i.kind === item.kind && i.id === item.id ? item : i));
       } else {
         const exists = first.items.some((i) => i.kind === item.kind && i.id === item.id);
         if (!exists) first.items = [item, ...first.items].slice(0, 50);
@@ -47,7 +45,9 @@ export function useOverviewStream(enabled = true): void {
     void (async () => {
       try {
         const sinceCursor = queryClient
-          .getQueriesData<{ pages: OverviewFeedResponse[] }>({ queryKey: ['aether-overview', 'infinite'] })
+          .getQueriesData<{ pages: OverviewFeedResponse[] }>({
+            queryKey: ['aether-overview', 'infinite'],
+          })
           .flatMap(([, data]) => data?.pages?.[0]?.items ?? [])
           .find((item) => item.cursor)?.cursor;
         const streamUrl = sinceCursor

@@ -88,7 +88,8 @@ export default function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
   const user = useCurrentUser();
   const visibleSections = SECTIONS.filter(
-    (s) => !('operatorOnly' in s && s.operatorOnly) || roleMeetsMin(user?.role ?? 'viewer', 'operator')
+    (s) =>
+      !('operatorOnly' in s && s.operatorOnly) || roleMeetsMin(user?.role ?? 'viewer', 'operator'),
   );
   const [active, setActive] = useState<SectionId>(() =>
     parseSectionId(searchParams.get('section')),
@@ -98,9 +99,9 @@ export default function Settings() {
   useEffect(() => {
     const param = searchParams.get('section');
     const hash = typeof window !== 'undefined' ? window.location.hash.replace(/^#/, '') : '';
-    const fromHash =
-      hash && SECTION_IDS.has(hash as SectionId) ? (hash as SectionId) : null;
-    const next = fromHash ?? (param && SECTION_IDS.has(param as SectionId) ? (param as SectionId) : null);
+    const fromHash = hash && SECTION_IDS.has(hash as SectionId) ? (hash as SectionId) : null;
+    const next =
+      fromHash ?? (param && SECTION_IDS.has(param as SectionId) ? (param as SectionId) : null);
     if (next && next !== active) {
       setActive(next);
     }

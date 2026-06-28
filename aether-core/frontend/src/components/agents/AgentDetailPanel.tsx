@@ -62,9 +62,7 @@ export default function AgentDetailPanel({ agent, activity, loading }: AgentDeta
                 className="rounded-lg border border-border/35 bg-card/40 px-3 py-2.5 text-sm"
               >
                 <p className="font-medium text-foreground">{s.title}</p>
-                {s.summary && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{s.summary}</p>
-                )}
+                {s.summary && <p className="text-xs text-muted-foreground mt-0.5">{s.summary}</p>}
                 <Link
                   to="/command-center"
                   className="text-[10px] text-primary hover:underline mt-1 inline-block"

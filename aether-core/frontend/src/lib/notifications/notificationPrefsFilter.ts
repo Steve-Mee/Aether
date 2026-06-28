@@ -60,9 +60,7 @@ export function shouldShowNotification(
   return prefs[key].inApp;
 }
 
-export function sortNotifications<T extends { read: boolean; createdAt: string }>(
-  items: T[],
-): T[] {
+export function sortNotifications<T extends { read: boolean; createdAt: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => {
     if (a.read !== b.read) return a.read ? 1 : -1;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();

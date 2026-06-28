@@ -1,11 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import {
-  ReactFlow,
-  Background,
-  MarkerType,
-  type Edge,
-  type Node,
-} from '@xyflow/react';
+import { ReactFlow, Background, MarkerType, type Edge, type Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { FlowGraph } from '@/types/explainability';
 import { agentDisplayLabel } from '@/lib/agentDisplay';
@@ -21,10 +15,7 @@ function toReactFlowNodes(graph: FlowGraph): Node[] {
     id: n.id,
     position: n.position,
     data: {
-      label:
-        n.type === 'agent' && n.agentKey
-          ? agentDisplayLabel(n.agentKey)
-          : n.label,
+      label: n.type === 'agent' && n.agentKey ? agentDisplayLabel(n.agentKey) : n.label,
       status: n.data?.status,
     },
     style: {

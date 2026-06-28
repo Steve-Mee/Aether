@@ -35,11 +35,7 @@ const healthKeys: Record<GoalProgressHealth, string> = {
   abandoned: 'goals.status.abandoned',
 };
 
-export default function GoalStatusBadge({
-  status,
-  progressPct,
-  className,
-}: GoalStatusBadgeProps) {
+export default function GoalStatusBadge({ status, progressPct, className }: GoalStatusBadgeProps) {
   const health = resolveHealth(status, progressPct);
 
   return (

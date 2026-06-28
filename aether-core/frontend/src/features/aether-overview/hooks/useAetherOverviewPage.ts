@@ -83,7 +83,14 @@ export function useAetherOverviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const overviewPrefs = settings.overviewPrefs ?? {
     enabled: true,
-    sectionOrder: ['attention', 'agentMetrics', 'handoffs', 'proactive', 'goals', 'activity'] as OverviewSectionKey[],
+    sectionOrder: [
+      'attention',
+      'agentMetrics',
+      'handoffs',
+      'proactive',
+      'goals',
+      'activity',
+    ] as OverviewSectionKey[],
     collapsed: {},
     sections: {
       attention: true,
@@ -160,11 +167,10 @@ export function useAetherOverviewPage() {
     },
   );
 
-  const approvalsQuery = useAetherQuery(
-    queryKeys.approvals.list(),
-    () => approvalsApi.list(),
-    { staleTime: 30_000, refetchOnWindowFocus: true },
-  );
+  const approvalsQuery = useAetherQuery(queryKeys.approvals.list(), () => approvalsApi.list(), {
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+  });
 
   const rosterQuery = useAetherQuery(
     queryKeys.agents(),
@@ -231,17 +237,12 @@ export function useAetherOverviewPage() {
 
   const kpis = useMemo(() => buildOverviewKpis(dashboard), [dashboard]);
 
-  const pendingApprovals = useMemo(
-    () => selectPendingApprovals(approvals, 3),
-    [approvals],
-  );
+  const pendingApprovals = useMemo(() => selectPendingApprovals(approvals, 3), [approvals]);
 
-  const pendingCount = feedMeta?.pendingApprovals ?? approvals.filter((a) => a.status === 'pending').length;
+  const pendingCount =
+    feedMeta?.pendingApprovals ?? approvals.filter((a) => a.status === 'pending').length;
 
-  const activeGoals = useMemo(
-    () => selectActiveGoals(goalsQuery.data ?? [], 3),
-    [goalsQuery.data],
-  );
+  const activeGoals = useMemo(() => selectActiveGoals(goalsQuery.data ?? [], 3), [goalsQuery.data]);
 
   const syncUrl = useCallback(
     (nextFilters: OverviewFilters, nextHighlight: typeof highlight) => {
@@ -279,9 +280,7 @@ export function useAetherOverviewPage() {
       void infiniteQuery.fetchNextPage();
       return;
     }
-    setActivityLimitIndex((i) =>
-      i < OVERVIEW_ACTIVITY_LIMITS.length - 1 ? i + 1 : i,
-    );
+    setActivityLimitIndex((i) => (i < OVERVIEW_ACTIVITY_LIMITS.length - 1 ? i + 1 : i));
   }, [infiniteQuery]);
 
   const canLoadMore = env.isLiveMode
@@ -322,7 +321,16 @@ export function useAetherOverviewPage() {
       void metricsQuery.refetch();
       void handoffsQuery.refetch();
     }
-  }, [activityQuery, approvalsQuery, goalsQuery, handoffsQuery, infiniteQuery, metricsQuery, proactive, rosterQuery]);
+  }, [
+    activityQuery,
+    approvalsQuery,
+    goalsQuery,
+    handoffsQuery,
+    infiniteQuery,
+    metricsQuery,
+    proactive,
+    rosterQuery,
+  ]);
 
   useEffect(() => {
     if (highlightApplied.current || !highlight) return;

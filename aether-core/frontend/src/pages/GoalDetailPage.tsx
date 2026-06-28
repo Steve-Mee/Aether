@@ -41,7 +41,10 @@ export default function GoalDetailPage() {
             <CardContent className="p-5 space-y-4">
               <GoalProgressBar value={goal.progressPct ?? 0} />
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                <span>{t('goals.card.target')}: {goal.targetValue}{goal.unit === 'percent' ? '%' : ''}</span>
+                <span>
+                  {t('goals.card.target')}: {goal.targetValue}
+                  {goal.unit === 'percent' ? '%' : ''}
+                </span>
                 <span className="capitalize">{t(`goals.status.${goal.status}`)}</span>
               </div>
               {goal.outcomeRecordId ? (

@@ -45,11 +45,7 @@ export function searchParamsToFilters(
     period: period === '24h' || period === '30d' ? period : defaults.period,
     searchQuery: params.get('search') ?? defaults.searchQuery,
     risk:
-      params.get('risk') === 'high'
-        ? 'high'
-        : params.get('risk') === 'low'
-          ? 'low'
-          : defaults.risk,
+      params.get('risk') === 'high' ? 'high' : params.get('risk') === 'low' ? 'low' : defaults.risk,
     module: params.get('module') ?? defaults.module,
     executionMode:
       params.get('executionMode') === 'autonomous'

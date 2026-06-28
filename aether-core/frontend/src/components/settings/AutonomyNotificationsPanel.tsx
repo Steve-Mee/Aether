@@ -34,7 +34,10 @@ export default function AutonomyNotificationsPanel() {
   ];
 
   return (
-    <Card className="rounded-2xl border-border/30 bg-card/50 p-6" data-testid="autonomy-notifications">
+    <Card
+      className="rounded-2xl border-border/30 bg-card/50 p-6"
+      data-testid="autonomy-notifications"
+    >
       <h3 className="text-base font-semibold text-foreground mb-1">
         {t('settings.autonomyNotifications.title')}
       </h3>

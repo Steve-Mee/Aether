@@ -106,13 +106,9 @@ export default function ReflectionTimelinePanel() {
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <Badge className={agentBadgeClass(entry.agentKey)}>{entry.agentKey}</Badge>
                 {entry.sourceAgentKey && entry.sourceAgentKey !== entry.agentKey && (
-                  <span className="text-xs text-muted-foreground">
-                    ← {entry.sourceAgentKey}
-                  </span>
+                  <span className="text-xs text-muted-foreground">← {entry.sourceAgentKey}</span>
                 )}
-                {entry.handoffTarget && (
-                  <Badge variant="outline">→ {entry.handoffTarget}</Badge>
-                )}
+                {entry.handoffTarget && <Badge variant="outline">→ {entry.handoffTarget}</Badge>}
                 <span className="text-xs text-muted-foreground">
                   {new Date(entry.timestamp).toLocaleString()}
                 </span>
@@ -125,7 +121,9 @@ export default function ReflectionTimelinePanel() {
               </div>
               <p className="text-sm">{entry.summary}</p>
               {entry.runId && (
-                <p className="text-xs text-muted-foreground mt-1">run: {entry.runId.slice(0, 8)}…</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  run: {entry.runId.slice(0, 8)}…
+                </p>
               )}
             </li>
           ))}

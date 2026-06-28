@@ -78,9 +78,7 @@ describe('useAetherOverviewPage', () => {
           const status = (i.payload as { status?: string }).status;
           return status === 'autonomous';
         }) ||
-        result.current.activityGroups.every((g) =>
-          g.items.every((i) => i.status === 'autonomous'),
-        );
+        result.current.activityGroups.every((g) => g.items.every((i) => i.status === 'autonomous'));
       expect(allAutonomous).toBe(true);
     });
   });

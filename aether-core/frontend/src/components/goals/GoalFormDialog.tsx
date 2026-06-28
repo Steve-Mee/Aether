@@ -30,7 +30,13 @@ const metricOptions: { value: GoalMetricType; label: string }[] = [
   { value: 'category_revenue', label: 'Categorie' },
 ];
 
-export default function GoalFormDialog({ open, initial, parentGoals = [], onClose, onSubmit }: GoalFormDialogProps) {
+export default function GoalFormDialog({
+  open,
+  initial,
+  parentGoals = [],
+  onClose,
+  onSubmit,
+}: GoalFormDialogProps) {
   const { settings } = useMerchantSettings();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -79,7 +85,10 @@ export default function GoalFormDialog({ open, initial, parentGoals = [], onClos
         metricType,
         metricScope:
           metricType === 'category_revenue'
-            ? { categoryId: categoryId.trim() || undefined, productSlug: categoryId.trim() || undefined }
+            ? {
+                categoryId: categoryId.trim() || undefined,
+                productSlug: categoryId.trim() || undefined,
+              }
             : undefined,
         targetValue,
         deadline: new Date(deadline).toISOString(),

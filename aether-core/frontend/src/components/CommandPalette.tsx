@@ -17,8 +17,17 @@ import { cn, focusRing } from '@/lib/utils';
 const PALETTE_LISTBOX_ID = 'command-palette-listbox';
 
 export default function CommandPalette() {
-  const { paletteOpen, closePalette, executeCommand, loading, history, streaming, streamActiveAgentKeys, streamHandoffChain, streamChainFrom } =
-    useCommand();
+  const {
+    paletteOpen,
+    closePalette,
+    executeCommand,
+    loading,
+    history,
+    streaming,
+    streamActiveAgentKeys,
+    streamHandoffChain,
+    streamChainFrom,
+  } = useCommand();
   const { data: dashboard } = useDashboard();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(0);
@@ -182,35 +191,35 @@ export default function CommandPalette() {
             <p className="text-caption text-muted-foreground mb-1">
               {t('command.palette.lastResult')}
             </p>
-            {(streaming && streamActiveAgentKeys.length > 0) || history[0].brain?.specialist || history[0].brain?.agents ? (
+            {(streaming && streamActiveAgentKeys.length > 0) ||
+            history[0].brain?.specialist ||
+            history[0].brain?.agents ? (
               <div className="flex flex-col gap-2 mb-2">
                 {streaming && streamHandoffChain.length > 0 && (
                   <HandoffChainRail chain={streamHandoffChain} />
                 )}
                 <div className="flex flex-wrap items-center gap-2">
-                {streaming && streamActiveAgentKeys.length > 0 ? (
-                  streamActiveAgentKeys.map((key) => (
-                    <AgentBadge
-                      key={key}
-                      agentKey={key}
-                      delegatedFrom="admin"
-                      chainFrom={streamChainFrom ?? undefined}
-                    />
-                  ))
-                ) : (
-                  (history[0].brain?.agents?.length
-                    ? history[0].brain.agents
-                    : history[0].brain?.specialist
-                      ? [history[0].brain.specialist]
-                      : []
-                  ).map((agent) => (
-                    <AgentBadge
-                      key={`${agent.agentKey}-${agent.specialistRunId ?? 'result'}`}
-                      agentKey={agent.agentKey}
-                      delegatedFrom={agent.delegatedFrom}
-                    />
-                  ))
-                )}
+                  {streaming && streamActiveAgentKeys.length > 0
+                    ? streamActiveAgentKeys.map((key) => (
+                        <AgentBadge
+                          key={key}
+                          agentKey={key}
+                          delegatedFrom="admin"
+                          chainFrom={streamChainFrom ?? undefined}
+                        />
+                      ))
+                    : (history[0].brain?.agents?.length
+                        ? history[0].brain.agents
+                        : history[0].brain?.specialist
+                          ? [history[0].brain.specialist]
+                          : []
+                      ).map((agent) => (
+                        <AgentBadge
+                          key={`${agent.agentKey}-${agent.specialistRunId ?? 'result'}`}
+                          agentKey={agent.agentKey}
+                          delegatedFrom={agent.delegatedFrom}
+                        />
+                      ))}
                 </div>
               </div>
             ) : null}

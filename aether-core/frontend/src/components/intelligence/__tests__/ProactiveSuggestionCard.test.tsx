@@ -48,8 +48,8 @@ describe('ProactiveSuggestionCard', () => {
       />,
     );
 
-    expect(container.querySelector('[data-testid="proactive-suggestion-proactive-test-1"]')).toHaveClass(
-      'ring-2',
-    );
+    expect(
+      container.querySelector('[data-testid="proactive-suggestion-proactive-test-1"]'),
+    ).toHaveClass('ring-2');
   });
 });

@@ -1,10 +1,5 @@
 import { useId, useState } from 'react';
-import {
-  Card,
-  SegmentedControl,
-  SettingRow,
-  Switch,
-} from '@/components/ui';
+import { Card, SegmentedControl, SettingRow, Switch } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import type {
   AutonomyLevel,
@@ -55,14 +50,22 @@ export default function AutonomyLowRiskPanel({ draft, onChange }: Props) {
       <h3 className="text-base font-semibold text-foreground mb-1">
         {t('settings.autonomy.execution.title')}
       </h3>
-      <p className="text-sm text-muted-foreground mb-6">{t('settings.autonomy.execution.subtitle')}</p>
+      <p className="text-sm text-muted-foreground mb-6">
+        {t('settings.autonomy.execution.subtitle')}
+      </p>
 
-      <SettingRow label={t('settings.autonomy.level')} description={t('settings.autonomy.levelHint')}>
+      <SettingRow
+        label={t('settings.autonomy.level')}
+        description={t('settings.autonomy.levelHint')}
+      >
         <SegmentedControl
           options={levelOptions}
           value={draft.autonomyLevel}
           onChange={(v) =>
-            onChange({ autonomyLevel: v, autonomyPrefs: { ...draft.autonomyPrefs, preset: 'custom' } })
+            onChange({
+              autonomyLevel: v,
+              autonomyPrefs: { ...draft.autonomyPrefs, preset: 'custom' },
+            })
           }
           data-testid="autonomy-level"
           aria-label={t('settings.autonomy.level')}
@@ -78,7 +81,10 @@ export default function AutonomyLowRiskPanel({ draft, onChange }: Props) {
           id={autoLowId}
           checked={draft.autoApproveLowRisk}
           onCheckedChange={(v) =>
-            onChange({ autoApproveLowRisk: v, autonomyPrefs: { ...draft.autonomyPrefs, preset: 'custom' } })
+            onChange({
+              autoApproveLowRisk: v,
+              autonomyPrefs: { ...draft.autonomyPrefs, preset: 'custom' },
+            })
           }
           data-testid="auto-low-risk"
         />

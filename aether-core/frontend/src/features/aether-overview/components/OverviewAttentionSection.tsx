@@ -40,9 +40,7 @@ function OverviewApprovalRow({
             </span>
           </div>
           <p className="text-sm font-medium text-foreground">{title}</p>
-          {rationale && (
-            <p className="text-xs text-muted-foreground line-clamp-2">{rationale}</p>
-          )}
+          {rationale && <p className="text-xs text-muted-foreground line-clamp-2">{rationale}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-1.5 shrink-0">
           <Button

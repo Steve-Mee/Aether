@@ -25,7 +25,13 @@ export type ActivityRiskFilter = 'all' | 'low' | 'high';
 
 export type ActivityExecutorFilter = 'all' | 'aether' | 'merchant';
 
-export type ActivityStatusFilter = 'all' | 'autonomous' | 'approved' | 'rejected' | 'pending' | 'info';
+export type ActivityStatusFilter =
+  | 'all'
+  | 'autonomous'
+  | 'approved'
+  | 'rejected'
+  | 'pending'
+  | 'info';
 
 export type ActivityModuleFilter = 'all' | string;
 

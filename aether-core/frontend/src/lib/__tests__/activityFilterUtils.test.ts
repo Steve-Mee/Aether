@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ActivityItem } from '@/types/activity';
-import {
-  inferExecutionMode,
-  matchesExecutionMode,
-  matchesModule,
-} from '../activityFilterUtils';
+import { inferExecutionMode, matchesExecutionMode, matchesModule } from '../activityFilterUtils';
 
 const baseItem: ActivityItem = {
   id: '1',

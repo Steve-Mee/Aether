@@ -11,7 +11,13 @@ import {
 } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
-import type { AutonomyLevel, AutoRunWindow, BrainActionMode, BrainKnowledgeGovernanceMode, BrainKnowledgeUpdateProfile } from '@/lib/settings/merchantSettingsTypes';
+import type {
+  AutonomyLevel,
+  AutoRunWindow,
+  BrainActionMode,
+  BrainKnowledgeGovernanceMode,
+  BrainKnowledgeUpdateProfile,
+} from '@/lib/settings/merchantSettingsTypes';
 
 export default function AutonomyRiskSection() {
   const { settings, updateSettings } = useMerchantSettings();
@@ -98,7 +104,8 @@ export default function AutonomyRiskSection() {
   ];
 
   const knowledgeTransferValue =
-    draft.brainKnowledgeTransferEnabled === null || draft.brainKnowledgeTransferEnabled === undefined
+    draft.brainKnowledgeTransferEnabled === null ||
+    draft.brainKnowledgeTransferEnabled === undefined
       ? 'inherit'
       : draft.brainKnowledgeTransferEnabled
         ? 'on'
@@ -236,8 +243,7 @@ export default function AutonomyRiskSection() {
           onChange={(v) =>
             setDraft((d) => ({
               ...d,
-              brainKnowledgeTransferEnabled:
-                v === 'inherit' ? null : v === 'on',
+              brainKnowledgeTransferEnabled: v === 'inherit' ? null : v === 'on',
             }))
           }
           data-testid="brain-knowledge-transfer"
@@ -266,9 +272,7 @@ export default function AutonomyRiskSection() {
         <Switch
           id="federated-contribution"
           checked={draft.brainFederatedContributionEnabled}
-          onCheckedChange={(v) =>
-            setDraft((d) => ({ ...d, brainFederatedContributionEnabled: v }))
-          }
+          onCheckedChange={(v) => setDraft((d) => ({ ...d, brainFederatedContributionEnabled: v }))}
           data-testid="brain-federated-contribution"
         />
       </SettingRow>
@@ -296,9 +300,7 @@ export default function AutonomyRiskSection() {
         <Switch
           id={federatedExecutionId}
           checked={draft.brainFederatedExecutionContribute}
-          onCheckedChange={(v) =>
-            setDraft((d) => ({ ...d, brainFederatedExecutionContribute: v }))
-          }
+          onCheckedChange={(v) => setDraft((d) => ({ ...d, brainFederatedExecutionContribute: v }))}
           data-testid="brain-federated-execution-contribute"
         />
       </SettingRow>

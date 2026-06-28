@@ -38,7 +38,11 @@ export default function NotificationsSection() {
     }
   };
 
-  const toggleChannel = async (key: NotificationKey, field: 'inApp' | 'email' | 'push', value: boolean) => {
+  const toggleChannel = async (
+    key: NotificationKey,
+    field: 'inApp' | 'email' | 'push',
+    value: boolean,
+  ) => {
     setSaving(true);
     try {
       await updateNotificationPrefs({
@@ -55,7 +59,8 @@ export default function NotificationsSection() {
           'goalProgress',
         ];
         const anyPush = channelKeys.some((k) => nextPrefs[k].push === true);
-        const { syncWebPushSubscription } = await import('@/lib/notifications/useWebPushSubscription');
+        const { syncWebPushSubscription } =
+          await import('@/lib/notifications/useWebPushSubscription');
         await syncWebPushSubscription(anyPush);
       }
     } finally {
@@ -63,44 +68,45 @@ export default function NotificationsSection() {
     }
   };
 
-  const rows: Array<{ key: NotificationKey; label: string; hint: string; emailEnabled: boolean }> = [
-    {
-      key: 'autonomousLowRisk',
-      label: t('settings.notifications.autonomous'),
-      hint: t('settings.notifications.autonomousHint'),
-      emailEnabled: true,
-    },
-    {
-      key: 'highRiskApproval',
-      label: t('settings.notifications.highRisk'),
-      hint: t('settings.notifications.highRiskHint'),
-      emailEnabled: true,
-    },
-    {
-      key: 'supplierChanges',
-      label: t('settings.notifications.supplier'),
-      hint: t('settings.notifications.supplierHint'),
-      emailEnabled: true,
-    },
-    {
-      key: 'weeklyDigest',
-      label: t('settings.notifications.weekly'),
-      hint: t('settings.notifications.weeklyHint'),
-      emailEnabled: true,
-    },
-    {
-      key: 'proactiveSuggestions',
-      label: t('settings.notifications.proactive'),
-      hint: t('settings.notifications.proactiveHint'),
-      emailEnabled: true,
-    },
-    {
-      key: 'goalProgress',
-      label: t('settings.notifications.goalProgress'),
-      hint: t('settings.notifications.goalProgressHint'),
-      emailEnabled: true,
-    },
-  ];
+  const rows: Array<{ key: NotificationKey; label: string; hint: string; emailEnabled: boolean }> =
+    [
+      {
+        key: 'autonomousLowRisk',
+        label: t('settings.notifications.autonomous'),
+        hint: t('settings.notifications.autonomousHint'),
+        emailEnabled: true,
+      },
+      {
+        key: 'highRiskApproval',
+        label: t('settings.notifications.highRisk'),
+        hint: t('settings.notifications.highRiskHint'),
+        emailEnabled: true,
+      },
+      {
+        key: 'supplierChanges',
+        label: t('settings.notifications.supplier'),
+        hint: t('settings.notifications.supplierHint'),
+        emailEnabled: true,
+      },
+      {
+        key: 'weeklyDigest',
+        label: t('settings.notifications.weekly'),
+        hint: t('settings.notifications.weeklyHint'),
+        emailEnabled: true,
+      },
+      {
+        key: 'proactiveSuggestions',
+        label: t('settings.notifications.proactive'),
+        hint: t('settings.notifications.proactiveHint'),
+        emailEnabled: true,
+      },
+      {
+        key: 'goalProgress',
+        label: t('settings.notifications.goalProgress'),
+        hint: t('settings.notifications.goalProgressHint'),
+        emailEnabled: true,
+      },
+    ];
 
   const switchIds: Record<NotificationKey, string> = {
     autonomousLowRisk: autonomousId,
@@ -133,9 +139,7 @@ export default function NotificationsSection() {
                   disabled={saving}
                 />
               </div>
-              <div
-                className={`flex items-center gap-3 ${row.emailEnabled ? '' : 'opacity-50'}`}
-              >
+              <div className={`flex items-center gap-3 ${row.emailEnabled ? '' : 'opacity-50'}`}>
                 <span className="text-caption text-muted-foreground">
                   {t('settings.notifications.email')}
                   {!row.emailEnabled ? ` (${t('settings.notifications.emailSoon')})` : ''}
@@ -143,7 +147,9 @@ export default function NotificationsSection() {
                 <Switch
                   id={`${switchId}-email`}
                   checked={row.emailEnabled ? prefs[row.key].email : false}
-                  onCheckedChange={(v) => row.emailEnabled && void toggleChannel(row.key, 'email', v)}
+                  onCheckedChange={(v) =>
+                    row.emailEnabled && void toggleChannel(row.key, 'email', v)
+                  }
                   disabled={saving || !row.emailEnabled}
                   aria-label={`${row.label}, ${t('settings.notifications.email')}`}
                 />

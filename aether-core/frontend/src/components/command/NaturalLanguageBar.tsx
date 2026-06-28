@@ -9,7 +9,11 @@ import { CommandBar, Button } from '@/components/ui';
 import { useSmartCommandInput } from '@/hooks/useSmartCommandInput';
 import { useRotatingPlaceholder } from '@/hooks/useRotatingPlaceholder';
 import type { DemoSuggestion } from '@/lib/localIntentMatcher';
-import { IntentPill, CompoundStepTimeline, StepProgressRail } from '@/components/command-center/primitives';
+import {
+  IntentPill,
+  CompoundStepTimeline,
+  StepProgressRail,
+} from '@/components/command-center/primitives';
 import CommandSuggestionsList from './CommandSuggestionsList';
 import CommandResultCard from './CommandResultCard';
 import CommandErrorCard from './CommandErrorCard';

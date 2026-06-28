@@ -92,7 +92,8 @@ export default function ContributionHistoryPanel() {
 
       {summary?.lastContributionAt && (
         <p className="text-xs text-muted-foreground mb-4">
-          {t('settings.contribution.lastAt')}: {new Date(summary.lastContributionAt).toLocaleString()}
+          {t('settings.contribution.lastAt')}:{' '}
+          {new Date(summary.lastContributionAt).toLocaleString()}
         </p>
       )}
 

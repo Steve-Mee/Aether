@@ -17,11 +17,19 @@ import type { AetherNotification, PushNotificationInput } from './types';
 import { useNotificationUiStore } from '@/lib/stores/uiStore';
 import { showCalmToast } from '@/lib/toast';
 import { t } from '@/lib/i18n';
-import { subscribeActivityItem, subscribeNotification, subscribeNotificationState } from '@/lib/aetherLiveBus';
+import {
+  subscribeActivityItem,
+  subscribeNotification,
+  subscribeNotificationState,
+} from '@/lib/aetherLiveBus';
 import { queryClient } from '@/lib/query/client';
 import { announceStatus } from '@/lib/a11y/announceBus';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
-import { inferNotificationCategory, shouldShowNotification, sortNotifications } from './notificationPrefsFilter';
+import {
+  inferNotificationCategory,
+  shouldShowNotification,
+  sortNotifications,
+} from './notificationPrefsFilter';
 import { trackBusinessEvent } from '@/lib/observability/businessEvents';
 
 const ACTIVITY_WINDOW_MS = 30 * 60 * 1000;
@@ -113,7 +121,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     staleTime: Infinity,
   });
 
-  const { data: liveInbox, dataUpdatedAt: liveInboxUpdatedAt, isLoading: liveLoading } = useQuery({
+  const {
+    data: liveInbox,
+    dataUpdatedAt: liveInboxUpdatedAt,
+    isLoading: liveLoading,
+  } = useQuery({
     queryKey: queryKeys.notifications.inbox(),
     queryFn: () => notificationsRepository.list(),
     enabled: env.isLiveMode && !settingsLoading,
@@ -167,7 +179,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (input.skipAnnounce) {
         suppressUnreadAnnounceRef.current = true;
       }
-      trackBusinessEvent('notification.received', { kind: item.kind ?? item.category ?? 'unknown' });
+      trackBusinessEvent('notification.received', {
+        kind: item.kind ?? item.category ?? 'unknown',
+      });
       setNotifications((prev) =>
         sortNotifications([item, ...prev.filter((n) => n.id !== item.id)].slice(0, 50)),
       );
@@ -262,10 +276,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const sortedNotifications = useMemo(
-    () => sortNotifications(notifications),
-    [notifications],
-  );
+  const sortedNotifications = useMemo(() => sortNotifications(notifications), [notifications]);
 
   const unreadCount = useMemo(
     () => sortedNotifications.filter((n) => !n.read).length,

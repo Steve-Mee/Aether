@@ -41,51 +41,31 @@ export class StripePaymentProvider implements PaymentProvider {
     }
 
     try {
-      const useStripeMock = Boolean(process.env.STRIPE_API_HOST);
-      if (useStripeMock) {
-        const host = process.env.STRIPE_API_HOST!;
-        const port = process.env.STRIPE_API_PORT ?? '12111';
-        const protocol = process.env.STRIPE_API_PROTOCOL ?? 'http';
-        const body = new URLSearchParams({
-          amount: String(Math.round(amount * 100)),
-          currency: 'eur',
-          'metadata[orderId]': orderId,
-          'payment_method_types[]': 'card',
-        });
-        const res = await fetch(`${protocol}://${host}:${port}/v1/payment_intents`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${secretKey}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body,
-        });
-        if (!res.ok) {
-          return { success: false, status: 'failed', provider: this.name };
-        }
-        const intent = (await res.json()) as { id: string; status: string };
-        const mockSuccess =
-          intent.id?.startsWith('pi_') &&
-          intent.status !== 'canceled' &&
-          intent.status !== 'failed';
-        return {
-          success: mockSuccess,
-          transactionId: intent.id,
-          status: intent.status === 'succeeded' ? 'paid' : 'pending',
-          provider: this.name,
-        };
-      }
-
       const Stripe = (await import('stripe')).default;
-      const stripe = new Stripe(secretKey, { apiVersion: '2025-02-24.acacia' });
+      const stripeOptions: ConstructorParameters<typeof Stripe>[1] = {
+        apiVersion: '2025-02-24.acacia',
+      };
+      if (process.env.STRIPE_API_HOST) {
+        stripeOptions.host = process.env.STRIPE_API_HOST;
+        stripeOptions.port = Number(process.env.STRIPE_API_PORT ?? 12111);
+        stripeOptions.protocol = (process.env.STRIPE_API_PROTOCOL as 'http' | 'https') ?? 'http';
+      }
+      const stripe = new Stripe(secretKey, stripeOptions);
       const intent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100),
         currency: 'eur',
         metadata: { orderId },
-        automatic_payment_methods: { enabled: true },
+        payment_method_types: ['card'],
       });
+      const okStatuses = new Set([
+        'succeeded',
+        'requires_payment_method',
+        'requires_confirmation',
+        'requires_action',
+        'processing',
+      ]);
       return {
-        success: intent.status === 'succeeded' || intent.status === 'requires_payment_method',
+        success: okStatuses.has(intent.status),
         transactionId: intent.id,
         status: intent.status === 'succeeded' ? 'paid' : 'pending',
         provider: this.name,

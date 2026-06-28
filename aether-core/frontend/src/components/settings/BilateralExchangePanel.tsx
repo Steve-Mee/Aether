@@ -35,7 +35,9 @@ function ContractPackages({
     return <p className="text-xs text-muted-foreground mt-2">{t('common.loading')}</p>;
   }
   if (packages.length === 0) {
-    return <p className="text-xs text-muted-foreground mt-2">{t('settings.bilateral.noPackages')}</p>;
+    return (
+      <p className="text-xs text-muted-foreground mt-2">{t('settings.bilateral.noPackages')}</p>
+    );
   }
 
   return (
@@ -46,7 +48,8 @@ function ContractPackages({
           className="flex flex-wrap items-center justify-between gap-2 text-xs border border-border/30 rounded p-2"
         >
           <span>
-            {pkg.fieldCount} {t('settings.bilateral.fields')} · {new Date(pkg.expiresAt).toLocaleDateString()}
+            {pkg.fieldCount} {t('settings.bilateral.fields')} ·{' '}
+            {new Date(pkg.expiresAt).toLocaleDateString()}
           </span>
           {canManage && !pkg.expired && (
             <Button
@@ -58,7 +61,7 @@ function ContractPackages({
                   .mutateAsync({ packageId: pkg.id, contractId: contract.id })
                   .then(() => showCalmToast({ title: t('settings.bilateral.consumeDone') }))
                   .catch((err: Error) =>
-                    showCalmToast({ title: err.message || t('settings.bilateral.errorGeneric') })
+                    showCalmToast({ title: err.message || t('settings.bilateral.errorGeneric') }),
                   )
               }
             >
@@ -101,7 +104,10 @@ function ContractRow({
   };
 
   return (
-    <div className="py-4 border-b border-border/30" data-testid={`bilateral-contract-${contract.id}`}>
+    <div
+      className="py-4 border-b border-border/30"
+      data-testid={`bilateral-contract-${contract.id}`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="font-medium text-foreground">
@@ -109,8 +115,7 @@ function ContractRow({
             {contract.partnerSlug ? ` (${contract.partnerSlug})` : ''}
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            {contract.schemaKey} · {t(`settings.bilateral.role.${contract.role}`)} ·{' '}
-            {t(statusKey)}
+            {contract.schemaKey} · {t(`settings.bilateral.role.${contract.role}`)} · {t(statusKey)}
           </div>
           {contract.ttlExpiresAt && (
             <div className="text-xs text-muted-foreground">
@@ -130,7 +135,7 @@ function ContractRow({
               onClick={() =>
                 void runAction(
                   () => acceptMutation.mutateAsync(contract.id),
-                  'settings.bilateral.acceptDone'
+                  'settings.bilateral.acceptDone',
                 )
               }
             >
@@ -145,7 +150,7 @@ function ContractRow({
               onClick={() =>
                 void runAction(
                   () => publishMutation.mutateAsync(contract.id),
-                  'settings.bilateral.publishDone'
+                  'settings.bilateral.publishDone',
                 )
               }
             >
@@ -161,7 +166,7 @@ function ContractRow({
                 if (!window.confirm(t('settings.bilateral.revokeConfirm'))) return;
                 void runAction(
                   () => revokeMutation.mutateAsync(contract.id),
-                  'settings.bilateral.revokeDone'
+                  'settings.bilateral.revokeDone',
                 );
               }}
             >
@@ -207,7 +212,7 @@ export default function BilateralExchangePanel() {
   }));
   const selectedSchema = useMemo(
     () => schemas.find((s) => s.schemaKey === schemaKey),
-    [schemas, schemaKey]
+    [schemas, schemaKey],
   );
 
   useEffect(() => {
@@ -220,7 +225,7 @@ export default function BilateralExchangePanel() {
 
   const contracts = contractsData?.contracts ?? [];
   const pendingIncoming = contracts.filter(
-    (c) => c.role === 'consumer' && displayContractStatus(c) === 'pending'
+    (c) => c.role === 'consumer' && displayContractStatus(c) === 'pending',
   );
 
   if (!enabled) {
@@ -239,7 +244,9 @@ export default function BilateralExchangePanel() {
 
   const submitPropose = async () => {
     if (!partnerSlug.trim() || !schemaKey || selectedFields.length === 0) return;
-    if (!window.confirm(t('settings.bilateral.proposeConfirm').replace('{slug}', partnerSlug.trim()))) {
+    if (
+      !window.confirm(t('settings.bilateral.proposeConfirm').replace('{slug}', partnerSlug.trim()))
+    ) {
       return;
     }
     try {
@@ -338,9 +345,7 @@ export default function BilateralExchangePanel() {
                           checked={selectedFields.includes(field)}
                           onChange={(e) => {
                             setSelectedFields((prev) =>
-                              e.target.checked
-                                ? [...prev, field]
-                                : prev.filter((f) => f !== field)
+                              e.target.checked ? [...prev, field] : prev.filter((f) => f !== field),
                             );
                           }}
                         />

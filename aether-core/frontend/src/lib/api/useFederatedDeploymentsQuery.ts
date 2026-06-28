@@ -23,7 +23,7 @@ export function useFederatedDeploymentsQuery() {
     queryKey: ['federated-deployments'],
     queryFn: () =>
       apiFetch<{ deployments: FederatedDeployment[]; capabilityCatalog: string[] }>(
-        apiRoutes.admin.federatedDeployments
+        apiRoutes.admin.federatedDeployments,
       ),
   });
 }
@@ -39,7 +39,10 @@ export function useCreateFederatedDeploymentMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: Omit<FederatedDeployment, 'source'>) =>
-      apiFetch(apiRoutes.admin.federatedDeployments, { method: 'POST', body: JSON.stringify(body) }),
+      apiFetch(apiRoutes.admin.federatedDeployments, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['federated-deployments'] }),
   });
 }
@@ -47,7 +50,10 @@ export function useCreateFederatedDeploymentMutation() {
 export function useUpdateFederatedDeploymentMutation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ deploymentId, ...body }: Partial<FederatedDeployment> & { deploymentId: string }) =>
+    mutationFn: ({
+      deploymentId,
+      ...body
+    }: Partial<FederatedDeployment> & { deploymentId: string }) =>
       apiFetch(apiRoutes.admin.federatedDeployment(deploymentId), {
         method: 'PUT',
         body: JSON.stringify(body),

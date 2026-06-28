@@ -1,13 +1,6 @@
 import { useId, useState } from 'react';
 import React from 'react';
-import {
-  Button,
-  Card,
-  RangeInput,
-  SegmentedControl,
-  SettingRow,
-  Switch,
-} from '@/components/ui';
+import { Button, Card, RangeInput, SegmentedControl, SettingRow, Switch } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import type { GoalPursuitMode } from '@/lib/settings/merchantSettingsTypes';
@@ -71,9 +64,7 @@ export default function GoalPursuitSection() {
         <SettingRow label={t('settings.goals.defaultPursuit')}>
           <SegmentedControl
             value={draft.defaultPursuitMode}
-            onChange={(v) =>
-              setDraft((d) => ({ ...d, defaultPursuitMode: v as GoalPursuitMode }))
-            }
+            onChange={(v) => setDraft((d) => ({ ...d, defaultPursuitMode: v as GoalPursuitMode }))}
             options={pursuitOptions}
             aria-label={t('settings.goals.defaultPursuit')}
           />
@@ -125,9 +116,7 @@ export default function GoalPursuitSection() {
         >
           <Switch
             checked={draft.showGlobalHints}
-            onCheckedChange={(showGlobalHints) =>
-              setDraft((d) => ({ ...d, showGlobalHints }))
-            }
+            onCheckedChange={(showGlobalHints) => setDraft((d) => ({ ...d, showGlobalHints }))}
           />
         </SettingRow>
 

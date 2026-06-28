@@ -4,7 +4,14 @@ import { adminRepository } from '@/lib/data';
 import { formatDate, t } from '@/lib/i18n';
 import { env } from '@/lib/config';
 import { apiRoutes } from '@/lib/api/routes';
-import { AsyncBoundary, Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui';
+import {
+  AsyncBoundary,
+  Button,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui';
 import { aetherErrorMessage, useAetherQuery } from '@/lib/query/hooks';
 import { queryTiming } from '@/lib/query/client';
 import { queryKeys } from '@/lib/query/keys';
@@ -41,9 +48,10 @@ export default function AgentExplainabilitySheet({
 }: AgentExplainabilitySheetProps) {
   const { settings } = useMerchantSettings();
   const detailOff = settings.explainabilityPrefs?.detailLevel === 'off';
-  const [similarTarget, setSimilarTarget] = useState<{ type: ExplainEntityType; id: string } | null>(
-    null,
-  );
+  const [similarTarget, setSimilarTarget] = useState<{
+    type: ExplainEntityType;
+    id: string;
+  } | null>(null);
   const [activeDiff, setActiveDiff] = useState<ExplainabilityDiff | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
 
@@ -133,7 +141,9 @@ export default function AgentExplainabilitySheet({
                         {t('explain.summary.enriching')}
                       </p>
                     )}
-                    <p className="text-sm text-muted-foreground leading-relaxed">{timeline.summary}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {timeline.summary}
+                    </p>
                   </div>
                 )}
 
@@ -151,69 +161,71 @@ export default function AgentExplainabilitySheet({
                   </section>
                 )}
 
-                {timeline.sections && timeline.sections.length > 0 ? (
-                  timeline.sections
-                    .filter((s: ExplainabilitySection) => s.id !== 'flow')
-                    .map((section: ExplainabilitySection) => (
-                      <section key={section.id} aria-labelledby={`explain-${section.id}`}>
-                        <h3
-                          id={`explain-${section.id}`}
-                          className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3"
-                        >
-                          {section.title}
-                        </h3>
-                        <ul className="space-y-3">
-                          {section.items.map((item: ExplainabilitySectionItem, i: number) => (
-                            <li key={`${section.id}-${i}`} className="flex gap-3 text-sm">
-                              <Clock
-                                size={16}
-                                className="text-muted-foreground shrink-0 mt-0.5"
-                                aria-hidden
-                              />
-                              <div className="min-w-0">
-                                <p className="font-medium text-foreground">{item.label}</p>
-                                {item.detail && (
-                                  <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
-                                    {item.detail}
-                                  </p>
-                                )}
-                                {item.meta && (
-                                  <p className="mt-0.5 text-muted-foreground/70 text-[10px]">
-                                    {item.meta}
-                                  </p>
-                                )}
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </section>
-                    ))
-                ) : (
-                  timeline.events &&
-                  timeline.events.length > 0 && (
-                    <ul className="space-y-4">
-                      {timeline.events.map((event: ExplainTimelineEvent, i: number) => (
-                        <li key={`${event.at}-${i}`} className="flex gap-3 text-sm">
-                          <Clock
-                            size={16}
-                            className="text-muted-foreground shrink-0 mt-0.5"
-                            aria-hidden
-                          />
-                          <div>
-                            <p className="font-medium text-foreground">{event.label}</p>
-                            <p className="text-muted-foreground text-xs">{formatDate(event.at)}</p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )
-                )}
+                {timeline.sections && timeline.sections.length > 0
+                  ? timeline.sections
+                      .filter((s: ExplainabilitySection) => s.id !== 'flow')
+                      .map((section: ExplainabilitySection) => (
+                        <section key={section.id} aria-labelledby={`explain-${section.id}`}>
+                          <h3
+                            id={`explain-${section.id}`}
+                            className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3"
+                          >
+                            {section.title}
+                          </h3>
+                          <ul className="space-y-3">
+                            {section.items.map((item: ExplainabilitySectionItem, i: number) => (
+                              <li key={`${section.id}-${i}`} className="flex gap-3 text-sm">
+                                <Clock
+                                  size={16}
+                                  className="text-muted-foreground shrink-0 mt-0.5"
+                                  aria-hidden
+                                />
+                                <div className="min-w-0">
+                                  <p className="font-medium text-foreground">{item.label}</p>
+                                  {item.detail && (
+                                    <p className="mt-0.5 text-muted-foreground text-xs leading-relaxed">
+                                      {item.detail}
+                                    </p>
+                                  )}
+                                  {item.meta && (
+                                    <p className="mt-0.5 text-muted-foreground/70 text-[10px]">
+                                      {item.meta}
+                                    </p>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      ))
+                  : timeline.events &&
+                    timeline.events.length > 0 && (
+                      <ul className="space-y-4">
+                        {timeline.events.map((event: ExplainTimelineEvent, i: number) => (
+                          <li key={`${event.at}-${i}`} className="flex gap-3 text-sm">
+                            <Clock
+                              size={16}
+                              className="text-muted-foreground shrink-0 mt-0.5"
+                              aria-hidden
+                            />
+                            <div>
+                              <p className="font-medium text-foreground">{event.label}</p>
+                              <p className="text-muted-foreground text-xs">
+                                {formatDate(event.at)}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
 
                 {activeDiff && (
                   <ExplainabilityDiffPanel diff={activeDiff} onClose={() => setActiveDiff(null)} />
                 )}
                 {diffLoading && (
-                  <p className="text-xs text-muted-foreground italic">{t('explain.diff.loading')}</p>
+                  <p className="text-xs text-muted-foreground italic">
+                    {t('explain.diff.loading')}
+                  </p>
                 )}
 
                 {timeline.similarActions && timeline.similarActions.length > 0 && (

@@ -20,11 +20,36 @@ export interface AutonomySimulateResult {
 }
 
 const SIMULATOR_ACTIONS = [
-  { id: 'price_update', module: 'admin-command-bar', actionType: 'price.change', labelKey: 'settings.autonomy.simulator.actionPrice' },
-  { id: 'mail_reply', module: 'aether-mail', actionType: 'email.auto_reply', labelKey: 'settings.autonomy.simulator.actionMail' },
-  { id: 'supplier_sync', module: 'supplier-intelligence', actionType: 'supplier.monitor', labelKey: 'settings.autonomy.simulator.actionSupplier' },
-  { id: 'restock', module: 'admin-command-bar', actionType: 'inventory.restock', labelKey: 'settings.autonomy.simulator.actionInventory' },
-  { id: 'promotion', module: 'admin-command-bar', actionType: 'promotion.suggest', labelKey: 'settings.autonomy.simulator.actionPromotion' },
+  {
+    id: 'price_update',
+    module: 'admin-command-bar',
+    actionType: 'price.change',
+    labelKey: 'settings.autonomy.simulator.actionPrice',
+  },
+  {
+    id: 'mail_reply',
+    module: 'aether-mail',
+    actionType: 'email.auto_reply',
+    labelKey: 'settings.autonomy.simulator.actionMail',
+  },
+  {
+    id: 'supplier_sync',
+    module: 'supplier-intelligence',
+    actionType: 'supplier.monitor',
+    labelKey: 'settings.autonomy.simulator.actionSupplier',
+  },
+  {
+    id: 'restock',
+    module: 'admin-command-bar',
+    actionType: 'inventory.restock',
+    labelKey: 'settings.autonomy.simulator.actionInventory',
+  },
+  {
+    id: 'promotion',
+    module: 'admin-command-bar',
+    actionType: 'promotion.suggest',
+    labelKey: 'settings.autonomy.simulator.actionPromotion',
+  },
 ] as const;
 
 function modeBadgeClass(mode: string): string {
@@ -98,7 +123,9 @@ export default function AutonomySimulatorPanel({ prefill }: Props) {
       <h3 className="text-base font-semibold text-foreground mb-1">
         {t('settings.autonomy.simulator.title')}
       </h3>
-      <p className="text-sm text-muted-foreground mb-6">{t('settings.autonomy.simulator.subtitle')}</p>
+      <p className="text-sm text-muted-foreground mb-6">
+        {t('settings.autonomy.simulator.subtitle')}
+      </p>
 
       <div className="grid gap-4 sm:grid-cols-2 mb-6">
         <label className="text-sm block">
@@ -196,7 +223,9 @@ export default function AutonomySimulatorPanel({ prefill }: Props) {
           </div>
 
           <div>
-            <p className="text-sm font-medium mb-2">{t('settings.autonomy.simulator.traceTitle')}</p>
+            <p className="text-sm font-medium mb-2">
+              {t('settings.autonomy.simulator.traceTitle')}
+            </p>
             <ol className="space-y-2 text-sm">
               {result.trace.map((step, i) => (
                 <li

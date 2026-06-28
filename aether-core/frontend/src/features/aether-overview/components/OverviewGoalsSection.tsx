@@ -56,11 +56,7 @@ export default function OverviewGoalsSection({ goals }: OverviewGoalsSectionProp
                   <GoalProgressBar
                     value={progress}
                     variant={
-                      goal.status === 'completed'
-                        ? 'completed'
-                        : behind
-                          ? 'behind'
-                          : 'default'
+                      goal.status === 'completed' ? 'completed' : behind ? 'behind' : 'default'
                     }
                   />
                   <p className="text-[10px] text-caption-accessible">

@@ -6,12 +6,12 @@ import { t } from '@/lib/i18n';
 
 function transcriptToSteps(
   messages: AgentMessage[],
-  checkpoint?: boolean
+  checkpoint?: boolean,
 ): { label: string; summary: string; done: boolean; checkpoint?: boolean }[] {
   const steps: { label: string; summary: string; done: boolean; checkpoint?: boolean }[] = [];
   const lastProposalIndex = messages.reduce(
     (last, msg, i) => (msg.role === 'proposal' ? i : last),
-    -1
+    -1,
   );
 
   messages.forEach((msg, i) => {
@@ -32,7 +32,8 @@ function transcriptToSteps(
     } else if (msg.role === 'tool') {
       steps.push({
         label: msg.tool,
-        summary: msg.status === 'proposed' ? t('command.brain.stepProposed') : msg.output.slice(0, 120),
+        summary:
+          msg.status === 'proposed' ? t('command.brain.stepProposed') : msg.output.slice(0, 120),
         done: msg.status !== 'error',
       });
     } else if (msg.role === 'proposal') {
@@ -117,10 +118,7 @@ export default function AgentRunTimeline({
           const messages = agentTranscripts![agentKey] ?? [];
           const isOpen = !collapsed[agentKey];
           return (
-            <div
-              key={agentKey}
-              className="rounded-lg border border-border/30 bg-muted/5 px-3 py-2"
-            >
+            <div key={agentKey} className="rounded-lg border border-border/30 bg-muted/5 px-3 py-2">
               <button
                 type="button"
                 className="flex w-full items-center gap-2 text-left text-xs font-medium text-muted-foreground hover:text-foreground"
@@ -148,7 +146,9 @@ export default function AgentRunTimeline({
 
   return (
     <div className="mt-3" data-testid="agent-run-timeline">
-      <p className="text-xs font-medium text-muted-foreground mb-2">{t('command.brain.agentSteps')}</p>
+      <p className="text-xs font-medium text-muted-foreground mb-2">
+        {t('command.brain.agentSteps')}
+      </p>
       <SingleAgentTimeline
         transcript={singleTranscript}
         checkpoint={checkpoint}

@@ -83,10 +83,7 @@ export function filterOverviewProactiveSuggestions(
 }
 
 export function showProactiveSection(filters: OverviewFilters): boolean {
-  return (
-    filters.actionType === 'all' ||
-    filters.actionType === 'proactive'
-  );
+  return filters.actionType === 'all' || filters.actionType === 'proactive';
 }
 
 export function showGoalsSection(filters: OverviewFilters): boolean {

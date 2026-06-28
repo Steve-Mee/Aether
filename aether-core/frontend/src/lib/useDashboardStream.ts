@@ -126,7 +126,8 @@ export function useDashboardStream(): {
                 void queryClient.invalidateQueries({ queryKey: ['goals'] });
                 void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
                 const current =
-                  queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard()) ?? ({} as DashboardSummary);
+                  queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard()) ??
+                  ({} as DashboardSummary);
                 const next = {
                   ...current,
                   proactiveCount: json.proactiveCount ?? current.proactiveCount ?? 0,
@@ -146,7 +147,11 @@ export function useDashboardStream(): {
                 void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
                 continue;
               }
-              if (json.type === 'notification_state_changed' && json.actorId && json.notificationId) {
+              if (
+                json.type === 'notification_state_changed' &&
+                json.actorId &&
+                json.notificationId
+              ) {
                 dispatchNotificationState(json as unknown as NotificationStateChangedEvent);
                 void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
                 continue;

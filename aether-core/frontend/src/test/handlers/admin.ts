@@ -7,7 +7,13 @@ import {
   mockTruthStatus,
 } from '../fixtures';
 import { DEFAULT_OVERVIEW_PREFS } from '@/lib/settings/merchantSettingsTypes';
-import { getMswLastCommand, getMswActivityFeed, getMswApprovals, mswExecuteCommand, mswUndoCommand } from './state';
+import {
+  getMswLastCommand,
+  getMswActivityFeed,
+  getMswApprovals,
+  mswExecuteCommand,
+  mswUndoCommand,
+} from './state';
 
 const mswNotificationRead = new Set<string>();
 const mswNotificationDismissed = new Set<string>();

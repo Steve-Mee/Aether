@@ -17,7 +17,8 @@ export function useNotificationsPage(groupKey?: string) {
   });
 
   const notifications = query.data?.pages.flatMap((p) => p.notifications) ?? [];
-  const unreadCount = query.data?.pages[0]?.unreadCount ?? notifications.filter((n) => !n.read).length;
+  const unreadCount =
+    query.data?.pages[0]?.unreadCount ?? notifications.filter((n) => !n.read).length;
 
   const handleSelect = (id: string, href?: string) => {
     markRead(id);

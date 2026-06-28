@@ -7,8 +7,8 @@ describe('eventToStep', () => {
     expect(
       eventToStep(
         { type: 'plan_ready', goal: 'Test', steps: [{ index: 1, label: 'Stap 1' }], timestamp: '' },
-        0
-      )
+        0,
+      ),
     ).toBeNull();
   });
 
@@ -22,7 +22,7 @@ describe('eventToStep', () => {
         steps: [{ index: 1, label: 'Haal data op' }],
         timestamp: '',
       },
-      1
+      1,
     );
     expect(step?.label).toContain('Haal data op');
     expect(step?.done).toBe(false);
@@ -31,7 +31,7 @@ describe('eventToStep', () => {
   it('maps checkpoint with checkpoint flag', () => {
     const step = eventToStep(
       { type: 'checkpoint', summary: 'Wacht op goedkeuring', proposalId: 'p1', timestamp: '' },
-      2
+      2,
     );
     expect(step?.checkpoint).toBe(true);
   });
@@ -44,7 +44,7 @@ describe('eventToStep', () => {
         nextAction: 'continue',
         timestamp: '',
       },
-      3
+      3,
     );
     expect(step?.done).toBe(true);
     expect(step?.summary).toContain('Genoeg productdata');
@@ -58,7 +58,7 @@ describe('eventToStep', () => {
         revision: 2,
         timestamp: '',
       },
-      4
+      4,
     );
     expect(step?.summary).toBe('Herzien plan');
     expect(step?.done).toBe(false);

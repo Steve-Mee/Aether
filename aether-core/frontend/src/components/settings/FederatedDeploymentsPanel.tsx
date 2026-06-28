@@ -33,7 +33,10 @@ export default function FederatedDeploymentsPanel() {
       await createMutation.mutateAsync({
         deploymentId,
         baseUrl: baseUrl || undefined,
-        capabilities: capabilities.split(',').map((c) => c.trim()).filter(Boolean),
+        capabilities: capabilities
+          .split(',')
+          .map((c) => c.trim())
+          .filter(Boolean),
         status: 'active',
       });
       setDeploymentId('');
@@ -70,10 +73,18 @@ export default function FederatedDeploymentsPanel() {
 
       {status && (
         <div className="text-sm text-muted-foreground mb-6 space-y-1">
-          <div>{t('settings.platform.localDeployment')}: {status.localDeploymentId}</div>
-          <div>{t('settings.platform.broker')}: {status.messageBroker}</div>
-          <div>{t('settings.platform.rpcEnabled')}: {status.federatedRpcEnabled ? 'yes' : 'no'}</div>
-          <div>{t('settings.platform.relayBacklog')}: {status.relayBacklog}</div>
+          <div>
+            {t('settings.platform.localDeployment')}: {status.localDeploymentId}
+          </div>
+          <div>
+            {t('settings.platform.broker')}: {status.messageBroker}
+          </div>
+          <div>
+            {t('settings.platform.rpcEnabled')}: {status.federatedRpcEnabled ? 'yes' : 'no'}
+          </div>
+          <div>
+            {t('settings.platform.relayBacklog')}: {status.relayBacklog}
+          </div>
         </div>
       )}
 
@@ -91,9 +102,13 @@ export default function FederatedDeploymentsPanel() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">{dep.status}</span>
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                {dep.status}
+              </span>
               {dep.source === 'env' ? (
-                <span className="text-xs bg-muted px-2 py-1 rounded">{t('settings.platform.envReadOnly')}</span>
+                <span className="text-xs bg-muted px-2 py-1 rounded">
+                  {t('settings.platform.envReadOnly')}
+                </span>
               ) : (
                 <Button
                   variant="secondary"
@@ -101,7 +116,9 @@ export default function FederatedDeploymentsPanel() {
                   disabled={busy}
                   onClick={() => void toggleActive(dep)}
                 >
-                  {dep.status === 'active' ? t('settings.platform.deactivate') : t('settings.platform.activate')}
+                  {dep.status === 'active'
+                    ? t('settings.platform.deactivate')
+                    : t('settings.platform.activate')}
                 </Button>
               )}
             </div>
@@ -115,12 +132,21 @@ export default function FederatedDeploymentsPanel() {
           <TextField value={deploymentId} onChange={(e) => setDeploymentId(e.target.value)} />
         </SettingRow>
         <SettingRow label={t('settings.platform.baseUrl')}>
-          <TextField value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://..." />
+          <TextField
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
+            placeholder="https://..."
+          />
         </SettingRow>
         <SettingRow label={t('settings.platform.capabilities')}>
           <TextField value={capabilities} onChange={(e) => setCapabilities(e.target.value)} />
         </SettingRow>
-        <Button variant="primary" size="sm" disabled={!deploymentId || busy} onClick={() => void submitCreate()}>
+        <Button
+          variant="primary"
+          size="sm"
+          disabled={!deploymentId || busy}
+          onClick={() => void submitCreate()}
+        >
           {t('settings.platform.create')}
         </Button>
       </div>

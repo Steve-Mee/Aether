@@ -30,9 +30,18 @@ export default function GoalProgressBar({
       <div className="relative h-2 rounded-full bg-muted/60 overflow-hidden">
         {showMilestones && (
           <>
-            <span className="absolute left-[25%] top-0 bottom-0 w-px bg-border/40 z-[1]" aria-hidden />
-            <span className="absolute left-[50%] top-0 bottom-0 w-px bg-border/40 z-[1]" aria-hidden />
-            <span className="absolute left-[75%] top-0 bottom-0 w-px bg-border/40 z-[1]" aria-hidden />
+            <span
+              className="absolute left-[25%] top-0 bottom-0 w-px bg-border/40 z-[1]"
+              aria-hidden
+            />
+            <span
+              className="absolute left-[50%] top-0 bottom-0 w-px bg-border/40 z-[1]"
+              aria-hidden
+            />
+            <span
+              className="absolute left-[75%] top-0 bottom-0 w-px bg-border/40 z-[1]"
+              aria-hidden
+            />
           </>
         )}
         <div

@@ -120,16 +120,14 @@ export default function CommandResultCard({
   const [contextOpen, setContextOpen] = useState(false);
   const [liveAgentRun, setLiveAgentRun] = useState<AgentRunResponse | null>(null);
   const executedSet =
-    autoExecutedIds ??
-    new Set(brain?.autoExecuted?.map((a) => a.proposalId) ?? []);
+    autoExecutedIds ?? new Set(brain?.autoExecuted?.map((a) => a.proposalId) ?? []);
 
   const isCheckpoint = Boolean(
     liveAgentRun?.checkpoint ??
-      brain?.checkpoint ??
-      (liveAgentRun?.status === 'awaiting_approval' || brain?.runStatus === 'awaiting_approval')
+    brain?.checkpoint ??
+    (liveAgentRun?.status === 'awaiting_approval' || brain?.runStatus === 'awaiting_approval'),
   );
-  const awaitingApprovalId =
-    liveAgentRun?.awaitingApprovalId ?? brain?.awaitingApprovalId;
+  const awaitingApprovalId = liveAgentRun?.awaitingApprovalId ?? brain?.awaitingApprovalId;
   const agentTranscript = liveAgentRun?.transcript ?? brain?.transcript;
 
   useEffect(() => {
@@ -184,9 +182,7 @@ export default function CommandResultCard({
             key={`${agent.agentKey}-${agent.specialistRunId ?? 'primary'}`}
             agentKey={agent.agentKey}
             delegatedFrom={agent.delegatedFrom}
-            chainFrom={
-              brain?.handoffChain?.find((h) => h.to === agent.agentKey)?.from
-            }
+            chainFrom={brain?.handoffChain?.find((h) => h.to === agent.agentKey)?.from}
           />
         ))}
       </div>
@@ -195,20 +191,23 @@ export default function CommandResultCard({
       )}
       {showFlowDiagram && resultFlowGraph && (
         <Suspense fallback={<div className="h-28 animate-pulse bg-muted/30 rounded mb-2" />}>
-          <AgentFlowDiagram graph={resultFlowGraph} height={150} className="mb-2 rounded-lg border border-border/40" />
+          <AgentFlowDiagram
+            graph={resultFlowGraph}
+            height={150}
+            className="mb-2 rounded-lg border border-border/40"
+          />
         </Suspense>
       )}
-      {brain?.sharedMemorySummary &&
-        Object.keys(brain.sharedMemorySummary).length > 0 && (
-          <SharedMemoryRail
-            entries={Object.entries(brain.sharedMemorySummary).map(([key, value]) => ({
-              namespace: 'shared',
-              key,
-              valuePreview: JSON.stringify(value).slice(0, 200),
-            }))}
-            defaultCollapsed
-          />
-        )}
+      {brain?.sharedMemorySummary && Object.keys(brain.sharedMemorySummary).length > 0 && (
+        <SharedMemoryRail
+          entries={Object.entries(brain.sharedMemorySummary).map(([key, value]) => ({
+            namespace: 'shared',
+            key,
+            valuePreview: JSON.stringify(value).slice(0, 200),
+          }))}
+          defaultCollapsed
+        />
+      )}
       {brain?.agentContributions && brain.agentContributions.length > 0 && (
         <AgentContributionsPanel
           contributions={brain.agentContributions}
@@ -239,7 +238,10 @@ export default function CommandResultCard({
       )}
 
       {brain?.globalKnowledge?.message && (
-        <p className="mt-2 text-xs text-emerald-700/90 dark:text-emerald-400/90 leading-relaxed" role="status">
+        <p
+          className="mt-2 text-xs text-emerald-700/90 dark:text-emerald-400/90 leading-relaxed"
+          role="status"
+        >
           {brain.globalKnowledge.message}
         </p>
       )}
@@ -284,12 +286,12 @@ export default function CommandResultCard({
               <span className="text-foreground/80">{item.summary}</span>
               {' · '}
               <span>{item.age}</span>
-              {item.kind ?
+              {item.kind ? (
                 <>
                   {' · '}
                   <span className="uppercase tracking-wide text-primary/80">{item.kind}</span>
                 </>
-              : null}
+              ) : null}
             </li>
           ))}
         </ul>
@@ -336,7 +338,9 @@ export default function CommandResultCard({
                   <li key={i} className="truncate" title={snippet}>
                     • {snippet}
                     {match != null && (
-                      <span className="ml-1 text-muted-foreground/50">({match.score.toFixed(2)})</span>
+                      <span className="ml-1 text-muted-foreground/50">
+                        ({match.score.toFixed(2)})
+                      </span>
                     )}
                   </li>
                 );
