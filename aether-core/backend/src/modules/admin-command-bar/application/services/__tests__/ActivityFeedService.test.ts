@@ -53,6 +53,12 @@ jest.mock('../../../../../shared/prisma/client', () => ({
   },
 }));
 
+jest.mock('../../../../../ai/intelligence/explainability/ExplainabilityPersister', () => ({
+  explainabilityPersister: {
+    getSnapshot: jest.fn().mockResolvedValue(null),
+  },
+}));
+
 import { prisma } from '../../../../../shared/prisma/client';
 
 describe('ActivityFeedService', () => {

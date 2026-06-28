@@ -1,5 +1,6 @@
-import { assessBrainActionRisk } from '../ActionRiskPolicyBridge';
+import { assessBrainActionRisk, isLowRiskExecutableAsync } from '../ActionRiskPolicyBridge';
 import { classifyBrainAction } from '../ActionRiskClassifier';
+import { DEFAULT_MERCHANT_SETTINGS } from '../../../../../shared/settings/merchantSettingsTypes';
 
 jest.mock('../../../../../shared/policy/assessApprovalAutoEligible', () => ({
   assessApprovalAutoEligible: jest.fn(),
@@ -10,11 +11,18 @@ jest.mock('../../../../../shared/settings/TenantSettingsService', () => ({
 }));
 
 import { assessApprovalAutoEligible } from '../../../../../shared/policy/assessApprovalAutoEligible';
-import { isLowRiskExecutableAsync } from '../ActionRiskPolicyBridge';
+import { getMerchantSettings } from '../../../../../shared/settings/TenantSettingsService';
+
+const policyEnabledSettings = {
+  ...DEFAULT_MERCHANT_SETTINGS,
+  policyEnabled: true,
+  autoApproveLowRisk: true,
+};
 
 describe('ActionRiskPolicyBridge', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (getMerchantSettings as jest.Mock).mockResolvedValue(policyEnabledSettings);
   });
 
   it('downgrades small positive updatePrice when tenant policy eligible', async () => {
