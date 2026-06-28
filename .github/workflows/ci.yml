@@ -121,6 +121,7 @@ jobs:
             if curl -sf http://localhost:11434/api/tags; then break; fi
             sleep 2
           done
+          curl -sf -X POST http://localhost:11434/api/pull -d '{"name":"nomic-embed-text"}'
           curl -sf -X POST http://localhost:11434/api/pull -d '{"name":"llama3.2"}' || true
 
       - name: Ollama contract test
