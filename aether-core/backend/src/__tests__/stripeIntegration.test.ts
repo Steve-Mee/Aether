@@ -5,7 +5,7 @@ const describeIfStripeMock =
 
 describeIfStripeMock('Stripe integration (stripe-mock)', () => {
   beforeAll(() => {
-    process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ?? 'sk_test_ci_mock';
+    process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY ?? 'sk_test_123';
     process.env.STRIPE_API_HOST = process.env.STRIPE_API_HOST ?? 'localhost';
     process.env.STRIPE_API_PORT = process.env.STRIPE_API_PORT ?? '12111';
     process.env.STRIPE_API_PROTOCOL = process.env.STRIPE_API_PROTOCOL ?? 'http';
