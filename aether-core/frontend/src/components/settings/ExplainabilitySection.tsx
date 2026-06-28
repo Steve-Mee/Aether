@@ -34,8 +34,8 @@ export default function ExplainabilitySection() {
         <SegmentedControl
           value={prefs.detailLevel}
           options={levelOptions}
-          onChange={(detailLevel) => patchPrefs({ detailLevel })}
-          ariaLabel={t('settings.explainability.title')}
+          onChange={(detailLevel) => patchPrefs({ detailLevel: detailLevel as ExplainabilityDetailLevel })}
+          aria-label={t('settings.explainability.title')}
         />
       </SettingRow>
       {prefs.detailLevel !== 'off' && (

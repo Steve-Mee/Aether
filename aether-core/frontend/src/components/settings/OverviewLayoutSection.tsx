@@ -228,7 +228,7 @@ export default function OverviewLayoutSection() {
 
       <div className="space-y-5">
         <SettingRow
-          id={enabledId}
+          htmlFor={enabledId}
           label={t('settings.overview.enabled')}
           description={t('settings.overview.enabledHint')}
         >
@@ -239,13 +239,17 @@ export default function OverviewLayoutSection() {
           />
         </SettingRow>
 
-        <SegmentedControl
-          label={t('settings.overview.defaultPeriod')}
-          value={draft.defaultPeriod}
-          onChange={(v) => updateDraft((d) => ({ ...d, defaultPeriod: v as OverviewDefaultPeriod }))}
-          options={periodOptions}
-          disabled={!draft.enabled}
-        />
+        <SettingRow label={t('settings.overview.defaultPeriod')}>
+          <SegmentedControl
+            value={draft.defaultPeriod}
+            onChange={(v) => updateDraft((d) => ({ ...d, defaultPeriod: v as OverviewDefaultPeriod }))}
+            options={periodOptions.map((opt) => ({
+              ...opt,
+              disabled: !draft.enabled,
+            }))}
+            aria-label={t('settings.overview.defaultPeriod')}
+          />
+        </SettingRow>
 
         <div className="space-y-3 pt-2">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

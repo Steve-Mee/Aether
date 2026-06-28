@@ -21,6 +21,7 @@ import type {
   SupplierOverviewApiResponse,
 } from '@/types/supplier';
 import type { MerchantSettings } from '@/lib/settings/merchantSettingsTypes';
+import type { ExplainTimeline } from '@/types/explainability';
 import type { OrderRowDemo } from '@/lib/ordersPageDemo';
 import type { ProductRowDemo } from '@/lib/productsPageDemo';
 import type { EmailRowDemo } from '@/lib/emailsPageDemo';
@@ -35,23 +36,7 @@ export interface ActivityFetchParams {
   agentKey?: string;
 }
 
-export interface ExplainTimeline {
-  entityType: string;
-  entityId: string;
-  detailLevel?: 'simple' | 'extended';
-  summary?: string;
-  sections?: import('@/types/explainability').ExplainabilitySection[];
-  events?: Array<{
-    at: string;
-    label: string;
-    status?: string;
-    module?: string;
-    actor?: string;
-    category?: string;
-    actionType?: string;
-    details?: unknown;
-  }>;
-}
+export type { ExplainTimeline } from '@/types/explainability';
 
 export interface AutonomyTraceResponse {
   events: Array<{

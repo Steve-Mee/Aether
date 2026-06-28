@@ -108,15 +108,17 @@ export default function AutonomyCategoryGrid({ autonomyPrefs, onChange, disabled
                 description={t('settings.autonomy.category.scheduleHint')}
               >
                 <SegmentedControl
-                  options={scheduleOptions}
+                  options={scheduleOptions.map((opt) => ({
+                    ...opt,
+                    disabled: disabled || !policy.enabled,
+                  }))}
                   value={schedule.mode}
-                  disabled={disabled || !policy.enabled}
                   onChange={(mode) =>
                     onChange(
                       updateCategory(autonomyPrefs, category, {
                         schedule: {
                           ...schedule,
-                          mode,
+                          mode: mode as typeof schedule.mode,
                           ...(mode === 'continuous'
                             ? { useOutsideOfficePreset: false }
                             : {}),
@@ -125,6 +127,7 @@ export default function AutonomyCategoryGrid({ autonomyPrefs, onChange, disabled
                     )
                   }
                   data-testid={`autonomy-category-schedule-${category}`}
+                  aria-label={t('settings.autonomy.category.schedule')}
                 />
               </SettingRow>
 

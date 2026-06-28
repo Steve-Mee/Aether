@@ -21,16 +21,20 @@ vi.mock('@/lib/config/env', () => ({
   env: { dataSource: 'mock' as const },
 }));
 
-vi.mock('@/lib/settings/MerchantSettingsContext', () => ({
-  useMerchantSettings: () => ({
-    settings: DEFAULT_MERCHANT_SETTINGS,
-    loading: false,
-    error: null,
-    reload: vi.fn(),
-    updateSettings: vi.fn(),
-    updateNotificationPrefs: vi.fn(),
-  }),
-}));
+vi.mock('@/lib/settings/MerchantSettingsContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/settings/MerchantSettingsContext')>();
+  return {
+    ...actual,
+    useMerchantSettings: () => ({
+      settings: DEFAULT_MERCHANT_SETTINGS,
+      loading: false,
+      error: null,
+      reload: vi.fn(),
+      updateSettings: vi.fn(),
+      updateNotificationPrefs: vi.fn(),
+    }),
+  };
+});
 
 describe('NaturalLanguageBar integration', () => {
   beforeEach(() => {

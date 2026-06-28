@@ -18,6 +18,7 @@ export type BusinessEventName =
   | 'auth.sign_out'
   | 'truth.review_submitted'
   | 'notification.read'
+  | 'notification.received'
   | 'mutation.failed';
 
 export function trackBusinessEvent(

@@ -38,7 +38,6 @@ export default function AutonomyPresetSelector({ preset, onPresetChange, draft }
         htmlFor={id}
       >
         <SegmentedControl
-          id={id}
           options={PRESET_OPTIONS.map((o) => ({
             value: o.value,
             label: t(o.labelKey),
@@ -48,6 +47,7 @@ export default function AutonomyPresetSelector({ preset, onPresetChange, draft }
           }
           onChange={(v) => onPresetChange(v as Exclude<AutonomyPreset, 'custom'>)}
           data-testid="autonomy-preset-control"
+          aria-label={t('settings.autonomy.preset.label')}
         />
       </SettingRow>
 

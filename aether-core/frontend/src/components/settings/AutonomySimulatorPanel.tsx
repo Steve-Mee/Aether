@@ -50,7 +50,9 @@ interface Props {
 }
 
 export default function AutonomySimulatorPanel({ prefill }: Props) {
-  const [actionId, setActionId] = useState(SIMULATOR_ACTIONS[0].id);
+  const [actionId, setActionId] = useState<(typeof SIMULATOR_ACTIONS)[number]['id']>(
+    SIMULATOR_ACTIONS[0].id,
+  );
   const [marginImpact, setMarginImpact] = useState(prefill?.marginImpact ?? 50);
   const [priceChangePct, setPriceChangePct] = useState(prefill?.priceChangePct ?? 2);
   const [agentKey, setAgentKey] = useState(prefill?.agentKey ?? '');
@@ -106,7 +108,9 @@ export default function AutonomySimulatorPanel({ prefill }: Props) {
           <select
             className="w-full rounded-md border border-border/40 bg-background px-3 py-2"
             value={actionId}
-            onChange={(e) => setActionId(e.target.value)}
+            onChange={(e) =>
+              setActionId(e.target.value as (typeof SIMULATOR_ACTIONS)[number]['id'])
+            }
           >
             {SIMULATOR_ACTIONS.map((a) => (
               <option key={a.id} value={a.id}>

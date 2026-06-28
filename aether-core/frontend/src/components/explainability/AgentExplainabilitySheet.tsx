@@ -8,7 +8,14 @@ import { AsyncBoundary, Button, Sheet, SheetContent, SheetHeader, SheetTitle } f
 import { aetherErrorMessage, useAetherQuery } from '@/lib/query/hooks';
 import { queryTiming } from '@/lib/query/client';
 import { queryKeys } from '@/lib/query/keys';
-import type { ExplainEntityType, ExplainabilityDiff } from '@/types/explainability';
+import type {
+  ExplainEntityType,
+  ExplainabilityDiff,
+  ExplainabilitySection,
+  ExplainabilitySectionItem,
+  ExplainTimelineEvent,
+  SimilarActionRef,
+} from '@/types/explainability';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import ExplainabilityDiffPanel from './ExplainabilityDiffPanel';
 import { apiFetch } from '@/lib/api/client';
@@ -146,8 +153,8 @@ export default function AgentExplainabilitySheet({
 
                 {timeline.sections && timeline.sections.length > 0 ? (
                   timeline.sections
-                    .filter((s) => s.id !== 'flow')
-                    .map((section) => (
+                    .filter((s: ExplainabilitySection) => s.id !== 'flow')
+                    .map((section: ExplainabilitySection) => (
                       <section key={section.id} aria-labelledby={`explain-${section.id}`}>
                         <h3
                           id={`explain-${section.id}`}
@@ -156,7 +163,7 @@ export default function AgentExplainabilitySheet({
                           {section.title}
                         </h3>
                         <ul className="space-y-3">
-                          {section.items.map((item, i) => (
+                          {section.items.map((item: ExplainabilitySectionItem, i: number) => (
                             <li key={`${section.id}-${i}`} className="flex gap-3 text-sm">
                               <Clock
                                 size={16}
@@ -185,7 +192,7 @@ export default function AgentExplainabilitySheet({
                   timeline.events &&
                   timeline.events.length > 0 && (
                     <ul className="space-y-4">
-                      {timeline.events.map((event, i) => (
+                      {timeline.events.map((event: ExplainTimelineEvent, i: number) => (
                         <li key={`${event.at}-${i}`} className="flex gap-3 text-sm">
                           <Clock
                             size={16}
@@ -218,7 +225,7 @@ export default function AgentExplainabilitySheet({
                       {t('explain.similar.title')}
                     </h3>
                     <ul className="space-y-2">
-                      {timeline.similarActions.map((sim, idx) => (
+                      {timeline.similarActions.map((sim: SimilarActionRef, idx: number) => (
                         <li key={sim.sourceId ?? sim.patternKey ?? `global-${idx}`}>
                           {sim.scope === 'global' ? (
                             <div className="rounded-md border border-border/40 p-2 text-sm bg-muted/10">

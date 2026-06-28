@@ -96,9 +96,11 @@ export default function AutonomyConfigPanel() {
         brainAdaptiveAutoExecuteEnabled: draft.brainAdaptiveAutoExecuteEnabled,
         autonomyPrefs: draft.autonomyPrefs,
         proactivePrefs: {
+          ...draft.proactivePrefs,
           allowAutoExecute: draft.proactivePrefs.allowAutoExecute,
         },
         goalPrefs: {
+          ...draft.goalPrefs,
           defaultPursuitMode: draft.goalPrefs.defaultPursuitMode,
           allowGoalLinkedAutoExecute: draft.goalPrefs.allowGoalLinkedAutoExecute,
         },

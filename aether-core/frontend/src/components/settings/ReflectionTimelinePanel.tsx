@@ -118,7 +118,7 @@ export default function ReflectionTimelinePanel() {
                 </span>
                 <Badge variant="outline">{entry.kind}</Badge>
                 {entry.goalReached != null && (
-                  <Badge variant={entry.goalReached ? 'default' : 'destructive'}>
+                  <Badge variant={entry.goalReached ? 'default' : 'danger'}>
                     {entry.goalReached ? 'goal ✓' : 'goal ✗'}
                   </Badge>
                 )}

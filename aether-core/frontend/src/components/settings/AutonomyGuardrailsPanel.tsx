@@ -96,6 +96,7 @@ export default function AutonomyGuardrailsPanel({ draft, onChange }: Props) {
           value={draft.autoRunWindow}
           onChange={(v) => onChange({ autoRunWindow: v })}
           data-testid="auto-run-window"
+          aria-label={t('settings.autonomy.autoRunWindow')}
         />
       </SettingRow>
 

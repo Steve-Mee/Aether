@@ -65,6 +65,7 @@ export default function AutonomyLowRiskPanel({ draft, onChange }: Props) {
             onChange({ autonomyLevel: v, autonomyPrefs: { ...draft.autonomyPrefs, preset: 'custom' } })
           }
           data-testid="autonomy-level"
+          aria-label={t('settings.autonomy.level')}
         />
       </SettingRow>
 
@@ -144,6 +145,7 @@ export default function AutonomyLowRiskPanel({ draft, onChange }: Props) {
               options={brainModeOptions}
               value={draft.brainActionMode}
               onChange={(v) => onChange({ brainActionMode: v })}
+              aria-label={t('settings.autonomy.brainActionMode')}
             />
           </SettingRow>
 
@@ -155,6 +157,7 @@ export default function AutonomyLowRiskPanel({ draft, onChange }: Props) {
               options={knowledgeProfileOptions}
               value={draft.brainKnowledgeUpdateProfile}
               onChange={(v) => onChange({ brainKnowledgeUpdateProfile: v })}
+              aria-label={t('settings.autonomy.knowledgeUpdateProfile')}
             />
           </SettingRow>
 
@@ -166,6 +169,7 @@ export default function AutonomyLowRiskPanel({ draft, onChange }: Props) {
               options={governanceOptions}
               value={draft.brainKnowledgeGovernanceMode}
               onChange={(v) => onChange({ brainKnowledgeGovernanceMode: v })}
+              aria-label={t('settings.autonomy.knowledgeGovernance')}
             />
           </SettingRow>
         </div>

@@ -64,8 +64,12 @@ export class StripePaymentProvider implements PaymentProvider {
           return { success: false, status: 'failed', provider: this.name };
         }
         const intent = (await res.json()) as { id: string; status: string };
+        const mockSuccess =
+          intent.id?.startsWith('pi_') &&
+          intent.status !== 'canceled' &&
+          intent.status !== 'failed';
         return {
-          success: intent.status === 'succeeded' || intent.status === 'requires_payment_method',
+          success: mockSuccess,
           transactionId: intent.id,
           status: intent.status === 'succeeded' ? 'paid' : 'pending',
           provider: this.name,

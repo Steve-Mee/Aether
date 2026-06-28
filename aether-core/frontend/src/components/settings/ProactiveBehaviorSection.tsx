@@ -53,7 +53,7 @@ export default function ProactiveBehaviorSection() {
 
       <div className="space-y-5">
         <SettingRow
-          id={enabledId}
+          htmlFor={enabledId}
           label={t('settings.proactive.enabled')}
           description={t('settings.proactive.enabledHint')}
         >
@@ -67,17 +67,20 @@ export default function ProactiveBehaviorSection() {
         <SettingRow label={t('settings.proactive.visibility')} description={t('settings.proactive.visibilityHint')}>
           <SegmentedControl
             value={draft.visibility}
-            options={visibilityOptions}
+            options={visibilityOptions.map((opt) => ({
+              ...opt,
+              disabled: !draft.enabled,
+            }))}
             onChange={(value) =>
               setDraft((d) => ({ ...d, visibility: value as ProactiveVisibility }))
             }
-            disabled={!draft.enabled}
+            aria-label={t('settings.proactive.visibility')}
           />
         </SettingRow>
 
         {draft.enabled && draft.visibility !== 'off' && (
           <SettingRow
-            id={autoExecId}
+            htmlFor={autoExecId}
             label={t('settings.proactive.allowAutoExecute')}
             description={t('settings.proactive.allowAutoExecuteHint')}
           >
@@ -96,7 +99,7 @@ export default function ProactiveBehaviorSection() {
             min={1}
             max={10}
             value={draft.maxActive}
-            onChange={(v) => setDraft((d) => ({ ...d, maxActive: v }))}
+            onChange={(e) => setDraft((d) => ({ ...d, maxActive: Number(e.target.value) }))}
             disabled={!draft.enabled}
           />
         </SettingRow>

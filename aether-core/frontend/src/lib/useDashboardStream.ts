@@ -7,7 +7,7 @@ import { apiStreamFetch, type DashboardSummary } from './api';
 import { queryKeys } from './query/keys';
 import { dispatchNotification, dispatchNotificationState } from './aetherLiveBus';
 import type { NotificationPushEvent, NotificationStateChangedEvent } from '@/types/notification';
-import { useCurrentUser } from '@/lib/auth/AuthProvider';
+import { useOptionalCurrentUser } from '@/lib/auth/AuthProvider';
 
 const FALLBACK_POLL_MS = 60_000;
 
@@ -29,7 +29,7 @@ export function useDashboardStream(): {
   reload: () => void;
 } {
   const queryClient = useQueryClient();
-  const currentUser = useCurrentUser();
+  const currentUser = useOptionalCurrentUser();
   const [data, setData] = useState<DashboardSummary | null>(
     () => queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard()) ?? null,
   );
@@ -141,7 +141,6 @@ export function useDashboardStream(): {
                 }
                 dispatchNotification({
                   ...event.notification,
-                  read: false,
                   source: event.notification.source ?? 'system',
                 });
                 void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
