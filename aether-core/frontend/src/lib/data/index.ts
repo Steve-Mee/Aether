@@ -14,5 +14,6 @@ export { autonomousRepository } from './repositories/autonomousRepository';
 export { dashboardRepository } from './repositories/dashboardRepository';
 export { settingsRepository } from './repositories/settingsRepository';
 export { adminRepository } from './repositories/adminRepository';
+export { goalsRepository } from './repositories/goalsRepository';
 export { notifyCommandExecuted, COMMAND_EXECUTED_EVENT } from './commandEvents';
 export { afterApprovalResolved, afterSupplierSynced, afterCommandExecuted } from './sideEffects';

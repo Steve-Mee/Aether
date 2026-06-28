@@ -31,7 +31,9 @@ import { cn, focusRing, interactiveSurface } from '@/lib/utils';
 
 import { isCommandCenterHome } from './navigation/AppNavConfig';
 
-import { useRouteContext } from '@/lib/RouteContext';
+import LiveExplainPanel from '@/components/explainability/LiveExplainPanel';
+import { useCommand } from '@/lib/CommandContext';
+import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 
 interface Signal {
   id: string;
@@ -47,8 +49,20 @@ interface Signal {
   icon: React.ReactNode;
 }
 
-function buildSignals(data: DashboardSummary): Signal[] {
+export function buildSignals(data: DashboardSummary): Signal[] {
   const signals: Signal[] = [];
+
+  if ((data.proactiveCount ?? 0) > 0) {
+    const count = data.proactiveCount ?? 0;
+    signals.push({
+      id: 'proactive',
+      severity: count >= 3 ? 'warning' : 'info',
+      title: t('sidecar.signal.proactive.title').replace('{count}', String(count)),
+      detail: t('sidecar.signal.proactive.detail'),
+      href: moduleLinks.commandCenter,
+      icon: <Sparkles size={15} strokeWidth={1.75} />,
+    });
+  }
 
   if (data.pendingApprovals > 0) {
     const titleKey =
@@ -184,6 +198,8 @@ export default function ProactiveSidecar({ compact = false }: ProactiveSidecarPr
   });
 
   const { data, connected } = useDashboard();
+  const { settings } = useMerchantSettings();
+  const { streaming, streamLiveExplain, streamHandoffChain } = useCommand();
 
   const onHome = isCommandCenterHome(location.pathname);
 
@@ -231,8 +247,15 @@ export default function ProactiveSidecar({ compact = false }: ProactiveSidecarPr
         >
           <Sparkles size={18} strokeWidth={1.75} />
 
-          {signals.some((s) => s.severity === 'action') && (
-            <span className="block w-1.5 h-1.5 bg-destructive/80 rounded-full mx-auto mt-1.5" />
+          {(data?.proactiveCount ?? 0) > 0 ? (
+            <span className="block text-[9px] font-semibold text-primary-readable mx-auto mt-0.5">
+              {Math.min(data!.proactiveCount!, 9)}
+              {(data!.proactiveCount ?? 0) > 9 ? '+' : ''}
+            </span>
+          ) : (
+            signals.some((s) => s.severity === 'action') && (
+              <span className="block w-1.5 h-1.5 bg-destructive/80 rounded-full mx-auto mt-1.5" />
+            )
           )}
         </button>
       </aside>
@@ -280,6 +303,14 @@ export default function ProactiveSidecar({ compact = false }: ProactiveSidecarPr
       </div>
 
       <div className="flex-1 overflow-auto px-4 py-4 space-y-2.5">
+        {streaming &&
+          settings.explainabilityPrefs.showLiveExplain !== false &&
+          settings.explainabilityPrefs.detailLevel !== 'off' && (
+            <LiveExplainPanel
+              live={streamLiveExplain}
+              handoffChainLength={streamHandoffChain.length}
+            />
+          )}
         {signals.length === 0 ? (
           <p className="text-sm text-muted-foreground px-1 py-2">{t('sidecar.calm')}</p>
         ) : (

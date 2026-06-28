@@ -92,4 +92,45 @@ describe('PeerDelegationGuard', () => {
     });
     expect(result.ok).toBe(true);
   });
+
+  it('blocks disallowed payload keys for supplier to pricing', () => {
+    const registry = new AgentRegistry([pricingAgentDefinition, inventoryAgentDefinition]);
+    const { supplierAgentDefinition } = require('../../agents/SupplierAgent');
+    const reg = new AgentRegistry([supplierAgentDefinition, pricingAgentDefinition]);
+    const guard = new PeerDelegationGuard(reg);
+    const result = guard.validate({
+      tenantId: 't1',
+      sourceAgentKey: 'supplier',
+      targetAgentKey: 'pricing',
+      intent: 'PRICING_OPTIMIZE',
+      query: 'review prices',
+      depth: 0,
+      contextPayload: {
+        messageType: 'intel',
+        summary: 'test',
+        payload: { customerEmail: 'secret@example.com' },
+      },
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  it('allows scoped payload keys for supplier to pricing', () => {
+    const { supplierAgentDefinition } = require('../../agents/SupplierAgent');
+    const reg = new AgentRegistry([supplierAgentDefinition, pricingAgentDefinition]);
+    const guard = new PeerDelegationGuard(reg);
+    const result = guard.validate({
+      tenantId: 't1',
+      sourceAgentKey: 'supplier',
+      targetAgentKey: 'pricing',
+      intent: 'PRICING_OPTIMIZE',
+      query: 'review prices',
+      depth: 0,
+      contextPayload: {
+        messageType: 'intel',
+        summary: 'test',
+        payload: { suggestedPricingActions: [{ productId: 'p1', action: 'review_price_decrease_opportunity' }] },
+      },
+    });
+    expect(result.ok).toBe(true);
+  });
 });

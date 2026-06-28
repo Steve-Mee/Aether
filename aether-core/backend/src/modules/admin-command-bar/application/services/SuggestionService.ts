@@ -1,5 +1,6 @@
 import { countPendingApprovals } from '../../../../shared/approval/approvalService';
 import { prisma } from '../../../../shared/prisma/client';
+import type { ProactiveSuggestionService } from '../../../../ai/intelligence/proactive/ProactiveSuggestionService';
 
 export interface SuggestionDto {
   id: string;
@@ -18,25 +19,33 @@ export interface SuggestionsResponseDto {
   nowRelevant: SuggestionDto[];
   groups: Array<{ category: string; label: string; items: SuggestionDto[] }>;
   suggestions: SuggestionDto[];
+  proactive?: SuggestionDto[];
 }
 
 const UNDO_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export class SuggestionService {
+  constructor(private proactiveService?: ProactiveSuggestionService) {}
+
   async getSuggestions(
     tenantId: string,
     route: string,
     limit = 12
   ): Promise<SuggestionsResponseDto> {
-    const [pendingApprovals, productCount, unreadEmails] = await Promise.all([
+    const [pendingApprovals, productCount, unreadEmails, proactiveItems] = await Promise.all([
       countPendingApprovals(tenantId),
       prisma.product.count({ where: { tenantId } }),
       prisma.emailMessage.count({
         where: { tenantId, status: { in: ['received', 'escalated'] } },
       }),
+      this.proactiveService?.listActiveDtos(tenantId) ?? Promise.resolve([]),
     ]);
 
     const nowRelevant: SuggestionDto[] = [];
+
+    for (const p of proactiveItems.slice(0, 2)) {
+      nowRelevant.push({ ...p, badge: p.badge ?? 'AETHER stelt voor' });
+    }
 
     if (pendingApprovals > 0) {
       nowRelevant.push({
@@ -115,17 +124,26 @@ export class SuggestionService {
       });
     }
 
+    const proactiveIds = new Set(proactiveItems.map((p) => p.id));
     const relevantIds = new Set(nowRelevant.map((s) => s.id));
-    const rest = staticPool
+    const rest = [...proactiveItems, ...staticPool]
       .filter((s) => !relevantIds.has(s.id))
       .sort((a, b) => b.priority - a.priority)
       .slice(0, limit);
 
     const byCategory = new Map<string, SuggestionDto[]>();
-    for (const s of rest) {
+    for (const s of rest.filter((s) => !proactiveIds.has(s.id) || s.source !== 'proactive')) {
       const list = byCategory.get(s.category) ?? [];
       list.push(s);
       byCategory.set(s.category, list);
+    }
+
+    for (const p of proactiveItems) {
+      const list = byCategory.get(p.category) ?? [];
+      if (!list.some((i) => i.id === p.id)) {
+        list.push(p);
+        byCategory.set(p.category, list);
+      }
     }
 
     const groups = [...byCategory.entries()].map(([category, items]) => ({
@@ -134,9 +152,11 @@ export class SuggestionService {
       items,
     }));
 
-    const suggestions = [...nowRelevant, ...rest].slice(0, limit);
+    const suggestions = [...nowRelevant, ...rest]
+      .filter((s, idx, arr) => arr.findIndex((x) => x.id === s.id) === idx)
+      .slice(0, limit);
 
-    return { nowRelevant, groups, suggestions };
+    return { nowRelevant, groups, suggestions, proactive: proactiveItems };
   }
 
   static undoExpiresAtFromNow(): Date {

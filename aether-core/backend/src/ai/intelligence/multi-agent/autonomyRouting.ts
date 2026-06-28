@@ -1,4 +1,4 @@
-import { assessApprovalAutoEligible } from '../../../shared/policy/assessApprovalAutoEligible';
+import { assessAutonomyForTenant } from '../../../shared/policy/AutonomyPolicyService';
 import { getMerchantSettings } from '../../../shared/settings/TenantSettingsService';
 
 export interface AutonomousRoute {
@@ -36,6 +36,8 @@ export async function assessAutonomousRouteAllowed(params: {
   reason: string;
   route: AutonomousRoute | null;
   requiresApproval: boolean;
+  reasonCode?: string;
+  category?: string | null;
 }> {
   const route = resolveAutonomousRoute(params.decisionType);
   if (!route) {
@@ -47,30 +49,27 @@ export async function assessAutonomousRouteAllowed(params: {
     };
   }
 
-  const settings = await getMerchantSettings(params.tenantId);
   const module = params.decisionType.split('.')[0] ?? 'autonomous-operations';
-  const assessment = await assessApprovalAutoEligible({
+  const assessment = await assessAutonomyForTenant({
     tenantId: params.tenantId,
     module,
     actionType: params.decisionType,
+    agentKey: route.agentKey,
     payload: { result: params.result, rationale: params.rationale ?? '' },
+    getSettings: getMerchantSettings,
   });
-
-  if (settings.autonomyLevel === 'low' && assessment.riskClass !== 'low') {
-    return {
-      allowed: false,
-      reason: 'Autonomie niveau laag — medium/high risk routing geblokkeerd',
-      route,
-      requiresApproval: true,
-    };
-  }
 
   if (!assessment.eligible) {
     return {
       allowed: false,
       reason: assessment.reason,
       route,
-      requiresApproval: assessment.riskClass === 'high' || assessment.riskClass === 'medium',
+      requiresApproval:
+        assessment.executionMode === 'approval_required' ||
+        assessment.riskClass === 'high' ||
+        assessment.riskClass === 'medium',
+      reasonCode: assessment.reasonCode,
+      category: assessment.category,
     };
   }
 
@@ -79,5 +78,7 @@ export async function assessAutonomousRouteAllowed(params: {
     reason: assessment.reason,
     route,
     requiresApproval: false,
+    reasonCode: assessment.reasonCode,
+    category: assessment.category,
   };
 }

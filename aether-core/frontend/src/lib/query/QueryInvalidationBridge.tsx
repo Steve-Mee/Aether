@@ -46,6 +46,7 @@ export default function QueryInvalidationBridge() {
 
     const invalidateActivityInsights = () => {
       void queryClient.invalidateQueries({ queryKey: ['activity'] });
+      void queryClient.invalidateQueries({ queryKey: ['aether-overview'] });
       invalidateHomeLandingQueries(queryClient);
       void queryClient.invalidateQueries({ queryKey: queryKeys.autonomyMetrics() });
     };
@@ -83,10 +84,12 @@ export default function QueryInvalidationBridge() {
     const handler = () => {
       schedule(() => {
         void queryClient.invalidateQueries({ queryKey: ['activity'] });
+        void queryClient.invalidateQueries({ queryKey: ['aether-overview'] });
         void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
         invalidateHomeLandingQueries(queryClient);
         void queryClient.invalidateQueries({ queryKey: queryKeys.autonomyMetrics() });
         void queryClient.invalidateQueries({ queryKey: queryKeys.outcomes() });
+        void queryClient.invalidateQueries({ queryKey: ['goals'] });
       });
     };
     window.addEventListener(COMMAND_EXECUTED_EVENT, handler);

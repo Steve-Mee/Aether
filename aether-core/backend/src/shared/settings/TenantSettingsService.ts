@@ -3,7 +3,16 @@ import { prisma } from '../prisma/client';
 import {
   DEFAULT_MERCHANT_SETTINGS,
   parseNotificationPrefs,
+  parseProactivePrefs,
+  parseExplainabilityPrefs,
+  parseGoalPrefs,
+  parseOverviewPrefs,
+  parseAutonomyPrefs,
   type NotificationPrefs,
+  type ProactivePrefs,
+  type GoalPrefs,
+  type OverviewPrefs,
+  type AutonomyPrefs,
   type AutonomyLevel,
   type AutoRunWindow,
   type Locale,
@@ -11,6 +20,26 @@ import {
 } from './merchantSettingsTypes';
 
 function toJsonPrefs(prefs: NotificationPrefs): Prisma.InputJsonValue {
+  return prefs as unknown as Prisma.InputJsonValue;
+}
+
+function toJsonProactivePrefs(prefs: ProactivePrefs): Prisma.InputJsonValue {
+  return prefs as unknown as Prisma.InputJsonValue;
+}
+
+function toJsonGoalPrefs(prefs: GoalPrefs): Prisma.InputJsonValue {
+  return prefs as unknown as Prisma.InputJsonValue;
+}
+
+function toJsonOverviewPrefs(prefs: OverviewPrefs): Prisma.InputJsonValue {
+  return prefs as unknown as Prisma.InputJsonValue;
+}
+
+function toJsonAutonomyPrefs(prefs: AutonomyPrefs): Prisma.InputJsonValue {
+  return prefs as unknown as Prisma.InputJsonValue;
+}
+
+function toJsonExplainabilityPrefs(prefs: import('./merchantSettingsTypes').ExplainabilityPrefs): Prisma.InputJsonValue {
   return prefs as unknown as Prisma.InputJsonValue;
 }
 
@@ -37,8 +66,14 @@ function rowToSettings(row: {
   brainAdaptiveLearningEnabled: boolean;
   brainAdaptiveAutoExecuteEnabled: boolean;
   brainCrossTenantAgentPatternsEnabled?: boolean;
+  brainExplainabilityFederateEnabled?: boolean;
   brainFederatedExecutionContribute?: boolean;
   brainBilateralExchangeEnabled?: boolean;
+  proactivePrefs?: unknown;
+  explainabilityPrefs?: unknown;
+  goalPrefs?: unknown;
+  overviewPrefs?: unknown;
+  autonomyPrefs?: unknown;
 }): MerchantSettings {
   const level = row.autonomyLevel;
   const autonomyLevel: AutonomyLevel =
@@ -91,8 +126,14 @@ function rowToSettings(row: {
     brainAdaptiveLearningEnabled: row.brainAdaptiveLearningEnabled,
     brainAdaptiveAutoExecuteEnabled: row.brainAdaptiveAutoExecuteEnabled,
     brainCrossTenantAgentPatternsEnabled: row.brainCrossTenantAgentPatternsEnabled ?? false,
+    brainExplainabilityFederateEnabled: row.brainExplainabilityFederateEnabled ?? false,
     brainFederatedExecutionContribute: row.brainFederatedExecutionContribute ?? false,
     brainBilateralExchangeEnabled: row.brainBilateralExchangeEnabled ?? false,
+    proactivePrefs: parseProactivePrefs(row.proactivePrefs),
+    explainabilityPrefs: parseExplainabilityPrefs(row.explainabilityPrefs),
+    goalPrefs: parseGoalPrefs(row.goalPrefs),
+    overviewPrefs: parseOverviewPrefs(row.overviewPrefs),
+    autonomyPrefs: parseAutonomyPrefs(row.autonomyPrefs),
   };
 }
 
@@ -111,6 +152,11 @@ export async function ensureMerchantSettings(tenantId: string): Promise<Merchant
     create: {
       tenantId,
       notificationPrefs: toJsonPrefs(DEFAULT_MERCHANT_SETTINGS.notificationPrefs),
+      proactivePrefs: toJsonProactivePrefs(DEFAULT_MERCHANT_SETTINGS.proactivePrefs),
+      explainabilityPrefs: toJsonExplainabilityPrefs(DEFAULT_MERCHANT_SETTINGS.explainabilityPrefs),
+      goalPrefs: toJsonGoalPrefs(DEFAULT_MERCHANT_SETTINGS.goalPrefs),
+      overviewPrefs: toJsonOverviewPrefs(DEFAULT_MERCHANT_SETTINGS.overviewPrefs),
+      autonomyPrefs: toJsonAutonomyPrefs(DEFAULT_MERCHANT_SETTINGS.autonomyPrefs),
     },
   });
   return rowToSettings(row);
@@ -157,6 +203,14 @@ export async function updateMerchantSettings(
         ...current.notificationPrefs.weeklyDigest,
         ...(patch.notificationPrefs.weeklyDigest ?? {}),
       },
+      proactiveSuggestions: {
+        ...current.notificationPrefs.proactiveSuggestions,
+        ...(patch.notificationPrefs.proactiveSuggestions ?? {}),
+      },
+      goalProgress: {
+        ...current.notificationPrefs.goalProgress,
+        ...(patch.notificationPrefs.goalProgress ?? {}),
+      },
     });
   }
   if (patch.locale !== undefined) data.locale = patch.locale;
@@ -185,11 +239,69 @@ export async function updateMerchantSettings(
   if (patch.brainCrossTenantAgentPatternsEnabled !== undefined) {
     data.brainCrossTenantAgentPatternsEnabled = patch.brainCrossTenantAgentPatternsEnabled;
   }
+  if (patch.brainExplainabilityFederateEnabled !== undefined) {
+    data.brainExplainabilityFederateEnabled = patch.brainExplainabilityFederateEnabled;
+  }
   if (patch.brainFederatedExecutionContribute !== undefined) {
     data.brainFederatedExecutionContribute = patch.brainFederatedExecutionContribute;
   }
   if (patch.brainBilateralExchangeEnabled !== undefined) {
     data.brainBilateralExchangeEnabled = patch.brainBilateralExchangeEnabled;
+  }
+  if (patch.proactivePrefs !== undefined) {
+    const current = await getMerchantSettings(tenantId);
+    data.proactivePrefs = toJsonProactivePrefs({
+      ...current.proactivePrefs,
+      ...patch.proactivePrefs,
+      allowAutoExecute:
+        patch.proactivePrefs.allowAutoExecute ?? current.proactivePrefs.allowAutoExecute,
+      categories: {
+        ...current.proactivePrefs.categories,
+        ...(patch.proactivePrefs.categories ?? {}),
+      },
+    });
+  }
+  if (patch.explainabilityPrefs !== undefined) {
+    const current = await getMerchantSettings(tenantId);
+    data.explainabilityPrefs = toJsonExplainabilityPrefs({
+      ...current.explainabilityPrefs,
+      ...patch.explainabilityPrefs,
+    });
+  }
+  if (patch.goalPrefs !== undefined) {
+    const current = await getMerchantSettings(tenantId);
+    data.goalPrefs = toJsonGoalPrefs({
+      ...current.goalPrefs,
+      ...patch.goalPrefs,
+    });
+  }
+  if (patch.overviewPrefs !== undefined) {
+    const current = await getMerchantSettings(tenantId);
+    data.overviewPrefs = toJsonOverviewPrefs({
+      ...current.overviewPrefs,
+      ...patch.overviewPrefs,
+      sections: {
+        ...current.overviewPrefs.sections,
+        ...(patch.overviewPrefs.sections ?? {}),
+      },
+      collapsed: {
+        ...current.overviewPrefs.collapsed,
+        ...(patch.overviewPrefs.collapsed ?? {}),
+      },
+      sectionOrder: patch.overviewPrefs.sectionOrder ?? current.overviewPrefs.sectionOrder,
+    });
+  }
+  if (patch.autonomyPrefs !== undefined) {
+    const current = await getMerchantSettings(tenantId);
+    const mergedCategories = {
+      ...current.autonomyPrefs.actionCategories,
+      ...(patch.autonomyPrefs.actionCategories ?? {}),
+    };
+    data.autonomyPrefs = toJsonAutonomyPrefs({
+      ...current.autonomyPrefs,
+      ...patch.autonomyPrefs,
+      actionCategories: mergedCategories,
+    });
   }
 
   const row = await prisma.tenantSettings.update({

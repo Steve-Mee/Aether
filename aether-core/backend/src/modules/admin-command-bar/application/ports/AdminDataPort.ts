@@ -32,6 +32,57 @@ export interface OrderTrendSummary {
   statusBreakdown: Record<string, number>;
 }
 
+export type CustomerSegmentKind = 'vip' | 'at_risk' | 'new' | 'regular';
+
+export interface CustomerSegmentRecord {
+  id: string;
+  email: string;
+  name: string;
+  segment: CustomerSegmentKind;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderAt?: string | null;
+}
+
+export interface CustomerSegmentSummary {
+  vip: number;
+  atRisk: number;
+  new: number;
+  regular: number;
+  total: number;
+  segments: CustomerSegmentRecord[];
+}
+
+export interface ChurnSignalsSummary {
+  atRiskCount: number;
+  decliningTrend: boolean;
+  trendPct: number;
+  cancelledOrRefundedRatio: number;
+  recentOrderCount: number;
+  priorOrderCount: number;
+  atRiskCustomers: Array<{ id: string; email: string; name: string; daysSinceLastOrder: number }>;
+  suggestedActions: string[];
+}
+
+export interface MarginMetrics {
+  lowMarginCount: number;
+  totalProducts: number;
+  marginPct: number;
+}
+
+export interface CategoryRevenueMetrics {
+  categoryId: string;
+  revenue: number;
+  orderCount: number;
+  trendPct: number;
+}
+
+export interface InventoryCostSummary {
+  lowStockCount: number;
+  totalSkus: number;
+  totalQuantity: number;
+}
+
 export interface ForecastRecord {
   id: string;
   productId: string;
@@ -92,6 +143,11 @@ export interface AdminDataPort {
   countCustomers(tenantId: string): Promise<number>;
   getTopCustomers(tenantId: string, limit?: number): Promise<TopCustomerRecord[]>;
   getOrderTrends(tenantId: string, days?: number): Promise<OrderTrendSummary>;
+  getCustomerSegments(tenantId: string, days?: number): Promise<CustomerSegmentSummary>;
+  getChurnSignals(tenantId: string, days?: number): Promise<ChurnSignalsSummary>;
+  getMarginMetrics(tenantId: string, threshold?: number): Promise<MarginMetrics>;
+  getCategoryRevenue(tenantId: string, categoryId: string, days?: number): Promise<CategoryRevenueMetrics>;
+  getInventoryCostSummary(tenantId: string, lowStockThreshold?: number): Promise<InventoryCostSummary>;
   listActiveNegotiations(tenantId: string, limit?: number): Promise<NegotiationRecord[]>;
   getNegotiationDetail(
     tenantId: string,

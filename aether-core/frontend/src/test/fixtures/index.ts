@@ -79,6 +79,8 @@ export const mockMerchantSettings = {
       highRiskApproval: { inApp: true, email: true },
       supplierChanges: { inApp: true, email: false },
       weeklyDigest: { inApp: true, email: true },
+      proactiveSuggestions: { inApp: true, email: false },
+      goalProgress: { inApp: true, email: false },
       frequency: 'immediate',
     },
     locale: 'nl',

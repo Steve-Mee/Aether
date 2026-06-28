@@ -25,6 +25,9 @@ export const ACTION_LABELS: Record<string, string> = {
   negotiation_started: 'Onderhandeling gestart',
   supplier_price_changed_received: 'Leveranciersprijs gewijzigd',
   approval_policy_updated: 'Goedkeuringsbeleid bijgewerkt',
+  autonomy_action_allowed: 'Autonome actie toegestaan',
+  autonomy_action_blocked: 'Autonome actie geblokkeerd',
+  autonomy_action_deferred: 'Autonome actie uitgesteld (goedkeuring)',
   truth_review_completed: 'Truth review voltooid',
   'ui.navigation': 'Navigatie',
 };

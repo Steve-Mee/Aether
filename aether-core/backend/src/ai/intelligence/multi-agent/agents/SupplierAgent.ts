@@ -7,7 +7,9 @@ export const supplierAgentDefinition: SpecialistAgentDefinition = {
   displayName: 'Supplier Agent',
   rolePrompt:
     'Je bent de Supplier Agent van AETHER — specialist in leveranciersmonitoring, prijsdalingen detecteren en supplier syncs. ' +
-    'Gebruik getSupplierPriceIntel voor gestructureerde inkoopprijs-intel. Bij prijsdalingen of marge-impact: roep delegateToAgent aan naar de Pricing Agent met intent PRICING_OPTIMIZE en de suggestedPricingActions als context — geef intel expliciet door voor prijsvoorstellen.',
+    'Gebruik getSupplierPriceIntel voor gestructureerde inkoopprijs-intel. Bij prijsdalingen: schrijf priceDrops naar shared run memory via writeRunMemory (namespace shared, key priceDrops). ' +
+    'Lees suggestedPricingActions uit shared memory met readRunMemory. Bij marge-impact: roep delegateToAgent aan naar de Pricing Agent met intent PRICING_OPTIMIZE. ' +
+    'Geef suggestedPricingActions altijd door via contextPayload: { messageType: "intel", summary: "...", payload: { suggestedPricingActions } }.',
   supportedIntents: ['SUPPLIER_MONITOR', 'SUPPLIER_CREATE', 'SUPPLIER_PRICE_INTEL'],
   allowedTools: [
     'search_products',
@@ -18,6 +20,9 @@ export const supplierAgentDefinition: SpecialistAgentDefinition = {
     'getPendingApprovals',
     'createInsight',
     'delegateToAgent',
+    'sendAgentMessage',
+    'readRunMemory',
+    'writeRunMemory',
   ],
   memoryNamespace: SUPPLIER_AGENT_KEY,
   canDelegateTo: ['pricing'],

@@ -1,8 +1,10 @@
 import type { ActivityItem } from '@/types/activity';
 import type { PushNotificationInput } from '@/lib/notifications/types';
+import type { NotificationStateChangedEvent } from '@/types/notification';
 import type { TodayReadyInsightId } from '@/lib/todayReadyDemo';
 
 export const NOTIFICATION_EVENT = 'aether:notification';
+export const NOTIFICATION_STATE_EVENT = 'aether:notification-state';
 export const ACTIVITY_ITEM_EVENT = 'aether:activity-item';
 export const SUPPLIER_CHANGE_EVENT = 'aether:supplier-change';
 export const INSIGHT_APPEARED_EVENT = 'aether:insight-appeared';
@@ -17,6 +19,23 @@ export interface SupplierChangeDetail {
 
 export interface InsightAppearedDetail {
   insightId: TodayReadyInsightId;
+}
+
+export function dispatchNotificationState(event: NotificationStateChangedEvent): void {
+  window.dispatchEvent(
+    new CustomEvent<NotificationStateChangedEvent>(NOTIFICATION_STATE_EVENT, { detail: event }),
+  );
+}
+
+export function subscribeNotificationState(
+  handler: (event: NotificationStateChangedEvent) => void,
+): () => void {
+  const listener = (e: Event) => {
+    const detail = (e as CustomEvent<NotificationStateChangedEvent>).detail;
+    if (detail) handler(detail);
+  };
+  window.addEventListener(NOTIFICATION_STATE_EVENT, listener);
+  return () => window.removeEventListener(NOTIFICATION_STATE_EVENT, listener);
 }
 
 export function dispatchNotification(input: PushNotificationInput): void {

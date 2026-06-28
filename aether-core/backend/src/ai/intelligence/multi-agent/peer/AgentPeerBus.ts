@@ -14,22 +14,34 @@ import {
 } from './federated/FederatedExecutionPort';
 import { FEDERATED_SANDBOX_PREFIX, parseFederatedSandboxKey } from './federated/FederatedExecutionGate';
 import { buildChainHandoffReason, humanizeHandoffReason } from './handoffReason';
+import { summarizePayloadForAudit } from './AgentPeerMessage';
 import { AgentPeerMesh } from './AgentPeerMesh';
 import { PeerDelegationGuard, type PeerGuardResult } from './PeerDelegationGuard';
 import { PeerHandoffAuditLog } from './PeerHandoffAuditLog';
+import { AgentPeerNotifyHandler } from './AgentPeerNotifyHandler';
+import { isNotifyPeerEnabled } from './notifyPeerConfig';
+import { validateAutonomyCategoryEnabled } from './UnifiedPeerGuard';
+import { getMerchantSettings } from '../../../../shared/settings/TenantSettingsService';
+import type { SharedMemoryBridge } from '../memory/SharedMemoryBridge';
+import { isRunMemoryEnabled } from '../memory/runMemoryConfig';
 
 export class AgentPeerBus implements AgentPeerPort {
   private guard: PeerDelegationGuard;
   private audit = new PeerHandoffAuditLog();
+  private notifyHandler: AgentPeerNotifyHandler;
+  private sharedMemoryBridge?: SharedMemoryBridge;
 
   constructor(
     private registry: AgentRegistry,
     private orchestrator: AgentOrchestrator,
     private federatedPeer?: FederatedPeerPort,
     private federatedExecution?: FederatedExecutionPort,
-    private mesh?: AgentPeerMesh
+    private mesh?: AgentPeerMesh,
+    sharedMemoryBridge?: SharedMemoryBridge
   ) {
     this.guard = new PeerDelegationGuard(registry);
+    this.sharedMemoryBridge = sharedMemoryBridge;
+    this.notifyHandler = new AgentPeerNotifyHandler(sharedMemoryBridge);
   }
 
   validatePeerRequest(request: PeerDelegationRequest): PeerGuardResult {
@@ -37,9 +49,25 @@ export class AgentPeerBus implements AgentPeerPort {
   }
 
   async requestPeerHandoff(request: PeerDelegationRequest): Promise<PeerDelegationResult> {
+    const settings = await getMerchantSettings(request.tenantId);
+    const categoryCheck = validateAutonomyCategoryEnabled(
+      settings,
+      request.intent,
+      request.targetAgentKey,
+    );
+    if (!categoryCheck.ok) {
+      return { success: false, error: categoryCheck.error };
+    }
     const validation = this.guard.validate(request);
     if (!validation.ok) {
       return { success: false, error: validation.error };
+    }
+
+    if (
+      isNotifyPeerEnabled() &&
+      request.contextPayload?.messageType === 'notify'
+    ) {
+      return this.notifyHandler.handleNotify(request);
     }
 
     if (request.targetAgentKey === GLOBAL_ADVISORY_AGENT_KEY) {
@@ -56,12 +84,30 @@ export class AgentPeerBus implements AgentPeerPort {
 
     const started = Date.now();
     try {
+      if (
+        this.sharedMemoryBridge &&
+        request.parentRunId &&
+        isRunMemoryEnabled() &&
+        request.contextPayload?.payload
+      ) {
+        await this.sharedMemoryBridge.recordPeerHandoff({
+          tenantId: request.tenantId,
+          runId: request.parentRunId,
+          sourceAgentKey: request.sourceAgentKey,
+          targetAgentKey: request.targetAgentKey,
+          payload: request.contextPayload.payload as Record<string, unknown>,
+          onEvent: request.onEvent,
+        });
+      }
+
       emitStreamEvent(request.onEvent, {
         type: 'agent_handoff',
         fromAgentKey: request.sourceAgentKey,
         toAgentKey: request.targetAgentKey,
         handoffReason: humanizeHandoffReason(buildChainHandoffReason(request.intent)),
         handoffMode: 'orchestrated',
+        correlationId: request.correlationId,
+        messageType: request.contextPayload?.messageType,
       });
 
       const result = await this.orchestrator.chainHandoff(
@@ -76,6 +122,8 @@ export class AgentPeerBus implements AgentPeerPort {
           actorId: request.actorId,
           peerDepth: request.depth + 1,
           abortSignal: request.abortSignal,
+          contextPayload: request.contextPayload,
+          correlationId: request.correlationId,
         },
         request.onEvent
       );
@@ -91,6 +139,8 @@ export class AgentPeerBus implements AgentPeerPort {
         parentRunId: request.parentRunId,
         agentRunId: result.agentRunId,
         error: result.error,
+        correlationId: request.correlationId,
+        payloadSummary: summarizePayloadForAudit(request.contextPayload),
       });
 
       if (result.error) {
@@ -176,6 +226,20 @@ export class AgentPeerBus implements AgentPeerPort {
     }
 
     const narrative = [result.disclaimer, result.summary].filter(Boolean).join('\n');
+
+    await this.audit.record({
+      tenantId: request.tenantId,
+      sourceAgentKey: request.sourceAgentKey,
+      targetAgentKey: request.targetAgentKey,
+      intent: request.intent,
+      mode: 'orchestrated',
+      success: true,
+      latencyMs: 0,
+      parentRunId: request.parentRunId,
+      correlationId: request.correlationId,
+      payloadSummary: summarizePayloadForAudit(request.contextPayload),
+    });
+
     return { success: true, narrative };
   }
 

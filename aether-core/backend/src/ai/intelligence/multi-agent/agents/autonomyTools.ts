@@ -70,6 +70,8 @@ export function evaluateDecisionTool(): BrainToolExecutor {
         module: { type: 'string', required: true, description: 'Source module' },
         action: { type: 'string', required: true, description: 'Action type' },
         context: { type: 'object', required: false, description: 'Action context payload' },
+        persist: { type: 'boolean', required: false, description: 'Record audit log (default false = simulate)' },
+        agentKey: { type: 'string', required: false, description: 'Specialist agent key' },
       },
       risk: 'low',
       kind: 'read',
@@ -88,18 +90,23 @@ export function evaluateDecisionTool(): BrainToolExecutor {
         input.context && typeof input.context === 'object'
           ? (input.context as Record<string, unknown>)
           : {};
-      const result = merchantAutonomyKernel.evaluate({
+      const agentKey = input.agentKey ? String(input.agentKey) : undefined;
+      const persist = input.persist === true;
+      const result = await merchantAutonomyKernel.evaluate({
         tenantId: ctx.tenantId,
         module,
         action,
         context,
         actorId: ctx.actorId,
+        agentKey,
       });
-      await merchantAutonomyKernel.recordDecision(
-        { tenantId: ctx.tenantId, module, action, context, actorId: ctx.actorId },
-        result
-      );
-      return { success: true, evaluation: result };
+      if (persist) {
+        await merchantAutonomyKernel.recordDecision(
+          { tenantId: ctx.tenantId, module, action, context, actorId: ctx.actorId, agentKey },
+          result
+        );
+      }
+      return { success: true, evaluation: result, simulated: !persist };
     },
   };
 }

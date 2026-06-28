@@ -1,9 +1,13 @@
 import {
+  Bell,
+  Bot,
   Brain,
   History,
+  LayoutDashboard,
   LayoutList,
   ShieldCheck,
   Sparkles,
+  Target,
   Truck,
   type LucideIcon,
 } from 'lucide-react';
@@ -23,6 +27,7 @@ export type RouteModule =
   | 'timeline'
   | 'suppliers'
   | 'workstream'
+  | 'goals'
   | 'settings'
   | 'emails'
   | 'orders'
@@ -30,6 +35,8 @@ export type RouteModule =
   | 'autonomous'
   | 'outcomes'
   | 'negotiations'
+  | 'agents'
+  | 'aether-overview'
   | 'other';
 
 export interface AppNavItem {
@@ -75,10 +82,19 @@ export const minimalNavItems: AppNavItem[] = [
     icon: Sparkles,
     end: true,
   },
+  {
+    to: '/overview',
+    label: 'AETHER Overzicht',
+    labelKey: 'nav.overview',
+    icon: LayoutDashboard,
+  },
   { to: '/workstream', label: 'Vandaag', labelKey: 'nav.workstream', icon: LayoutList },
+  { to: '/goals', label: 'Doelen', labelKey: 'nav.goals', icon: Target },
   { to: '/approvals', label: 'Goedkeuringen', labelKey: 'nav.approvals', icon: ShieldCheck },
   { to: '/insights', label: 'Inzichten', labelKey: 'nav.insights', icon: Brain },
+  { to: '/agents', label: 'Agents', labelKey: 'nav.agents', icon: Bot },
   { to: '/timeline', label: 'Activiteit', labelKey: 'nav.timeline', icon: History },
+  { to: '/notifications', label: 'Meldingen', labelKey: 'nav.notifications', icon: Bell },
   { to: '/suppliers', label: 'Leveranciers', labelKey: 'nav.suppliers', icon: Truck },
 ];
 
@@ -115,6 +131,22 @@ export const appRoutes: AppRouteDefinition[] = [
     redirectTo: COMMAND_CENTER_PATH,
   },
   {
+    path: '/overview',
+    module: 'aether-overview',
+    sidebarGroup: 'overview',
+    layout: 'overview',
+    inNav: true,
+    skeleton: 'module',
+    breadcrumbLabelKey: 'nav.overview',
+  },
+  {
+    path: '/aether-overview',
+    module: 'aether-overview',
+    sidebarGroup: 'overview',
+    layout: 'overview',
+    redirectTo: '/overview',
+  },
+  {
     path: '/workstream',
     module: 'workstream',
     sidebarGroup: 'overview',
@@ -122,6 +154,24 @@ export const appRoutes: AppRouteDefinition[] = [
     inNav: true,
     skeleton: 'module',
     breadcrumbLabelKey: 'nav.workstream',
+  },
+  {
+    path: '/goals',
+    module: 'goals',
+    sidebarGroup: 'overview',
+    layout: 'overview',
+    inNav: true,
+    skeleton: 'module',
+    breadcrumbLabelKey: 'nav.goals',
+  },
+  {
+    path: '/goals/:id',
+    module: 'goals',
+    sidebarGroup: 'overview',
+    layout: 'overview',
+    parentNav: { to: '/goals', labelKey: 'nav.goals' },
+    skeleton: 'module',
+    breadcrumbLabelKey: 'goals.detail.title',
   },
   {
     path: '/approvals',
@@ -142,6 +192,15 @@ export const appRoutes: AppRouteDefinition[] = [
     breadcrumbLabelKey: 'nav.insights',
   },
   {
+    path: '/agents',
+    module: 'agents',
+    sidebarGroup: 'overview',
+    layout: 'overview',
+    inNav: true,
+    skeleton: 'list',
+    breadcrumbLabelKey: 'nav.agents',
+  },
+  {
     path: '/timeline',
     module: 'timeline',
     sidebarGroup: 'overview',
@@ -149,6 +208,15 @@ export const appRoutes: AppRouteDefinition[] = [
     inNav: true,
     skeleton: 'list',
     breadcrumbLabelKey: 'nav.timeline',
+  },
+  {
+    path: '/notifications',
+    module: 'timeline',
+    sidebarGroup: 'overview',
+    layout: 'overview',
+    inNav: true,
+    skeleton: 'list',
+    breadcrumbLabelKey: 'nav.notifications',
   },
   {
     path: '/activity',

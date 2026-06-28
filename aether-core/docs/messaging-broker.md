@@ -7,7 +7,7 @@
 | Option | Verdict |
 |--------|---------|
 | **Kafka** | **Selected** — already integrated (outbox relay, peer-worker, DLQ, consumer groups) |
-| **Redis Streams** | **Not adopted** — Redis is used for rate limiting only; Streams would duplicate broker ops without functional gain at current async volume |
+| **Redis Streams** | **Not adopted** — Redis is used for rate limiting and optional run-memory read cache only; Streams would duplicate broker ops without functional gain at current async volume |
 
 Future Redis Streams support remains possible via `MessageBrokerPort` without changing the outbox pattern.
 

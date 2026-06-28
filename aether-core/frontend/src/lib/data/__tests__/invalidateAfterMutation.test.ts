@@ -16,7 +16,7 @@ describe('invalidateAfterMutation', () => {
     vi.spyOn(queryClient, 'invalidateQueries');
   });
 
-  it('invalidateAfterApprovalChange targets approvals, dashboard, activity, insights', () => {
+  it('invalidateAfterApprovalChange targets approvals, dashboard, activity, overview, insights', () => {
     invalidateAfterApprovalChange(queryClient);
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['approvals'],
@@ -26,6 +26,9 @@ describe('invalidateAfterMutation', () => {
     });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['activity'],
+    });
+    expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['aether-overview'],
     });
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: queryKeys.activity({ days: 7, limit: 5 }),

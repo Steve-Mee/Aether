@@ -1,5 +1,7 @@
 export type AgentKey = 'admin' | 'mail' | 'supplier' | 'pricing' | 'inventory' | string;
 
+import type { ExplainabilityCollector } from '../explainability/ExplainabilityCollector';
+
 export type RouteSource = 'intent' | 'keyword' | 'llm' | 'llm-plan' | 'none';
 export type ExecutionMode = 'single' | 'sequential' | 'parallel';
 
@@ -51,6 +53,7 @@ export interface ParallelSpecialistRequest {
   adaptiveLearningEnabled?: boolean;
   onEvent?: import('../command-brain/AgentStreamEvents').AgentStreamCallback;
   abortSignal?: AbortSignal;
+  explainabilityCollector?: ExplainabilityCollector;
 }
 
 export interface AgentBranchResult extends SpecialistExecuteResult {
@@ -68,7 +71,7 @@ export interface AgentContribution {
 export interface ActionConflict {
   description: string;
   proposals: import('../personal-brain/tools/types').ToolProposal[];
-  resolution: 'user_choice' | 'merged';
+  resolution: 'user_choice' | 'merged' | 'agent_priority';
 }
 
 export type SynthesisSource = 'llm' | 'structured' | 'concat';
@@ -78,6 +81,7 @@ export interface AggregatedMultiAgentResult {
   perAgentContributions: AgentContribution[];
   conflicts?: ActionConflict[];
   synthesisSource: SynthesisSource;
+  sharedMemorySummary?: Record<string, unknown>;
 }
 
 export interface ParallelSpecialistResult {
@@ -101,6 +105,15 @@ export interface ExecutionPlan {
   graphDefinition?: import('./graph/types').GraphDefinition;
 }
 
+export type AgentPeerMessageType = 'intel' | 'request' | 'notify';
+
+export interface AgentPeerMessage {
+  messageType: AgentPeerMessageType;
+  summary: string;
+  payload?: Record<string, unknown>;
+  correlationId?: string;
+}
+
 export interface HandoffChainEntry {
   from: string;
   to: string;
@@ -111,6 +124,8 @@ export interface HandoffChainEntry {
   summary?: string;
   planDepth?: number;
   handoffMode?: 'direct' | 'orchestrated';
+  messageType?: AgentPeerMessageType;
+  correlationId?: string;
 }
 
 export interface SpecialistAgentDefinition {
@@ -145,6 +160,9 @@ export interface SpecialistExecuteRequest {
   chainContext?: string[];
   skipCollaborationChain?: boolean;
   peerDepth?: number;
+  correlationId?: string;
+  peerSourceAgentKey?: string;
+  explainabilityCollector?: ExplainabilityCollector;
 }
 
 export interface PeerDelegationRequest {
@@ -156,6 +174,8 @@ export interface PeerDelegationRequest {
   parentRunId?: string;
   actorId?: string;
   depth: number;
+  contextPayload?: AgentPeerMessage;
+  correlationId?: string;
   onEvent?: import('../command-brain/AgentStreamEvents').AgentStreamCallback;
   abortSignal?: AbortSignal;
 }

@@ -47,6 +47,16 @@ export function matchesSearch(item: ActivityItem, query: string): boolean {
 }
 
 export function matchesFilters(item: ActivityItem, filters: ActivityFilters): boolean {
+  if (filters.agentKey !== 'all') {
+    const keys =
+      item.agentKeys ??
+      (Array.isArray(item.details?.agentKeys)
+        ? (item.details!.agentKeys as string[])
+        : typeof item.details?.agentKey === 'string'
+          ? [item.details.agentKey as string]
+          : undefined);
+    if (!keys?.includes(filters.agentKey)) return false;
+  }
   if (filters.category !== 'all' && resolveCategory(item) !== filters.category) {
     return false;
   }
@@ -163,4 +173,14 @@ export const STATUS_FILTER_OPTIONS: ActivityStatusFilter[] = [
   'approved',
   'rejected',
   'pending',
+];
+
+export const AGENT_FILTER_OPTIONS: import('@/types/activity').ActivityAgentFilter[] = [
+  'all',
+  'inventory',
+  'customer',
+  'pricing',
+  'supplier',
+  'promotion',
+  'mail',
 ];

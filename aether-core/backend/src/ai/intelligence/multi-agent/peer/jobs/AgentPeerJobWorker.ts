@@ -1,5 +1,6 @@
 import { eventBus } from '../../../../../shared/events/eventBus';
 import { logger } from '../../../../../shared/logging/logger';
+import { notifyOverviewHandoff } from '../../../../../modules/admin-command-bar/application/services/OverviewFeedNotify';
 import { updateBrainAgentRunDelegation, getBrainAgentRunById } from '../../../command-brain/BrainAgentRunStore';
 import type { AgentOrchestrator } from '../../AgentSupervisorOrchestrator';
 import type { AgentPeerPort } from '../AgentPeerPort';
@@ -13,6 +14,24 @@ function parseJobDepth(job: AgentPeerJobRecord): number {
   } catch {
     return 1;
   }
+}
+
+function emitAsyncHandoffFeed(
+  job: AgentPeerJobRecord,
+  status: 'completed' | 'failed',
+  summary?: string,
+): void {
+  notifyOverviewHandoff(job.tenantId, {
+    id: job.id,
+    at: new Date().toISOString(),
+    fromAgentKey: job.sourceAgentKey,
+    toAgentKey: job.targetAgentKey,
+    mode: 'async',
+    status,
+    intent: job.intent,
+    summary: summary ?? job.query.slice(0, 200),
+    parentRunId: job.parentRunId,
+  });
 }
 
 export interface AgentPeerJobWorkerDeps {
@@ -29,6 +48,14 @@ export class AgentPeerJobWorker {
     if (!job || job.status === 'completed' || job.status === 'failed') return;
 
     try {
+      const isNotify = job.jobMode === 'notify' || job.messageType === 'notify';
+      const contextPayload =
+        job.contextPayload && typeof job.contextPayload === 'object'
+          ? (job.contextPayload as import('../../types').AgentPeerMessage)
+          : isNotify
+            ? { messageType: 'notify' as const, summary: job.query }
+            : undefined;
+
       const result = await this.deps.peerBus.requestPeerHandoff({
         tenantId: job.tenantId,
         sourceAgentKey: job.sourceAgentKey,
@@ -38,10 +65,12 @@ export class AgentPeerJobWorker {
         parentRunId: job.parentRunId ?? undefined,
         actorId: job.actorId ?? undefined,
         depth: parseJobDepth(job),
+        contextPayload,
       });
 
       if (!result.success) {
         await this.deps.jobPort.fail(job.id, job.tenantId, result.error ?? 'Peer job failed');
+        emitAsyncHandoffFeed(job, 'failed', result.error);
         await eventBus.publish({
           tenantId: job.tenantId,
           type: 'agent.peer.completed',
@@ -62,6 +91,7 @@ export class AgentPeerJobWorker {
         narrative: result.narrative,
         agentRunId: result.agentRunId,
       });
+      emitAsyncHandoffFeed(job, 'completed', result.narrative?.slice(0, 200));
 
       await eventBus.publish({
         tenantId: job.tenantId,
@@ -89,29 +119,32 @@ export class AgentPeerJobWorker {
         idempotencyKey: `agent.handoff.completed:${job.id}`,
       });
 
-      if (job.parentRunId) {
+      if (job.parentRunId && !isNotify) {
         await this.appendPeerResultToParent(job.tenantId, job.parentRunId, {
           jobId: job.id,
           success: true,
           narrative: result.narrative,
           targetAgentKey: job.targetAgentKey,
         });
-        await this.deps.orchestrator.resumeFromChild({
-          tenantId: job.tenantId,
-          parentRunId: job.parentRunId,
-          childRunId: result.agentRunId ?? job.id,
-          handoffPackage: {
-            sourceAgentKey: job.targetAgentKey,
-            targetAgentKey: job.sourceAgentKey,
-            reflectionIds: [],
-            summary: (result.narrative ?? '').slice(0, 500),
-          },
-        });
+        if (result.agentRunId) {
+          await this.deps.orchestrator.resumeFromChild({
+            tenantId: job.tenantId,
+            parentRunId: job.parentRunId,
+            childRunId: result.agentRunId,
+            handoffPackage: {
+              sourceAgentKey: job.targetAgentKey,
+              targetAgentKey: job.sourceAgentKey,
+              reflectionIds: [],
+              summary: (result.narrative ?? '').slice(0, 500),
+            },
+          });
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Peer job worker failed';
       logger.error('agent_peer_job_failed', { jobId, tenantId, error: message });
       await this.deps.jobPort.fail(jobId, tenantId, message);
+      if (job) emitAsyncHandoffFeed(job, 'failed', message);
       await eventBus.publish({
         tenantId,
         type: 'agent.peer.completed',

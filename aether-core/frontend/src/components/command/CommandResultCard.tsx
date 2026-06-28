@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import React, { useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import type { CommandResult } from '../../lib/CommandContext';
 import type { AgentRunResponse } from '@/types/command';
 import { Button, Card, ConfidenceBadge, ErrorState, RiskBadge } from '@/components/ui';
@@ -7,13 +7,19 @@ import BrainToolProposalCard from './BrainToolProposalCard';
 import AgentRunTimeline from './AgentRunTimeline';
 import AgentBadge from './AgentBadge';
 import HandoffChainRail, { executionModeBadgeLabel } from './HandoffChainRail';
+import SharedMemoryRail from './SharedMemoryRail';
 import AgentContributionsPanel from './AgentContributionsPanel';
+import AgentExplainabilitySheet from '@/components/explainability/AgentExplainabilitySheet';
 import { agentDisplayLabel } from '@/lib/agentDisplay';
 import { routeForIntent } from '../../lib/intentNavigation';
 import { t } from '../../lib/i18n';
 import { COMMAND_PREFILL_STORAGE_KEY } from './NaturalLanguageBar';
 import { approvalDetail } from '@/lib/navigation/moduleLinks';
 import { commandsRepository } from '@/lib/data/repositories/commandsRepository';
+import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
+import { buildClientFlowGraph } from '@/lib/explain/buildClientFlowGraph';
+
+const AgentFlowDiagram = lazy(() => import('@/components/explainability/AgentFlowDiagram'));
 
 interface CommandResultCardProps {
   result: CommandResult;
@@ -66,6 +72,20 @@ export default function CommandResultCard({
   autoExecutedIds,
 }: CommandResultCardProps) {
   const isError = result.parsedIntent === 'ERROR';
+  const { settings } = useMerchantSettings();
+  const [explainOpen, setExplainOpen] = useState(false);
+  const showExplain =
+    settings.explainabilityPrefs.detailLevel !== 'off' &&
+    Boolean(result.commandId ?? result.brain?.explainabilityId);
+  const showFlowDiagram =
+    settings.explainabilityPrefs.detailLevel === 'extended' &&
+    (result.brain?.handoffChain?.length ?? 0) > 1;
+  const resultFlowGraph = useMemo(() => {
+    const chain = result.brain?.handoffChain;
+    if (!chain || chain.length <= 1) return null;
+    const keys = (result.brain?.agents ?? []).map((a) => a.agentKey);
+    return buildClientFlowGraph(chain, keys);
+  }, [result.brain?.handoffChain, result.brain?.agents]);
 
   if (isError) {
     return (
@@ -173,6 +193,22 @@ export default function CommandResultCard({
       {brain?.handoffChain && brain.handoffChain.length > 0 && (
         <HandoffChainRail chain={brain.handoffChain} />
       )}
+      {showFlowDiagram && resultFlowGraph && (
+        <Suspense fallback={<div className="h-28 animate-pulse bg-muted/30 rounded mb-2" />}>
+          <AgentFlowDiagram graph={resultFlowGraph} height={150} className="mb-2 rounded-lg border border-border/40" />
+        </Suspense>
+      )}
+      {brain?.sharedMemorySummary &&
+        Object.keys(brain.sharedMemorySummary).length > 0 && (
+          <SharedMemoryRail
+            entries={Object.entries(brain.sharedMemorySummary).map(([key, value]) => ({
+              namespace: 'shared',
+              key,
+              valuePreview: JSON.stringify(value).slice(0, 200),
+            }))}
+            defaultCollapsed
+          />
+        )}
       {brain?.agentContributions && brain.agentContributions.length > 0 && (
         <AgentContributionsPanel
           contributions={brain.agentContributions}
@@ -184,6 +220,18 @@ export default function CommandResultCard({
       )}
       <p className="text-sm font-medium text-foreground">{preparedHeadline(result.parsedIntent)}</p>
       <p className="mt-1.5 text-sm text-foreground/90 leading-relaxed">{result.result}</p>
+      {showExplain && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="mt-2 h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+          onClick={() => setExplainOpen(true)}
+          data-testid="command-explain-button"
+        >
+          {t('explain.details')}
+        </Button>
+      )}
       {result.parsedIntent !== 'UNKNOWN' && (
         <p className="mt-1 text-xs text-muted-foreground/75 leading-relaxed">
           {t('command.result.summaryHint')}
@@ -439,6 +487,14 @@ export default function CommandResultCard({
           <Link to="/command-center">{t('command.result.explain')}</Link>
         </Button>
       </div>
+      {showExplain && result.commandId && (
+        <AgentExplainabilitySheet
+          entityType="command"
+          entityId={result.commandId}
+          open={explainOpen}
+          onClose={() => setExplainOpen(false)}
+        />
+      )}
     </Card>
   );
 }

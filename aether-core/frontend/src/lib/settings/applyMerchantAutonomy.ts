@@ -1,10 +1,12 @@
 import type { ActionExecutionMode, ActionAutonomyInput } from '../actionAutonomy';
 import { resolveExecutionMode } from '../actionAutonomy';
+import type { AutonomyActionCategory } from './autonomyTypes';
 import type { MerchantSettings } from './merchantSettingsTypes';
 import { isAutonomousWindowOpen } from './merchantSettingsTypes';
 
 export interface MerchantAutonomyInput extends ActionAutonomyInput {
   marginImpactEuro?: number;
+  category?: AutonomyActionCategory | null;
 }
 
 export function applyMerchantAutonomy(
@@ -20,6 +22,19 @@ export function applyMerchantAutonomy(
 
   if (input.marginImpactEuro != null && input.marginImpactEuro > settings.maxMarginImpactEuro) {
     return 'approval_required';
+  }
+
+  if (input.category) {
+    const catPolicy = settings.autonomyPrefs.actionCategories[input.category];
+    if (catPolicy && !catPolicy.enabled) {
+      return 'approval_required';
+    }
+    if (catPolicy && input.riskBand === 'low' && !catPolicy.allowLowRiskAutoExecute) {
+      mode = 'approval_required';
+    }
+    if (catPolicy && input.riskBand === 'medium' && !catPolicy.allowMediumRiskAutoExecute) {
+      mode = 'approval_required';
+    }
   }
 
   if (mode === 'autonomous' && !settings.autoApproveLowRisk) {

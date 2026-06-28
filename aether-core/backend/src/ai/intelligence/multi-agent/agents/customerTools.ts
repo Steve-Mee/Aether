@@ -137,3 +137,61 @@ export function getRecentOrdersTool(deps: CustomerToolsDeps): BrainToolExecutor 
     },
   };
 }
+
+export function getCustomerSegmentsTool(deps: CustomerToolsDeps): BrainToolExecutor {
+  return {
+    definition: {
+      name: 'getCustomerSegments',
+      description: 'Segment customers by RFM-light: vip, at_risk, new, regular',
+      parameters: {
+        days: { type: 'number', required: false, description: 'Lookback window in days (default 90)' },
+      },
+      risk: 'low',
+      kind: 'read',
+      module: 'customer-insights',
+    },
+    validate() {
+      return { ok: true };
+    },
+    async executeRead(ctx, input) {
+      const days = Number(input.days ?? 90);
+      const summary = await deps.adminData.getCustomerSegments(ctx.tenantId, days);
+      return {
+        success: true,
+        ...summary,
+        message: `${summary.total} customers — VIP: ${summary.vip}, at-risk: ${summary.atRisk}, new: ${summary.new}, regular: ${summary.regular}`,
+      };
+    },
+  };
+}
+
+export function getChurnSignalsTool(deps: CustomerToolsDeps): BrainToolExecutor {
+  return {
+    definition: {
+      name: 'getChurnSignals',
+      description: 'Detect churn risk: at-risk customers, declining order trends, cancellation ratio',
+      parameters: {
+        days: { type: 'number', required: false, description: 'Trend window in days (default 30)' },
+      },
+      risk: 'low',
+      kind: 'read',
+      module: 'customer-insights',
+    },
+    validate() {
+      return { ok: true };
+    },
+    async executeRead(ctx, input) {
+      const days = Number(input.days ?? 30);
+      const signals = await deps.adminData.getChurnSignals(ctx.tenantId, days);
+      const churnRisk = signals.atRiskCount >= 3 || signals.decliningTrend || signals.cancelledOrRefundedRatio > 15;
+      return {
+        success: true,
+        ...signals,
+        churnRisk,
+        message: churnRisk
+          ? `Churn risk detected: ${signals.atRiskCount} at-risk customers, trend ${signals.trendPct}%`
+          : `Low churn risk: ${signals.atRiskCount} at-risk customers, trend ${signals.trendPct}%`,
+      };
+    },
+  };
+}

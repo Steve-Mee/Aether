@@ -1,4 +1,5 @@
 import { prisma } from '../../../../shared/prisma/client';
+import { notificationEmitter } from './notifications/NotificationEmitter';
 
 export interface NotificationStateMap {
   readIds: Set<string>;
@@ -40,6 +41,7 @@ export async function markNotificationRead(
       readAt: new Date(),
     },
   });
+  notificationEmitter.emitStateChanged(tenantId, actorId, notificationId, 'read');
 }
 
 export async function markAllNotificationsRead(
@@ -64,6 +66,7 @@ export async function markAllNotificationsRead(
       })
     )
   );
+  notificationEmitter.emitStateChanged(tenantId, actorId, '*', 'mark_all_read');
 }
 
 export async function dismissNotification(
@@ -84,4 +87,5 @@ export async function dismissNotification(
       dismissedAt: new Date(),
     },
   });
+  notificationEmitter.emitStateChanged(tenantId, actorId, notificationId, 'dismiss');
 }

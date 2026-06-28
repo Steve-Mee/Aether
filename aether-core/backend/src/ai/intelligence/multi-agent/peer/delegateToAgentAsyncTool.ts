@@ -34,6 +34,16 @@ export function delegateToAgentAsyncTool(deps: DelegateToAgentAsyncToolDeps): Br
           required: true,
           description: 'Natural language query for the target agent',
         },
+        notify: {
+          type: 'boolean',
+          required: false,
+          description: 'Fire-and-forget notify-only (no full specialist run)',
+        },
+        contextPayload: {
+          type: 'object',
+          required: false,
+          description: 'Structured peer message payload',
+        },
       },
       risk: 'low',
       kind: 'read',
@@ -89,6 +99,15 @@ export function delegateToAgentAsyncTool(deps: DelegateToAgentAsyncToolDeps): Br
         query,
         actorId: ctx.actorId,
         idempotencyKey,
+        depth: ctx.peerDepth ?? 0,
+        jobMode: input.notify ? 'notify' : 'handoff',
+        messageType: input.notify ? 'notify' : undefined,
+        contextPayload:
+          input.contextPayload && typeof input.contextPayload === 'object'
+            ? (input.contextPayload as Record<string, unknown>)
+            : input.notify
+              ? { messageType: 'notify', summary: query }
+              : undefined,
       });
 
       emitStreamEvent(ctx.onEvent, {

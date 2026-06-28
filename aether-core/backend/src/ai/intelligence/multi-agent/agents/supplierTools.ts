@@ -22,7 +22,7 @@ export function getSupplierPriceIntelTool(deps: SupplierToolsDeps): BrainToolExe
     definition: {
       name: 'getSupplierPriceIntel',
       description:
-        'Fetch supplier price intelligence: registered suppliers, simulated recent cost changes, and suggested pricing actions',
+        'Fetch supplier price intelligence: registered suppliers, simulated recent cost changes, and suggestedPricingActions for peer handoff to Pricing Agent via contextPayload',
       parameters: {
         limit: { type: 'number', required: false, description: 'Max products to analyze (default 20)' },
       },

@@ -1,6 +1,11 @@
 import type { LlmInferencePort } from '../../../shared/ai/LlmInferencePort';
 import { defaultOllamaInference } from '../../../shared/ai/OllamaInferenceAdapter';
 import type { ToolProposal } from '../personal-brain/tools/types';
+import type { ToolProposal } from '../personal-brain/tools/types';
+import type { RunWorkingMemoryPort } from './memory/RunWorkingMemoryPort';
+import { isRunMemoryEnabled } from './memory/runMemoryConfig';
+import { resolvePrimaryAgentByPriority } from './AgentCollaborationPolicy';
+import type { AutonomyPrefs } from '../../../shared/settings/autonomyTypes';
 import type {
   AgentBranchResult,
   AgentContribution,
@@ -51,28 +56,46 @@ function buildContributions(
   });
 }
 
-function detectConflicts(contributions: AgentContribution[]): ActionConflict[] {
-  const byEntity = new Map<string, ToolProposal[]>();
+function detectConflicts(
+  contributions: AgentContribution[],
+  autonomyPrefs?: AutonomyPrefs,
+): ActionConflict[] {
+  const byEntity = new Map<string, Array<{ proposal: ToolProposal; agentKey: string }>>();
 
   for (const contribution of contributions) {
     for (const proposal of contribution.pendingActions ?? []) {
       const key = extractEntityKey(proposal);
       const existing = byEntity.get(key) ?? [];
-      existing.push(proposal);
+      existing.push({ proposal, agentKey: contribution.agentKey });
       byEntity.set(key, existing);
     }
   }
 
   const conflicts: ActionConflict[] = [];
-  for (const [, proposals] of byEntity) {
-    if (proposals.length < 2) continue;
-    const tools = [...new Set(proposals.map((p) => p.tool))];
+  for (const [, entries] of byEntity) {
+    if (entries.length < 2) continue;
+    const tools = [...new Set(entries.map((e) => e.proposal.tool))];
+
+    if (autonomyPrefs) {
+      const agentKeys = [...new Set(entries.map((e) => e.agentKey))];
+      const winnerKey = resolvePrimaryAgentByPriority(agentKeys, autonomyPrefs);
+      const winner = entries.find((e) => e.agentKey === winnerKey);
+      if (winnerKey && winner && agentKeys.length > 1) {
+        conflicts.push({
+          description: `Agent prioriteit (${winnerKey}) koos voorstel: ${winner.proposal.tool}`,
+          proposals: [winner.proposal],
+          resolution: 'agent_priority',
+        });
+        continue;
+      }
+    }
+
     conflicts.push({
       description:
         tools.length > 1
           ? `Multiple agents proposed different actions (${tools.join(', ')})`
           : `Conflicting ${tools[0]} proposals for the same entity`,
-      proposals,
+      proposals: entries.map((e) => e.proposal),
       resolution: 'user_choice',
     });
   }
@@ -100,24 +123,52 @@ function buildStructuredNarrative(
 }
 
 export class MultiAgentResultAggregator {
-  constructor(private llm: LlmInferencePort = defaultOllamaInference) {}
+  constructor(
+    private llm: LlmInferencePort = defaultOllamaInference,
+    private runMemory?: RunWorkingMemoryPort
+  ) {}
 
   async aggregate(input: {
     command: string;
     results: Array<SpecialistExecuteResult | AgentBranchResult>;
     agentKeys: string[];
     fallbackNarrative?: string;
+    tenantId?: string;
+    runId?: string;
+    autonomyPrefs?: AutonomyPrefs;
   }): Promise<AggregatedMultiAgentResult> {
     const contributions = buildContributions(input.results, input.agentKeys);
-    const conflicts = detectConflicts(contributions);
+    const conflicts = detectConflicts(contributions, input.autonomyPrefs);
+
+    let sharedMemorySummary: Record<string, unknown> | undefined;
+    if (
+      this.runMemory &&
+      input.tenantId &&
+      input.runId &&
+      isRunMemoryEnabled()
+    ) {
+      try {
+        sharedMemorySummary = await this.runMemory.buildSharedSnapshot(
+          input.tenantId,
+          input.runId
+        );
+      } catch {
+        // Shared memory snapshot is best-effort
+      }
+    }
+
+    const baseResult = {
+      perAgentContributions: contributions,
+      conflicts: conflicts.length > 0 ? conflicts : undefined,
+      sharedMemorySummary,
+    };
 
     if (contributions.length <= 1) {
       const only = contributions[0];
       return {
         narrative: input.fallbackNarrative ?? only?.summary ?? '',
-        perAgentContributions: contributions,
-        conflicts: conflicts.length > 0 ? conflicts : undefined,
         synthesisSource: 'concat',
+        ...baseResult,
       };
     }
 
@@ -126,34 +177,37 @@ export class MultiAgentResultAggregator {
     if (!isResultSynthesisEnabled()) {
       return {
         narrative: structured,
-        perAgentContributions: contributions,
-        conflicts: conflicts.length > 0 ? conflicts : undefined,
         synthesisSource: 'structured',
+        ...baseResult,
       };
     }
 
-    const synthesized = await this.synthesizeWithLlm(input.command, contributions, conflicts);
+    const synthesized = await this.synthesizeWithLlm(
+      input.command,
+      contributions,
+      conflicts,
+      sharedMemorySummary
+    );
     if (synthesized) {
       return {
         narrative: synthesized,
-        perAgentContributions: contributions,
-        conflicts: conflicts.length > 0 ? conflicts : undefined,
         synthesisSource: 'llm',
+        ...baseResult,
       };
     }
 
     return {
       narrative: structured,
-      perAgentContributions: contributions,
-      conflicts: conflicts.length > 0 ? conflicts : undefined,
       synthesisSource: 'structured',
+      ...baseResult,
     };
   }
 
   private async synthesizeWithLlm(
     command: string,
     contributions: AgentContribution[],
-    conflicts: ActionConflict[]
+    conflicts: ActionConflict[],
+    sharedMemorySummary?: Record<string, unknown>
   ): Promise<string | null> {
     const agentBlocks = contributions
       .map((c) => `- ${c.agentKey} (${c.status}): ${c.summary}`)
@@ -164,13 +218,18 @@ export class MultiAgentResultAggregator {
         ? `\nConflicts:\n${conflicts.map((c) => `- ${c.description}`).join('\n')}`
         : '';
 
+    const memoryBlock =
+      sharedMemorySummary && Object.keys(sharedMemorySummary).length > 0
+        ? `\nShared run memory:\n${JSON.stringify(sharedMemorySummary).slice(0, 1500)}`
+        : '';
+
     const prompt = `Combineer de output van meerdere specialist agents tot één samenhangend actieplan voor de merchant.
 
 Origineel commando: "${command}"
 
 Agent bijdragen:
 ${agentBlocks}
-${conflictBlock}
+${conflictBlock}${memoryBlock}
 
 Schrijf een kort, coherent antwoord in het Nederlands (max 400 woorden). Benoem conflicten expliciet als die er zijn. Geen JSON.`;
 

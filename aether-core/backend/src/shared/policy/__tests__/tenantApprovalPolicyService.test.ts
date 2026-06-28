@@ -39,6 +39,11 @@ const baseRow = {
   notificationPrefs: DEFAULT_MERCHANT_SETTINGS.notificationPrefs,
   locale: 'nl',
   dataExportEnabled: true,
+  brainAdaptiveAutoExecuteEnabled: false,
+  proactivePrefs: DEFAULT_MERCHANT_SETTINGS.proactivePrefs,
+  explainabilityPrefs: DEFAULT_MERCHANT_SETTINGS.explainabilityPrefs,
+  goalPrefs: DEFAULT_MERCHANT_SETTINGS.goalPrefs,
+  autonomyPrefs: DEFAULT_MERCHANT_SETTINGS.autonomyPrefs,
   updatedAt: new Date(),
 };
 
@@ -72,7 +77,32 @@ describe('tenantApprovalPolicyService', () => {
     expect(result.riskClass).toBe('medium');
   });
 
-  it('marks unlisted actions as low-risk auto-eligible', async () => {
+  it('blocks inventory low-risk when category auto-execute disabled', async () => {
+    const result = await assessApprovalAutoEligible({
+      tenantId: 'tenant_test',
+      module: 'inventory-pricing',
+      actionType: 'stock_sync',
+      payload: {},
+    });
+    expect(result.eligible).toBe(false);
+    expect(result.riskClass).toBe('low');
+  });
+
+  it('allows inventory low-risk when category permits auto-execute', async () => {
+    mockFindUnique.mockResolvedValue({
+      ...baseRow,
+      autonomyPrefs: {
+        ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs,
+        actionCategories: {
+          ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs.actionCategories,
+          inventory: {
+            enabled: true,
+            allowLowRiskAutoExecute: true,
+            allowMediumRiskAutoExecute: false,
+          },
+        },
+      },
+    });
     const result = await assessApprovalAutoEligible({
       tenantId: 'tenant_test',
       module: 'inventory-pricing',

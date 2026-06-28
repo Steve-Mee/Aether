@@ -1,10 +1,12 @@
 import { isMutatingIntent } from '../../command-brain/BrainActionPolicyResolver';
 import type { AgentRegistry } from '../AgentRegistry';
-import { getAllowedDelegationTargets, isMultiAgentDelegationEnabled } from '../delegationConfig';
+import { getAllowedDelegationTargets, isMultiAgentDelegationEnabled, validatePeerPayloadScope } from '../delegationConfig';
 import type { PeerDelegationRequest } from '../types';
 import type { ChainHandoffInput } from '../AgentSupervisorOrchestrator';
 import { GLOBAL_ADVISORY_AGENT_KEY } from './FederatedPeerPort';
 import { FEDERATED_SANDBOX_PREFIX } from './federated/FederatedExecutionGate';
+import type { MerchantSettings } from '../../../../shared/settings/merchantSettingsTypes';
+import { resolveAutonomyCategoryKey } from '../../../../shared/policy/AutonomyActionRegistry';
 
 export function isPeerDelegationEnabled(): boolean {
   if (process.env.MULTI_AGENT_PEER_DELEGATION === 'false') return false;
@@ -25,11 +27,32 @@ export interface PeerGuardResult {
   error?: string;
 }
 
+/** Check whether the target agent's autonomy category is enabled for the merchant. */
+export function validateAutonomyCategoryEnabled(
+  settings: MerchantSettings,
+  intent: string,
+  targetAgentKey: string,
+): PeerGuardResult {
+  const category = resolveAutonomyCategoryKey({ intent, agentKey: targetAgentKey });
+  if (!category) return { ok: true };
+  const policy = settings.autonomyPrefs.actionCategories[category];
+  if (policy && !policy.enabled) {
+    return {
+      ok: false,
+      error: `Autonomie-categorie ${category} is uitgeschakeld — peer delegatie geblokkeerd`,
+    };
+  }
+  return { ok: true };
+}
+
 /** Unified guard for AgentPeerBus, AgentPeerMesh, and PeerDelegationBridge. */
 export class UnifiedPeerGuard {
   constructor(private registry: AgentRegistry) {}
 
-  validatePeerDelegation(request: PeerDelegationRequest): PeerGuardResult {
+  validatePeerDelegation(
+    request: PeerDelegationRequest,
+    settings?: MerchantSettings,
+  ): PeerGuardResult {
     if (!isPeerDelegationEnabled()) {
       return { ok: false, error: 'Peer delegation is disabled' };
     }
@@ -44,6 +67,24 @@ export class UnifiedPeerGuard {
 
     if (request.targetAgentKey.startsWith(FEDERATED_SANDBOX_PREFIX)) {
       return { ok: true };
+    }
+
+    const payloadCheck = validatePeerPayloadScope(
+      request.sourceAgentKey,
+      request.targetAgentKey,
+      request.contextPayload?.payload
+    );
+    if (!payloadCheck.ok) {
+      return payloadCheck;
+    }
+
+    if (settings) {
+      const categoryCheck = validateAutonomyCategoryEnabled(
+        settings,
+        request.intent,
+        request.targetAgentKey,
+      );
+      if (!categoryCheck.ok) return categoryCheck;
     }
 
     return this.validateLocalTarget(
@@ -63,7 +104,38 @@ export class UnifiedPeerGuard {
       return { ok: false, error: `Peer delegation depth limit (${peerMaxDepth()}) reached` };
     }
 
+    const payloadCheck = validatePeerPayloadScope(
+      input.fromAgentKey,
+      input.toAgentKey,
+      input.contextPayload?.payload
+    );
+    if (!payloadCheck.ok) {
+      return payloadCheck;
+    }
+
     return this.validateLocalTarget(input.fromAgentKey, input.toAgentKey, input.intent);
+  }
+
+  validatePeerSourceRun(
+    peerSourceAgentKey: string,
+    targetAgentKey: string,
+    intent: string,
+    contextPayload?: import('../types').AgentPeerMessage
+  ): PeerGuardResult {
+    if (!isPeerDelegationEnabled()) {
+      return { ok: true };
+    }
+
+    const payloadCheck = validatePeerPayloadScope(
+      peerSourceAgentKey,
+      targetAgentKey,
+      contextPayload?.payload
+    );
+    if (!payloadCheck.ok) {
+      return payloadCheck;
+    }
+
+    return this.validateLocalTarget(peerSourceAgentKey, targetAgentKey, intent);
   }
 
   private validateLocalTarget(

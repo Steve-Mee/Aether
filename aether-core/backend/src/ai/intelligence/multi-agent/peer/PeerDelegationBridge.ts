@@ -53,6 +53,16 @@ export class PeerDelegationBridge {
     if (!this.orchestrator) {
       return { narrative: '', error: 'Agent orchestrator not available' };
     }
+    if (this.guard && input.peerSourceAgentKey) {
+      const validation = this.guard.validatePeerSourceRun(
+        input.peerSourceAgentKey,
+        input.agentKey,
+        input.intent
+      );
+      if (!validation.ok) {
+        return { narrative: '', error: validation.error };
+      }
+    }
     return this.orchestrator.executeSpecialist(input);
   }
 

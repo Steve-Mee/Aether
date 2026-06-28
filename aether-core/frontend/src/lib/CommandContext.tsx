@@ -28,8 +28,12 @@ interface CommandContextValue {
   streamActiveAgentKey: string | null;
   streamActiveAgentKeys: string[];
   streamHandoffChain: import('@/types/command').HandoffChainEntry[];
+  streamSharedMemory: import('@/types/command').SharedMemoryEntry[];
   streamExecutionMode: 'single' | 'sequential' | 'parallel' | null;
   streamChainFrom: string | null;
+  streamLiveExplain: import('@/types/explainability').LiveExplainState | null;
+  executingProactiveId: string | null;
+  executeProactiveStream: (suggestionId: string) => Promise<void>;
   cancelStream: () => void;
   error: string | null;
   paletteOpen: boolean;
@@ -90,7 +94,7 @@ export function CommandProvider({ children }: { children: ReactNode }) {
     });
   }, [serverHistory]);
 
-  const { executeMutation, undoMutation, loading, streamSteps, streamPlan, streamPlansByAgent, streaming, activeAgentKey, activeAgentKeys, streamHandoffChain, streamExecutionMode, streamChainFrom, cancelStream } = useCommandMutations({
+  const { executeMutation, undoMutation, loading, streamSteps, streamPlan, streamPlansByAgent, streaming, activeAgentKey, activeAgentKeys, streamHandoffChain, streamSharedMemory, streamExecutionMode, streamChainFrom, streamLiveExplain, executingProactiveId, executeProactiveWithStream, cancelStream } = useCommandMutations({
     onExecuteSuccess: (data) => {
       setLastResult(data);
       setHistory((prev) => [data, ...prev].slice(0, 20));
@@ -144,8 +148,14 @@ export function CommandProvider({ children }: { children: ReactNode }) {
         streamActiveAgentKey: activeAgentKey,
         streamActiveAgentKeys: activeAgentKeys,
         streamHandoffChain,
+        streamSharedMemory,
         streamExecutionMode,
         streamChainFrom,
+        streamLiveExplain,
+        executingProactiveId,
+        executeProactiveStream: async (suggestionId: string) => {
+          await executeProactiveWithStream(suggestionId);
+        },
         cancelStream,
         error,
         paletteOpen,

@@ -45,7 +45,20 @@ export default function HandoffChainRail({ chain }: HandoffChainRailProps) {
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-1">
               <AgentBadge agentKey={entry.to} chainFrom={entry.from} size="sm" />
-              {entry.handoffMode === 'direct' && (
+              {entry.messageType && (
+              <span className="text-[10px] rounded border border-border/40 px-1 py-0 text-muted-foreground">
+                {entry.messageType}
+              </span>
+            )}
+            {entry.correlationId && (
+              <span
+                className="text-[10px] text-muted-foreground/50 font-mono"
+                title={entry.correlationId}
+              >
+                #{entry.correlationId.slice(0, 6)}
+              </span>
+            )}
+            {entry.handoffMode === 'direct' && (
                 <span className="text-[10px] rounded border border-border/40 px-1 py-0 text-muted-foreground">
                   {t('command.brain.directPeerHandoff')}
                 </span>

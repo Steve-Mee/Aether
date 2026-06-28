@@ -66,6 +66,7 @@ export interface DashboardSummary {
   manualNavEvents7d?: number;
   tenantDisplayName?: string;
   timestamp?: string;
+  proactiveCount?: number;
 }
 
 export interface BillingSummary {

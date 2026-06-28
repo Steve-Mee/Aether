@@ -19,6 +19,9 @@ function mapRow(row: {
   error: string | null;
   idempotencyKey: string | null;
   actorId: string | null;
+  jobMode: string | null;
+  messageType: string | null;
+  contextPayload: unknown;
   createdAt: Date;
   updatedAt: Date;
   completedAt: Date | null;
@@ -49,6 +52,9 @@ export class PrismaAgentPeerJobAdapter implements AgentPeerJobPort {
         status: 'pending',
         actorId: input.actorId ?? null,
         idempotencyKey: input.idempotencyKey ?? null,
+        jobMode: input.jobMode ?? 'handoff',
+        messageType: input.messageType ?? null,
+        contextPayload: input.contextPayload as import('@prisma/client').Prisma.InputJsonValue,
         resultPayload: JSON.stringify({ meta: { depth: input.depth ?? 1 } }),
       },
     });

@@ -2,84 +2,6 @@ import { prisma } from '../prisma/client';
 import { ACTION_LABELS } from '../audit/activityLabels';
 import { requireTenantId } from '../tenant/tenantContext';
 
-export async function buildExplainabilityTimeline(params: {
-  tenantId: string;
-  entityType: 'email' | 'approval';
-  entityId: string;
-}): Promise<{ entityType: string; entityId: string; events: Array<Record<string, unknown>> }> {
-  const tenantId = requireTenantId(params.tenantId, 'explainability');
-
-  if (params.entityType === 'email') {
-    const email = await prisma.emailMessage.findFirst({
-      where: { id: params.entityId, tenantId },
-    });
-    if (!email) throw new Error('Email not found');
-
-    const audits = await prisma.auditLog.findMany({
-      where: {
-        tenantId,
-        details: { contains: params.entityId },
-      },
-      orderBy: { createdAt: 'asc' },
-      take: 50,
-    });
-
-    return {
-      entityType: 'email',
-      entityId: params.entityId,
-      events: [
-        {
-          at: email.createdAt,
-          label: 'E-mail ontvangen',
-          status: email.status,
-          category: email.category,
-        },
-        ...audits.map((a) => ({
-          at: a.createdAt,
-          label: ACTION_LABELS[a.action] ?? a.action,
-          module: a.module,
-          actor: a.actor,
-          details: typeof a.details === 'string' ? JSON.parse(a.details) : a.details,
-        })),
-      ],
-    };
-  }
-
-  const approval = await prisma.approval.findFirst({
-    where: { id: params.entityId, tenantId },
-  });
-  if (!approval) throw new Error('Approval not found');
-
-  const audits = await prisma.auditLog.findMany({
-    where: {
-      tenantId,
-      details: { contains: params.entityId },
-    },
-    orderBy: { createdAt: 'asc' },
-    take: 50,
-  });
-
-  return {
-    entityType: 'approval',
-    entityId: params.entityId,
-    events: [
-      {
-        at: approval.createdAt,
-        label: 'Goedkeuring aangemaakt',
-        module: approval.module,
-        actionType: approval.actionType,
-        status: approval.status,
-      },
-      ...audits.map((a) => ({
-        at: a.createdAt,
-        label: ACTION_LABELS[a.action] ?? a.action,
-        module: a.module,
-        actor: a.actor,
-      })),
-    ],
-  };
-}
-
 export async function buildAutonomyTrace(params: {
   tenantId: string;
   module?: string;
@@ -125,3 +47,12 @@ export async function buildAutonomyTrace(params: {
     ].sort((a, b) => new Date(String(b.at)).getTime() - new Date(String(a.at)).getTime()),
   };
 }
+
+export {
+  buildExplainabilityTimeline,
+  persistCommandExplainability,
+  persistProactiveExplainability,
+  persistProactiveAutoExplainability,
+} from './explainabilityTimeline';
+
+export { explainabilityDiffService } from '../ai/intelligence/explainability/ExplainabilityDiffService';

@@ -65,6 +65,21 @@ import { AgentPeerBus } from './multi-agent/peer/AgentPeerBus';
 import { AgentPeerMesh } from './multi-agent/peer/AgentPeerMesh';
 import { delegateToAgentTool } from './multi-agent/peer/delegateToAgentTool';
 import { delegateToAgentAsyncTool } from './multi-agent/peer/delegateToAgentAsyncTool';
+import { sendAgentMessageTool } from './multi-agent/peer/sendAgentMessageTool';
+import type { RunWorkingMemoryPort } from './multi-agent/memory/RunWorkingMemoryPort';
+import { CompositeSharedMemoryAdapter } from './multi-agent/memory/CompositeSharedMemoryAdapter';
+import { CachingRunWorkingMemoryAdapter } from './multi-agent/memory/CachingRunWorkingMemoryAdapter';
+import { RedisRunMemoryCacheAdapter } from './multi-agent/memory/RedisRunMemoryCacheAdapter';
+import { isRunMemoryRedisCacheEnabled } from './multi-agent/memory/runMemoryConfig';
+import { SharedMemoryBridge } from './multi-agent/memory/SharedMemoryBridge';
+import { RunMemoryPromoter } from './multi-agent/memory/RunMemoryPromoter';
+import { createRunMemoryGcJob, type RunMemoryGcJob } from './multi-agent/memory/jobs/RunMemoryGcJob';
+import {
+  readRunMemoryTool,
+  writeRunMemoryTool,
+  listRunMemoryTool,
+  appendRunMemoryTool,
+} from './multi-agent/memory/runMemoryTools';
 import { FederatedPeerPort } from './multi-agent/peer/FederatedPeerPort';
 import { FederatedExecutionPort } from './multi-agent/peer/federated/FederatedExecutionPort';
 import { FederatedExecutionWorker } from './multi-agent/peer/federated/FederatedExecutionWorker';
@@ -97,6 +112,8 @@ import {
   getTopCustomersTool,
   getOrderTrendsTool,
   getRecentOrdersTool,
+  getCustomerSegmentsTool,
+  getChurnSignalsTool,
   getForecastSummaryTool,
   listForecastsTool,
   forecastProductDemandTool,
@@ -109,6 +126,9 @@ import {
   listActiveNegotiationsTool,
   getNegotiationDetailTool,
   proposeCounterOfferTool,
+  suggestPromotionTool,
+  suggestClearancePricingTool,
+  createPromotionTool,
   getEmailSummaryTool,
   listProductsTool,
   searchCatalogProductsTool,
@@ -172,6 +192,10 @@ export interface IntelligenceLayer {
   agentPatternSync?: AgentPatternSyncService;
   peerDelegationBridge?: PeerDelegationBridge;
   federatedExecutionWorker?: FederatedExecutionWorker;
+  runWorkingMemory?: RunWorkingMemoryPort;
+  sharedMemoryBridge?: SharedMemoryBridge;
+  runMemoryPromoter?: RunMemoryPromoter;
+  runMemoryGcJob?: RunMemoryGcJob;
 }
 
 export interface IntelligenceLayerDeps {
@@ -313,6 +337,10 @@ export function createIntelligenceLayer(
   let multiAgentResultAggregator: MultiAgentResultAggregator | undefined;
   let peerDelegationBridge: PeerDelegationBridge | undefined;
   let federatedExecutionWorker: FederatedExecutionWorker | undefined;
+  let runWorkingMemory: RunWorkingMemoryPort | undefined;
+  let sharedMemoryBridge: SharedMemoryBridge | undefined;
+  let runMemoryPromoter: RunMemoryPromoter | undefined;
+  let runMemoryGcJob: RunMemoryGcJob | undefined;
   let agentRegistry: AgentRegistry | undefined;
   let reflectionDistillationService: ReflectionDistillationService | undefined;
   const reflectionExperimentService = new ReflectionExperimentService();
@@ -378,6 +406,8 @@ export function createIntelligenceLayer(
     toolRegistry.register(getTopCustomersTool({ adminData: deps.adminData }));
     toolRegistry.register(getOrderTrendsTool({ adminData: deps.adminData }));
     toolRegistry.register(getRecentOrdersTool({ adminData: deps.adminData }));
+    toolRegistry.register(getCustomerSegmentsTool({ adminData: deps.adminData }));
+    toolRegistry.register(getChurnSignalsTool({ adminData: deps.adminData }));
     const demandForecaster = new DemandForecaster(demandForecastAdapter);
     toolRegistry.register(getForecastSummaryTool({ adminData: deps.adminData, demandForecaster }));
     toolRegistry.register(listForecastsTool({ adminData: deps.adminData, demandForecaster }));
@@ -391,6 +421,21 @@ export function createIntelligenceLayer(
     toolRegistry.register(listActiveNegotiationsTool({ adminData: deps.adminData }));
     toolRegistry.register(getNegotiationDetailTool({ adminData: deps.adminData }));
     toolRegistry.register(proposeCounterOfferTool({ adminData: deps.adminData }));
+    toolRegistry.register(suggestPromotionTool({ adminData: deps.adminData }));
+    toolRegistry.register(suggestClearancePricingTool({ adminData: deps.adminData }));
+    toolRegistry.register(createPromotionTool());
+    const compositeMemory = new CompositeSharedMemoryAdapter();
+    const redisLayer = isRunMemoryRedisCacheEnabled()
+      ? new RedisRunMemoryCacheAdapter(compositeMemory)
+      : compositeMemory;
+    runWorkingMemory = new CachingRunWorkingMemoryAdapter(redisLayer);
+    sharedMemoryBridge = new SharedMemoryBridge(runWorkingMemory);
+    runMemoryPromoter = new RunMemoryPromoter(runWorkingMemory);
+    runMemoryGcJob = createRunMemoryGcJob(runWorkingMemory);
+    toolRegistry.register(readRunMemoryTool({ runMemory: runWorkingMemory }));
+    toolRegistry.register(writeRunMemoryTool({ runMemory: runWorkingMemory }));
+    toolRegistry.register(listRunMemoryTool({ runMemory: runWorkingMemory }));
+    toolRegistry.register(appendRunMemoryTool({ runMemory: runWorkingMemory }));
     toolRegistry.register(getEmailSummaryTool({ adminData: deps.adminData }));
     toolRegistry.register(listProductsTool({ adminData: deps.adminData }));
     toolRegistry.register(searchCatalogProductsTool({ adminData: deps.adminData }));
@@ -408,7 +453,8 @@ export function createIntelligenceLayer(
       agentLoop,
       contextRetriever,
       merchantKnowledgeIndexer,
-      personalBrainMemory
+      personalBrainMemory,
+      runWorkingMemory
     );
     const collaborationPlanner = new CollaborationPlannerService(agentRegistry);
     const graphBuilder = new CollaborationGraphBuilder();
@@ -421,7 +467,7 @@ export function createIntelligenceLayer(
       performancePort
     );
     const parallelCoordinator = new ParallelCoordinator(agentRegistry, specialistRunner);
-    const multiAgentResultAggregator = new MultiAgentResultAggregator();
+    const multiAgentResultAggregator = new MultiAgentResultAggregator(undefined, runWorkingMemory);
     let orchestratorRef: AgentOrchestrator;
     let agentPeerBus: AgentPeerBus;
     const nativeGraph = new NativeGraphOrchestrator(
@@ -439,7 +485,9 @@ export function createIntelligenceLayer(
       agentRouter,
       parallelCoordinator,
       graphOrchestrator,
-      reflectionMetricsRecorder
+      reflectionMetricsRecorder,
+      runWorkingMemory,
+      sharedMemoryBridge
     );
     const federatedPeer = new FederatedPeerPort(agentPatternSync);
     const federatedGate = new FederatedExecutionGate();
@@ -459,7 +507,8 @@ export function createIntelligenceLayer(
       orchestratorRef,
       federatedPeer,
       federatedExecution,
-      new AgentPeerMesh(agentRegistry, specialistRunner, agentRegistry)
+      new AgentPeerMesh(agentRegistry, specialistRunner, agentRegistry),
+      sharedMemoryBridge
     );
     nativeGraph.setPeerBus(agentPeerBus);
     agentSupervisor = orchestratorRef;
@@ -479,6 +528,7 @@ export function createIntelligenceLayer(
     );
     peerDelegationBridge = peerDelegationBridgeRef;
     toolRegistry.register(delegateToAgentTool({ peerBus: agentPeerBus }));
+    toolRegistry.register(sendAgentMessageTool({ peerBus: agentPeerBus }));
     toolRegistry.register(delegateToAgentAsyncTool({ peerBus: agentPeerBus, jobPort: peerJobPort }));
   }
 
@@ -518,6 +568,10 @@ export function createIntelligenceLayer(
     agentPatternSync,
     peerDelegationBridge,
     federatedExecutionWorker,
+    runWorkingMemory,
+    sharedMemoryBridge,
+    runMemoryPromoter,
+    runMemoryGcJob,
   };
 }
 

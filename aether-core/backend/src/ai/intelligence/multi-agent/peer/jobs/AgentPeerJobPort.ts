@@ -10,6 +10,9 @@ export interface EnqueueAgentPeerJobInput {
   actorId?: string;
   idempotencyKey?: string;
   depth?: number;
+  jobMode?: 'handoff' | 'notify';
+  messageType?: string;
+  contextPayload?: Record<string, unknown>;
 }
 
 export interface AgentPeerJobRecord {
@@ -25,6 +28,9 @@ export interface AgentPeerJobRecord {
   error: string | null;
   idempotencyKey: string | null;
   actorId: string | null;
+  jobMode: string | null;
+  messageType: string | null;
+  contextPayload: unknown;
   createdAt: Date;
   updatedAt: Date;
   completedAt: Date | null;

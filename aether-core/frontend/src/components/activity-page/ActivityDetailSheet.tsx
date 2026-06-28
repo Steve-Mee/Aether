@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Clock, ExternalLink } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 import { formatDate, t } from '@/lib/i18n';
 import {
   Button,
@@ -16,12 +16,14 @@ import { approvalDetail } from '@/lib/navigation/moduleLinks';
 import { canExplainApproval } from '@/lib/activityRelated';
 import type { ActivityItem } from '@/types/activity';
 import type { RiskBand } from '@/lib/intentNavigation';
+import AgentExplainabilitySheet from '@/components/explainability/AgentExplainabilitySheet';
+import type { ExplainEntityType } from '@/types/explainability';
+import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 
 interface ActivityDetailSheetProps {
   item: ActivityItem | null;
   open: boolean;
   onClose: () => void;
-  onExplainApproval?: (approvalId: string) => void;
 }
 
 function riskToBand(risk: ActivityItem['risk']): RiskBand | null {
@@ -34,8 +36,11 @@ export default function ActivityDetailSheet({
   item,
   open,
   onClose,
-  onExplainApproval,
 }: ActivityDetailSheetProps) {
+  const { settings } = useMerchantSettings();
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [approvalExplainId, setApprovalExplainId] = useState<string | null>(null);
+
   if (!item) {
     return (
       <Sheet open={false} onOpenChange={() => {}}>
@@ -45,12 +50,28 @@ export default function ActivityDetailSheet({
   }
 
   const band = riskToBand(item.risk);
+  const explainSourceType = item.details?.explainabilitySourceType;
+  const explainSourceId = item.details?.explainabilitySourceId;
+  const canShowExplain =
+    settings.explainabilityPrefs.detailLevel !== 'off' &&
+    typeof explainSourceType === 'string' &&
+    typeof explainSourceId === 'string' &&
+    (explainSourceType === 'command' || explainSourceType === 'proactive_suggestion');
   const detailEntries =
     item.details && typeof item.details === 'object'
-      ? Object.entries(item.details).filter(([k]) => !['entityId', 'entityType'].includes(k))
+      ? Object.entries(item.details).filter(
+          ([k]) =>
+            ![
+              'entityId',
+              'entityType',
+              'explainabilitySourceType',
+              'explainabilitySourceId',
+            ].includes(k),
+        )
       : [];
 
   return (
+    <>
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
       <SheetContent
         side="right"
@@ -130,12 +151,12 @@ export default function ActivityDetailSheet({
           <div className="pt-4 border-t border-border/30 space-y-3">
             {item.related?.type === 'approval' && (
               <div className="flex flex-col gap-2">
-                {canExplainApproval(item.related) && onExplainApproval && (
+                {canExplainApproval(item.related) && (
                   <Button
                     variant="secondary"
                     size="sm"
                     type="button"
-                    onClick={() => onExplainApproval(item.related!.id)}
+                    onClick={() => setApprovalExplainId(item.related!.id)}
                     data-testid="activity-explain-approval"
                   >
                     {t('approval.explain')}
@@ -182,9 +203,37 @@ export default function ActivityDetailSheet({
                 {t('activity.detail.viewEmail')}
               </Link>
             )}
+            {canShowExplain && (
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={() => setExplainOpen(true)}
+                data-testid="activity-explain-link"
+              >
+                {t('explain.viewFull')}
+              </Button>
+            )}
           </div>
         </div>
       </SheetContent>
     </Sheet>
+    {canShowExplain && (
+      <AgentExplainabilitySheet
+        entityType={explainSourceType as ExplainEntityType}
+        entityId={String(explainSourceId)}
+        open={explainOpen}
+        onClose={() => setExplainOpen(false)}
+      />
+    )}
+    {approvalExplainId && (
+      <AgentExplainabilitySheet
+        entityType="approval"
+        entityId={approvalExplainId}
+        open
+        onClose={() => setApprovalExplainId(null)}
+      />
+    )}
+    </>
   );
 }

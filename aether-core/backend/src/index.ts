@@ -6,6 +6,17 @@ import { initOtelSdk, shutdownOtelSdk } from './shared/observability/otelBootstr
 import { initSentry, shutdownSentry } from './shared/observability/sentry';
 import { imapPollingService } from './modules/aether-mail/infrastructure/imap/ImapPollingService';
 import { monitorSupplierJob } from './modules/supplier-intelligence/infrastructure/jobs/MonitorSupplierJob';
+import { monitorLowStockJob } from './modules/inventory-pricing/infrastructure/jobs/MonitorLowStockJob';
+import { proactiveBrainJob } from './ai/intelligence/proactive/ProactiveBrainJob';
+import { goalProgressJob } from './ai/intelligence/goals/jobs/GoalProgressJob';
+import { overviewFeedBackfillJob } from './modules/admin-command-bar/application/services/jobs/OverviewFeedBackfillJob';
+import { notificationDigestJob } from './modules/admin-command-bar/application/services/jobs/NotificationDigestJob';
+import { notificationBackfillJob } from './modules/admin-command-bar/application/services/jobs/NotificationBackfillJob';
+import { goalSuggestionJob } from './ai/intelligence/goals/jobs/GoalSuggestionJob';
+import { goalPatternDistillJob } from './ai/intelligence/goals/federated/jobs/GoalPatternDistillJob';
+import { proactiveEnrichmentJob } from './ai/intelligence/proactive/jobs/ProactiveEnrichmentJob';
+import { explainabilityNarrativeJob } from './ai/intelligence/explainability/jobs/ExplainabilityNarrativeJob';
+import { explainabilityPatternDistillJob } from './ai/intelligence/explainability/jobs/ExplainabilityPatternDistillJob';
 import {
   knowledgeContributionJob,
   knowledgeDistillJob,
@@ -102,10 +113,22 @@ async function startServer(): Promise<void> {
     }
     void imapPollingService.start();
     monitorSupplierJob.start();
+    monitorLowStockJob.start();
+    proactiveBrainJob.start();
+    goalProgressJob.start();
+    void overviewFeedBackfillJob.runOnce();
+    void notificationBackfillJob.runAll();
+    notificationDigestJob.start();
+    goalSuggestionJob.start();
+    goalPatternDistillJob.start();
+    proactiveEnrichmentJob.start();
+    explainabilityNarrativeJob.start();
+    explainabilityPatternDistillJob.start();
     knowledgeContributionJob.start();
     knowledgeDistillJob.start();
     knowledgeFederateJob.start();
     getCompositionRoot().memoryConsolidationJob.start();
+    getCompositionRoot().runMemoryGcJob?.start();
     const agentPatternJob = createAgentPatternContributionJob(
       getCompositionRoot().agentPatternSync
     );
@@ -116,10 +139,12 @@ async function startServer(): Promise<void> {
   process.on('SIGTERM', async () => {
     imapPollingService.stop();
     monitorSupplierJob.stop();
+    monitorLowStockJob.stop();
     knowledgeContributionJob.stop();
     knowledgeDistillJob.stop();
     knowledgeFederateJob.stop();
     getCompositionRoot().memoryConsolidationJob.stop();
+    getCompositionRoot().runMemoryGcJob?.stop();
     federatedHiveJob.stop();
     server.close(async () => {
       await shutdownOtelSdk();

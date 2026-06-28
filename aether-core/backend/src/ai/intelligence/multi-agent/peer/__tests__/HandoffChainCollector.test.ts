@@ -57,4 +57,22 @@ describe('HandoffChainCollector', () => {
     expect(snap[0]?.status).toBe('completed');
     expect(snap[0]?.summary).toBe('Done');
   });
+
+  it('collects correlationId and messageType from handoff events', () => {
+    const collector = new HandoffChainCollector();
+    collector.observe({
+      type: 'agent_handoff',
+      fromAgentKey: 'supplier',
+      toAgentKey: 'pricing',
+      handoffReason: 'chain:PRICING_OPTIMIZE',
+      correlationId: 'corr-abc',
+      messageType: 'intel',
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(collector.snapshot()[0]).toMatchObject({
+      correlationId: 'corr-abc',
+      messageType: 'intel',
+    });
+  });
 });

@@ -2,6 +2,7 @@ import { prisma } from '../prisma/client';
 import { eventBus } from '../events/eventBus';
 import { writeAuditLog } from '../audit/auditService';
 import { executeApprovedAction } from './approvalExecutor';
+import { notifyOverviewApproval } from '../../modules/admin-command-bar/application/services/OverviewFeedNotify';
 
 export async function createApproval(params: {
   tenantId: string;
@@ -26,6 +27,8 @@ export async function createApproval(params: {
     type: 'mail.approval_required',
     payload: { approvalId: approval.id, module: params.module, ...params.payload },
   });
+
+  notifyOverviewApproval(params.tenantId, 'created', approval);
 
   return { id: approval.id, status: approval.status };
 }
@@ -56,6 +59,12 @@ export async function resolveApproval(params: {
     action: params.approve ? 'approved' : 'rejected',
     actor: params.resolvedBy,
     details: { approvalId: params.id },
+  });
+
+  notifyOverviewApproval(params.tenantId, 'updated', {
+    ...approval,
+    status: params.approve ? 'approved' : 'rejected',
+    resolvedAt: new Date(),
   });
 
   if (params.approve) {

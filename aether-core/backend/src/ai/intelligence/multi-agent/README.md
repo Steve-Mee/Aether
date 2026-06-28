@@ -40,6 +40,7 @@ Handoff rules live in `AgentCollaborationPolicy.ts`:
 | `parallel-intel-customer-inventory` | customer + inventory keywords (read-only) | customer ∥ inventory |
 | `customer-to-pricing` | customer intent + pricing keywords | customer → pricing |
 | `customer-to-mail` | customer intent + mail keywords | customer → mail |
+| `customer-to-inventory-demand` | customer intent + inventory keywords | customer → inventory |
 | `cross-domain-customer-pricing` | customer + pricing keywords | customer → pricing |
 | `cross-domain-customer-mail` | customer + mail keywords | customer → mail |
 | `cross-domain-customer-inventory` | customer + inventory keywords | customer → inventory |
@@ -93,6 +94,45 @@ Command Bar receives `brain.agentContributions`, `brain.actionConflicts`, and `b
 
 Agents with `canDelegateTo` may call the `delegateToAgent` read tool during `BrainAgentLoop`. Requests go through `AgentPeerBus` → `AgentOrchestrator.chainHandoff` (traceable, tenant-scoped). Mutating peer intents are blocked.
 
+## Agent-to-Agent v1 (structured peer messages)
+
+Runtime peer communication uses **task delegation**, not a free-form chat bus:
+
+```
+Agent A → delegateToAgent / sendAgentMessage (tool)
+  → AgentPeerBus → UnifiedPeerGuard (depth, canDelegateTo, payload scope)
+  → chainHandoff / AgentPeerMesh (direct)
+  → Agent B specialist run
+  → SSE (agent_handoff, agent_peer_message) + PeerHandoffAuditLog
+  → HandoffChainRail (frontend)
+```
+
+### Tools
+
+| Tool | Purpose |
+|------|---------|
+| `delegateToAgent` | Primary LLM tool — intent + query + optional `contextPayload` |
+| `sendAgentMessage` | Developer-friendly alias with `messageType` default `request` |
+
+`contextPayload` shape: `{ messageType: intel|request|notify, summary, payload?, correlationId? }`
+
+### Collaboration use cases (v1)
+
+| Flow | Trigger | Path |
+|------|---------|------|
+| Supplier → Pricing | Price drop intel / `MonitorSupplierUseCase` | `contextPayload.suggestedPricingActions` |
+| Inventory → Pricing | Low stock / promotion keywords / `MonitorLowStockUseCase` | `contextPayload.lowStockSkus`, clearance actions |
+| Pricing → Inventory | Stock check keywords / `ApplyDynamicPriceUseCase` | `contextPayload.productId`, `changePct` |
+
+New collaboration rules: `low-stock-to-pricing`, `pricing-to-inventory-check`.
+
+### Event-driven peer hooks
+
+| Use case | Flag | Job |
+|----------|------|-----|
+| Supplier price change → pricing | `MULTI_AGENT_SUPPLIER_PEER=true` | `MonitorSupplierJob` |
+| Low stock → pricing | `MULTI_AGENT_INVENTORY_PEER=true` | `MonitorLowStockJob` (`INVENTORY_LOW_STOCK_MONITOR_ENABLED=true`) |
+
 ## Parallel execution
 
 `ParallelCoordinator` runs independent specialists via `Promise.all` with per-agent error isolation and stream events (`agent_started`, `agent_completed`):
@@ -119,6 +159,102 @@ Agents with `canDelegateTo` may call the `delegateToAgent` read tool during `Bra
 | `MULTI_AGENT_ASYNC_PEER_POLL_MS` | `2000` | Outbox poll interval hint |
 | `MULTI_AGENT_GRAPH_ORCHESTRATION` | `false` | Enable graph orchestrator |
 | `MULTI_AGENT_GRAPH_PEER_EDGES` | `false` | Native graph peer edges (CollaborationGraphBuilder) |
+
+## Phase 12 — Run memory, notify peer, promotion agent, supervisor mode, negotiation loop
+
+| Phase | Feature | Key components |
+|-------|---------|------------------|
+| 12a | Run-scoped blackboard | `RunWorkingMemoryPort`, `readRunMemory` / `writeRunMemory`, Prisma `RunWorkingMemory` |
+| 12b | Notify-only async | `AgentPeerNotifyHandler`, `jobMode: notify`, `agent.peer.notified` event |
+| 12c | Promotion Agent | `promotion` specialist, `inventory→promotion→pricing` chains, `MULTI_AGENT_PROMOTION_PEER` |
+| 12d | Team-lead supervisor | `MULTI_AGENT_SUPERVISOR_MODE`, COMPOUND via `workflow_supervisor`, graph `supervisor` nodes |
+| 12e | Multi-turn negotiation | `NegotiationSessionOrchestrator`, `proposeCounterOffer` → `RespondToOfferUseCase`, auto-loop flag |
+
+### Env vars (Phase 12)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MULTI_AGENT_RUN_MEMORY` | off prod | Persist shared run blackboard |
+| `MULTI_AGENT_NOTIFY_PEER` | off prod | Fire-and-forget notify without specialist run |
+| `MULTI_AGENT_PROMOTION_PEER` | off prod | Route low-stock handoffs to promotion agent |
+| `MULTI_AGENT_SUPERVISOR_MODE` | on dev | COMPOUND commands via workflow supervisor |
+| `MULTI_AGENT_NEGOTIATION_AUTO_LOOP` | off | Auto re-enter negotiation rounds on `negotiation.updated` |
+
+## Shared Memory v1 (Phase 13)
+
+Run-scoped blackboard per merchant (`tenantId` + `parentRunId`). Agents share business state without explicit peer messages.
+
+### Canonical shared keys (`shared` namespace)
+
+| Key | Writers | Readers |
+|-----|---------|---------|
+| `priceDrops` | supplier | all agents (pricing reads via cross-read) |
+| `lowStockSkus` | inventory | all agents |
+| `suggestedPricingActions` | supplier, inventory, promotion | pricing, promotion |
+| `recentDecisions` | append-only (notify, unknown payloads) | all agents |
+| `agentContributions` | orchestrator (parallel/sequential join) | supervisor, aggregator |
+| `businessSnapshot` | orchestrator, bridge | aggregator LLM synthesis |
+
+### Tools
+
+| Tool | Purpose |
+|------|---------|
+| `readRunMemory` | Read key with read ACL + version |
+| `writeRunMemory` | Write with write ACL, schema validation, optional `expectedVersion` |
+| `listRunMemory` | List entries in allowed namespaces |
+| `appendRunMemory` | Append to array keys (e.g. `recentDecisions`) |
+
+### Components
+
+| Component | Role |
+|-----------|------|
+| `SharedMemoryBridge` | Normalizes peer/notify/orchestrator writes to canonical keys |
+| `CachingRunWorkingMemoryAdapter` | In-process read cache (TTL via env) |
+| `PrismaRunWorkingMemoryAdapter` | Source of truth with optimistic `version` column |
+
+### Example flow (supplier → pricing without peer message)
+
+1. Parallel run: supplier calls `writeRunMemory(namespace=shared, key=priceDrops, ...)`
+2. Pricing agent starts: `buildPromptBlock` injects shared state; pricing may also `readRunMemory`
+3. `MultiAgentResultAggregator` includes `buildSharedSnapshot` in LLM synthesis when enabled
+
+### Env vars (Shared Memory v1)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MULTI_AGENT_RUN_MEMORY` | off prod | Master toggle for shared run memory |
+| `MULTI_AGENT_RUN_MEMORY_CACHE_TTL_MS` | `2000` | In-process read cache TTL (0 = disabled) |
+
+## Shared Memory Phase 14 — TTL, Redis, UI, merchant memory, CRDT
+
+| Phase | Feature | Component |
+|-------|---------|-----------|
+| 14a | TTL / GC | `expiresAt` column, `RunMemoryGcJob`, `runMemoryConfig` per-key TTL |
+| 14b | Redis hot cache | `RedisRunMemoryCacheAdapter`, `getRedisClient()` |
+| 14c | Command Bar UI | `SharedMemoryRail`, SSE `shared_memory_updated`, REST snapshot |
+| 14d | Merchant memory | `MerchantSharedMemory`, `RunMemoryPromoter`, `CompositeSharedMemoryAdapter` |
+| 14e | Merge strategies | `mergeStrategies.ts` per canonical key |
+
+### Merchant scope
+
+Cross-session keys: all `shared/*` canonical keys plus selected agent keys (`pricing/marginAnalysis`, `pricing/priceProposals`, `inventory/stockLevels`). Promoted at end of successful multi-agent runs when `MULTI_AGENT_MERCHANT_MEMORY_PROMOTE=true`.
+
+Tools accept optional `scope: 'run' | 'merchant'` (default `run`). Merchant reads injected via `buildMerchantPromptBlock` at specialist run start.
+
+### Env vars (Phase 14)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `RUN_MEMORY_GC_ENABLED` | `false` | Background purge of expired rows |
+| `RUN_MEMORY_GC_INTERVAL_MS` | `3600000` | GC poll interval |
+| `RUN_MEMORY_RUN_TTL_MS` | `86400000` | Default run-scope TTL (24h) |
+| `MERCHANT_MEMORY_TTL_MS` | `604800000` | Default merchant-scope TTL (7d) |
+| `RUN_MEMORY_MAX_AGE_MS` | `2592000000` | Fallback max age when `expiresAt` null |
+| `RUN_MEMORY_REDIS_CACHE` | `false` | Redis read-through cache layer |
+| `RUN_MEMORY_REDIS_TTL_SEC` | `30` | Redis entry TTL |
+| `MULTI_AGENT_MERCHANT_MEMORY` | off prod | Enable merchant scope reads/writes |
+| `MULTI_AGENT_MERCHANT_MEMORY_PROMOTE` | `true` when enabled | Auto-promote at run end |
+| `MULTI_AGENT_MERCHANT_MEMORY_DUAL_WRITE` | `false` | Bridge dual-write high-value keys |
 
 ## Phase 12 — Catalog & Autonomy agents
 
@@ -151,6 +287,7 @@ Agents with `canDelegateTo` may call the `delegateToAgent` read tool during `Bra
 | Approvals Agent | `approvals` | `PENDING_APPROVALS`, `APPROVE_CHANGES`, `APPROVAL_SUMMARY` |
 | Outcomes Agent | `outcomes` | `OUTCOMES_REPORT`, `OUTCOME_VERIFY`, `ATTRIBUTION_SUMMARY` |
 | Negotiation Agent | `negotiation` | `NEGOTIATION_STATUS`, `NEGOTIATION_RESPOND`, `NEGOTIATION_LIST` |
+| Promotion Agent | `promotion` | `PROMOTION_SUGGEST`, `CLEARANCE_PRICING`, `PROMOTION_LIST` |
 | Workflow Supervisor | `workflow_supervisor` | `COMPOUND_WORKFLOW`, `PLAN_AND_DELEGATE` |
 
 ## Dev quick-start
@@ -208,3 +345,77 @@ Pricing Agent calls delegateToAgent(inventory, INVENTORY_STATUS, "low stock SKUs
 ## Frontend
 
 Command Bar shows multiple `AgentBadge`s and execution mode during parallel and sequential streaming. Stream events: `agent_assigned`, `agent_started`, `agent_completed`. Post-result: `CommandResultCard` shows `brain.agents[]`, `AgentContributionsPanel`, and conflict banners when applicable.
+
+### Agents Hub (visibility)
+
+Merchant-facing agent roster and per-agent activity at `/agents` (sidebar: **Agents**).
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/admin/agents` | Roster: displayName, status, proactiveCount, recentActionCount |
+| `GET /api/admin/agents/:agentKey/activity?days=7` | Filtered activity + proactive + explainability |
+| `GET /api/admin/activity?agentKey=` | Activity log filter by specialist |
+
+Audit entries for commands and proactive auto-execute include `agentKey` / `agentKeys` in `details` for traceability.
+
+### Strengthening an existing agent (checklist)
+
+When bringing a specialist to production parity:
+
+1. Dedicated domain tools per supported intent
+2. `readRunMemory` / `writeRunMemory` + shared canonical keys in `sharedMemorySchema.ts`
+3. `PEER_PAYLOAD_SCOPE` entries for `canDelegateTo` targets
+4. Proactive trigger in `ProactiveTriggerRegistry` (optional)
+5. NL `matchIntent()` rules in `ExecuteNaturalLanguageCommandUseCase`
+6. Collaboration rules in `AgentCollaborationPolicy` for cross-agent flows
+7. Activity attribution via audit `agentKey` on runs
+
+## Proactive triggers
+
+Proactive merchant suggestions live in `src/ai/intelligence/proactive/` — separate from peer handoffs.
+
+**Add a new proactive trigger:**
+
+1. Create `proactive/triggers/myTrigger.ts` implementing `ProactiveTriggerDefinition`.
+2. Register in `ProactiveTriggerRegistry` (default registry or custom instance).
+3. For event-driven triggers: publish a `DomainEventType` from a use case and set `eventType` on the trigger.
+4. For periodic scans: set `mode: 'periodic'` — evaluated by `ProactiveBrainJob`.
+
+**v1 triggers:** `supplier.price_drop`, `inventory.low_stock`, `pricing.margin_decline`, `general.order_anomaly`, `customer.churn_risk`.
+
+Merchant control: `TenantSettings.proactivePrefs` (enabled, visibility, maxActive, categories, allowAutoExecute).
+
+### v2 capabilities
+
+| Feature | Flag | Module |
+|---------|------|--------|
+| Cross-trigger dedupe | `PROACTIVE_CROSS_DEDUPE_ENABLED` | `proactive/dedupe/CrossTriggerDedupeService` |
+| SSE push (no 30s poll) | `PROACTIVE_SSE_ENABLED` | `ProactiveSuggestionEmitter` + `GET /events/stream` |
+| PersonalBrain learning | `PROACTIVE_LEARNING_ENABLED` | `proactive/learning/ProactiveLearningService` |
+| Context enrichment | `PROACTIVE_LLM_ENRICHMENT_ENABLED` | `proactive/enrichment/ProactiveEnrichmentService` + job |
+| Auto-execute low-risk | `PROACTIVE_AUTO_EXECUTE_ENABLED` + `allowAutoExecute` | `proactive/execution/*` |
+
+**Dedupe:** merges overlapping `inventory.low_stock` + `pricing.margin_decline` into one card; suppresses margin when `supplier.price_drop` is present for the same supplier.
+
+**SSE:** ingest/dismiss/snooze/execute emit `proactive_updated` frames on the admin event stream; frontend invalidates proactive query cache.
+
+**Learning:** dismiss/execute/snooze write `proactive_decision:{triggerId}` to PersonalBrain; ≥3 dismisses → suppress ingest; ≥3 executes → priority boost.
+
+**Auto-execute:** gated by env flag, merchant opt-in, policy, autonomy window, low-risk only, learning preference, and 4h cooldown.
+
+### v3 capabilities
+
+| Feature | Flag | Module |
+|---------|------|--------|
+| Sidecar proactive count | _(none)_ | `buildDashboardPayload.proactiveCount` + `ProactiveSidecar` |
+| Email + inbox notifications | `PROACTIVE_EMAIL_NOTIFICATIONS_ENABLED` | `proactive/notifications/ProactiveNotificationDispatcher` |
+| Cross-tenant proactive patterns | `PROACTIVE_GLOBAL_PATTERNS_ENABLED` | `proactive/global/*` via `GlobalAgentPattern` |
+| Detection-time orchestration | `PROACTIVE_DETECTION_ORCHESTRATION_ENABLED` | `proactive/orchestration/ProactiveDetectionOrchestrator` |
+
+**Sidecar:** dashboard REST/SSE expose `proactiveCount`; collapsed sidecar shows badge count.
+
+**Notifications:** `notificationPrefs.proactiveSuggestions` controls in-app inbox entries and optional SMTP email (rate-limited).
+
+**Global patterns:** anonymized execute/dismiss/snooze rates per `triggerId` contributed to `GlobalAgentPattern`; inbound hints adjust priority and enrichment copy (KT-gated, k-anonymity).
+
+**Detection orchestration:** async `AgentSupervisorOrchestrator` run after ingest updates title/summary; `PROACTIVE_DETECTION_UNIFY_PEER` skips duplicate monitor peer handoffs.

@@ -29,6 +29,7 @@ const defaultFilters: ActivityFilters = {
   executor: 'all',
   status: 'all',
   searchQuery: '',
+  agentKey: 'all',
 };
 
 function sessionToActivityItems(history: CommandResult[]): ActivityItem[] {
@@ -65,23 +66,26 @@ export function useActivityPage() {
   const [ephemeralItems, setEphemeralItems] = useState<ActivityItem[]>([]);
 
   const activityParams = useMemo(() => {
+    const agentKey = filters.agentKey !== 'all' ? filters.agentKey : undefined;
     if (period === 'custom' && customRange.from) {
-      return { since: new Date(customRange.from).toISOString(), limit: 100 };
+      return { since: new Date(customRange.from).toISOString(), limit: 100, agentKey };
     }
-    return { days: periodToApiDays(period), limit: 100 };
-  }, [period, customRange.from]);
+    return { days: periodToApiDays(period), limit: 100, agentKey };
+  }, [period, customRange.from, filters.agentKey]);
 
   const activityQuery = useAetherQuery(
     queryKeys.activity(activityParams),
     () => {
       const limit = 100;
+      const agentKey = filters.agentKey !== 'all' ? filters.agentKey : undefined;
       if (period === 'custom' && customRange.from) {
         return activityApi.fetch({
           since: new Date(customRange.from).toISOString(),
           limit,
+          agentKey,
         });
       }
-      return activityApi.fetch({ days: periodToApiDays(period), limit });
+      return activityApi.fetch({ days: periodToApiDays(period), limit, agentKey });
     },
     {
       enabled: period !== 'custom' || Boolean(customRange.from),
@@ -112,6 +116,10 @@ export function useActivityPage() {
   useEffect(() => {
     const id = new URLSearchParams(location.search).get('id');
     if (id) setSelectedId(id);
+    const agent = new URLSearchParams(location.search).get('agent');
+    if (agent) {
+      setFilters((f) => ({ ...f, agentKey: agent }));
+    }
   }, [location.search]);
 
   useEffect(() => {

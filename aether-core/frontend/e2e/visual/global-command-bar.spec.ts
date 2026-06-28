@@ -1,16 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { setupAuthenticatedSession } from '../shared/auth';
-import { mockApprovalsPending, mockConnectedServices, mockDashboard, mockMerchantSettings, mockPolicy } from './fixtures';
+import { mockApprovalsPending, mockConnectedServices, mockDashboard, mockMerchantSettings } from './fixtures';
 
 async function mockAdminApi(page: import('@playwright/test').Page) {
   await page.route('**/api/**', async (route) => {
     const url = route.request().url();
     if (url.includes('/api/admin/dashboard') || url.includes('/api/admin/events/stream')) {
       await route.fulfill({ json: mockDashboard });
-      return;
-    }
-    if (url.includes('/api/admin/policies/approval')) {
-      await route.fulfill({ json: mockPolicy });
       return;
     }
     if (url.includes('/api/admin/settings')) {

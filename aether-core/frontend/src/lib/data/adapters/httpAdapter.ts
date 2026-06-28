@@ -132,10 +132,16 @@ export const httpDataAdapter: DataAdapter = {
     }),
 
   fetchNotifications: async () => {
-    const res = await apiFetch<{ notifications: AppNotification[] }>(
+    const res = await apiFetch<import('@/types/notification').NotificationInboxResponse>(
       apiRoutes.admin.notifications(),
     );
     return res.notifications ?? [];
+  },
+
+  fetchNotificationsPage: async (params: { limit?: number; cursor?: string; groupKey?: string }) => {
+    return apiFetch<import('@/types/notification').NotificationInboxResponse>(
+      apiRoutes.admin.notifications(params.limit ?? 25, params.cursor, params.groupKey),
+    );
   },
 
   markNotificationRead: (id) =>
@@ -205,9 +211,77 @@ export const httpDataAdapter: DataAdapter = {
   fetchSuggestions: (route, limit) =>
     apiFetch<ApiSuggestionsResponse>(apiRoutes.admin.suggestions(route, limit)),
 
+  fetchProactiveSuggestions: () =>
+    apiFetch<import('@/types/suggestions').ApiProactiveSuggestionsResponse>(
+      apiRoutes.admin.proactiveSuggestions
+    ),
+
+  dismissProactiveSuggestion: (id) =>
+    apiFetch(apiRoutes.admin.proactiveSuggestionDismiss(id), { method: 'POST' }).then(
+      () => undefined
+    ),
+
+  snoozeProactiveSuggestion: (id, hours) =>
+    apiFetch(apiRoutes.admin.proactiveSuggestionSnooze(id), {
+      method: 'POST',
+      body: JSON.stringify(hours != null ? { hours } : {}),
+    }).then(() => undefined),
+
+  executeProactiveSuggestion: (id) =>
+    apiFetch(apiRoutes.admin.proactiveSuggestionExecute(id), { method: 'POST' }).then(
+      () => undefined
+    ),
+
   trackUiEvent: (event) =>
     apiFetch(apiRoutes.admin.uiEvent, {
       method: 'POST',
       body: JSON.stringify(event),
     }).then(() => undefined),
+
+  fetchGoals: (includeCompleted) =>
+    apiFetch<import('@/types/goals').GoalsListResponse>(apiRoutes.admin.goals(includeCompleted)),
+
+  fetchGoal: (id) =>
+    apiFetch<import('@/types/goals').GoalDetailResponse>(apiRoutes.admin.goal(id)),
+
+  createGoal: (payload) =>
+    apiFetch<{ goal: import('@/types/goals').MerchantGoal }>(apiRoutes.admin.goals(), {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateGoal: (id, payload) =>
+    apiFetch<{ goal: import('@/types/goals').MerchantGoal }>(apiRoutes.admin.goal(id), {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteGoal: (id) =>
+    apiFetch(apiRoutes.admin.goal(id), { method: 'DELETE' }).then(() => undefined),
+
+  refreshGoal: (id) =>
+    apiFetch(apiRoutes.admin.goalRefresh(id), { method: 'POST' }),
+
+  fetchGoalLinkedSuggestions: (id) =>
+    apiFetch<import('@/types/goals').GoalLinkedSuggestionsResponse>(
+      apiRoutes.admin.goalSuggestions(id)
+    ),
+
+  fetchAiGoalSuggestions: () =>
+    apiFetch<import('@/types/goals').AiGoalSuggestionsResponse>(apiRoutes.admin.aiGoalSuggestions),
+
+  acceptAiGoalSuggestion: (id) =>
+    apiFetch(apiRoutes.admin.aiGoalSuggestionAccept(id), { method: 'POST' }),
+
+  dismissAiGoalSuggestion: (id) =>
+    apiFetch(apiRoutes.admin.aiGoalSuggestionDismiss(id), { method: 'POST' }).then(() => undefined),
+
+  fetchGoalConflicts: () =>
+    apiFetch<import('@/types/goals').GoalConflictsResponse>(apiRoutes.admin.goalConflicts),
+
+  buildGoalPlan: () =>
+    apiFetch<{ plan: unknown }>(apiRoutes.admin.goalPlan, { method: 'POST' }),
+
+  fetchActiveGoalPlan: () =>
+    apiFetch<{ plan: unknown | null }>(apiRoutes.admin.goalPlanActive),
 };

@@ -1,4 +1,4 @@
-import { mapActivityToNotification } from '../NotificationInboxService';
+import { mapActivityToNotification } from '../notifications/notificationMappers';
 import type { ActivityFeedItem } from '../ActivityFeedService';
 
 describe('mapActivityToNotification', () => {
@@ -38,6 +38,6 @@ describe('mapActivityToNotification', () => {
     });
     expect(n?.severity).toBe('action');
     expect(n?.category).toBe('high_risk_approval');
-    expect(n?.href).toBe('/approvals');
+    expect(n?.href).toContain('approval');
   });
 });

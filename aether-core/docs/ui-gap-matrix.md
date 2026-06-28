@@ -33,7 +33,7 @@
 | **Mail approval queue** | Één-klik approve/reject + reason | Merchant-vriendelijke decision cards | **Implemented (P0)** — `DecisionCard` + explain | Gesloten |
 | **Supplier config UI** | Per-leverancier config (PoC §2.7) | URLs, frequency, policy | **Partial** — create + monitor + pending changes | Medium |
 | **Autonomous ops UI** | Decision log + confidence + trace | Explainability timeline | **Partial** — log + explain drawer | Medium |
-| **Explainability UX** | Waarom stelde AI dit voor? | `/api/admin/explain` in UI | **Implemented (P1)** — `ExplainDrawer` | Gesloten |
+| **Explainability UX** | Waarom stelde AI dit voor? | `/api/admin/explain` in UI | **Implemented** — `AgentExplainabilitySheet` (unified) | Gesloten |
 | **Unified workstream** | Outcome-first, niet module-first | Mail+Supplier+Autonomy stream | **Implemented (P1)** — `/workstream` | Gesloten |
 | **Approval policies** | Auto-approve onder drempel | Policy UI + uitzonderingstunnel | **Implemented** — Settings + auto-apply API | Gesloten |
 | **Realtime dashboard** | Sub-second, live KPIs | Push of ≤5s polling | **Implemented** — SSE 5s + sidecar | Gesloten |
@@ -53,7 +53,7 @@
 1. **Interaction model** — sidebar-first vs intent-first → **P0 reset**
 2. **Proactief vs pull** — geen sidecar vóór P0 → **P0 sidecar**
 3. **Raw payload approvals** — geen merchant-taal → **P0 DecisionCard**
-4. **Explainability ongebruikt** — backend rijker dan UI → **P1 ExplainDrawer**
+4. **Explainability ongebruikt** — backend rijker dan UI → **unified AgentExplainabilitySheet**
 5. **Module-silo's** — 12 losse pagina's → **P1 Workstream**
 
 ---
@@ -69,7 +69,7 @@
 ### P1 (autonomie)
 - [x] Unified workstream (`/workstream`)
 - [x] Explain drawer op approvals + autonomous
-- [x] Policy-driven auto-approve UI (`ApprovalPolicyPanel` + `/api/admin/policies/approval`)
+- [x] Policy-driven auto-approve UI — **unified under Settings → Autonomy** (`AutonomyConfigPanel` + `/api/admin/settings`; legacy `/api/admin/policies/approval` deprecated)
 
 ### P2 (kwaliteit)
 - [x] Design tokens + ui primitives

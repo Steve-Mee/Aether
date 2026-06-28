@@ -4,8 +4,10 @@ import type { SpecialistAgentRunner } from '../SpecialistAgentRunner';
 import { wrapAgentEvent } from '../agentStreamWrap';
 import type { PeerDelegationRequest, PeerDelegationResult } from '../types';
 import { buildChainHandoffReason, humanizeHandoffReason } from './handoffReason';
+import { peerContextToChainLine, summarizePayloadForAudit } from './AgentPeerMessage';
 import { PeerHandoffAuditLog } from './PeerHandoffAuditLog';
-import { UnifiedPeerGuard } from './UnifiedPeerGuard';
+import { UnifiedPeerGuard, validateAutonomyCategoryEnabled } from './UnifiedPeerGuard';
+import { getMerchantSettings } from '../../../../shared/settings/TenantSettingsService';
 
 export class AgentPeerMesh {
   private guard: UnifiedPeerGuard;
@@ -24,7 +26,16 @@ export class AgentPeerMesh {
   }
 
   async requestDirectHandoff(request: PeerDelegationRequest): Promise<PeerDelegationResult> {
-    const validation = this.guard.validatePeerDelegation(request);
+    const settings = await getMerchantSettings(request.tenantId);
+    const categoryCheck = validateAutonomyCategoryEnabled(
+      settings,
+      request.intent,
+      request.targetAgentKey,
+    );
+    if (!categoryCheck.ok) {
+      return { success: false, error: categoryCheck.error };
+    }
+    const validation = this.guard.validatePeerDelegation(request, settings);
     if (!validation.ok) {
       return { success: false, error: validation.error };
     }
@@ -40,16 +51,23 @@ export class AgentPeerMesh {
       toAgentKey: request.targetAgentKey,
       handoffReason: humanizeHandoffReason(buildChainHandoffReason(request.intent)),
       handoffMode: 'direct',
+      correlationId: request.correlationId,
+      messageType: request.contextPayload?.messageType,
     });
 
     const started = Date.now();
     try {
+      const chainContext: string[] = [];
+      if (request.contextPayload) {
+        chainContext.push(peerContextToChainLine(request.contextPayload));
+      }
+
       const result = await this.specialistRunner.runWithDefinition(targetDef, {
         tenantId: request.tenantId,
         agentKey: request.targetAgentKey,
         intent: request.intent,
         command: request.query,
-        contextSnippets: [],
+        contextSnippets: chainContext,
         handlerResult: `Direct peer handoff from ${request.sourceAgentKey}`,
         parentRunId: request.parentRunId,
         actorId: request.actorId,
@@ -57,6 +75,7 @@ export class AgentPeerMesh {
         abortSignal: request.abortSignal,
         peerDepth: request.depth + 1,
         handoffConstraints: [`peerFrom:${request.sourceAgentKey}`],
+        correlationId: request.correlationId,
       });
 
       const latencyMs = Date.now() - started;
@@ -71,6 +90,8 @@ export class AgentPeerMesh {
         parentRunId: request.parentRunId,
         agentRunId: result.agentRunId,
         error: result.error,
+        correlationId: request.correlationId,
+        payloadSummary: summarizePayloadForAudit(request.contextPayload),
       });
 
       if (result.error) {

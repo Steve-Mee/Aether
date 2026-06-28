@@ -16,7 +16,7 @@ Vervang route-first admin panel door intent-first merchant cockpit. NL wordt pri
 | CommandContext | `lib/CommandContext.tsx` | Global command state, intent→route navigation |
 | ProactiveSidecar | `components/ProactiveSidecar.tsx` | Realtime signals (30s poll), batch links |
 | DecisionCard | `components/DecisionCard.tsx` | Approval UX: why/impact/risk, explain trigger |
-| ExplainDrawer | `components/ExplainDrawer.tsx` | `/api/admin/explain` timeline |
+| AgentExplainabilitySheet | `components/explainability/AgentExplainabilitySheet.tsx` | `/api/admin/explain` timeline |
 
 ## Intent → route mapping
 

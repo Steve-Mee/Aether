@@ -1,5 +1,7 @@
 import { writeAuditLog } from '../../../../shared/audit/auditService';
-import { assessApprovalAutoEligible } from '../../../../shared/policy/assessApprovalAutoEligible';
+import { assessAutonomyForTenant } from '../../../../shared/policy/AutonomyPolicyService';
+import { logAutonomyDecision } from '../../../../shared/policy/AutonomyAuditLogger';
+import { getMerchantSettings } from '../../../../shared/settings/TenantSettingsService';
 import type { BrainAdaptiveLearningService } from '../../../../ai/intelligence/command-brain/BrainAdaptiveLearningService';
 import type { PersonalBrainToolRegistry } from '../../../../ai/intelligence/personal-brain/tools/PersonalBrainToolRegistry';
 import type { PersonalBrainRegistry } from '../../../../ai/intelligence/personal-brain/PersonalBrainRegistry';
@@ -39,16 +41,28 @@ export class ExecuteBrainToolUseCase {
     if (proposal.risk === 'high' || proposal.tool === 'createApproval') {
       // high-risk always requires explicit user execute click (this endpoint)
     } else if (proposal.tool === 'updatePrice') {
-      const assessment = await assessApprovalAutoEligible({
+      const settings = await getMerchantSettings(ctx.tenantId);
+      const assessment = await assessAutonomyForTenant({
         tenantId: ctx.tenantId,
         module: 'admin-command-bar',
         actionType: 'price.change',
+        tool: proposal.tool,
         payload: {
           percentage: payload.percentage,
           productIds: payload.productIds,
         },
+        riskClass: proposal.risk === 'medium' ? 'medium' : 'low',
+        getSettings: getMerchantSettings,
       });
       if (!assessment.eligible && proposal.risk !== 'low') {
+        await logAutonomyDecision({
+          tenantId: ctx.tenantId,
+          source: 'brain_tool',
+          assessment,
+          preset: settings.autonomyPrefs.preset,
+          relatedId: proposalId,
+          actor: ctx.actorId,
+        });
         await writeAuditLog({
           tenantId: ctx.tenantId,
           module: 'admin-command-bar',

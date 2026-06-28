@@ -15,8 +15,12 @@ export type PageImportFn = () => Promise<{ default: ComponentType<object> }>;
 /** Dynamic import map — used for chunk prefetch on nav hover. */
 export const lazyPageImportMap: Record<string, PageImportFn> = {
   [COMMAND_CENTER_PATH]: () => import('@/pages/CommandCenterPage'),
+  '/overview': () => import('@/pages/AetherOverviewPage'),
   '/workstream': () => import('@/pages/Workstream'),
+  '/goals': () => import('@/pages/GoalsPage'),
+  '/goals/:id': () => import('@/pages/GoalDetailPage'),
   '/timeline': () => import('@/pages/ActionTimeline'),
+  '/notifications': () => import('@/pages/NotificationsPage'),
   '/products': () => import('@/pages/Products'),
   '/orders': () => import('@/pages/Orders'),
   '/emails': () => import('@/pages/Emails'),
@@ -24,6 +28,7 @@ export const lazyPageImportMap: Record<string, PageImportFn> = {
   '/autonomous': () => import('@/pages/Autonomous'),
   '/approvals': () => import('@/pages/Approvals'),
   '/insights': () => import('@/pages/Insights'),
+  '/agents': () => import('@/pages/AgentsPage'),
   '/negotiations': () => import('@/pages/Negotiations'),
   '/outcomes': () => import('@/pages/Outcomes'),
   '/settings': () => import('@/pages/Settings'),

@@ -1,11 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { History } from 'lucide-react';
 import ActivityPageHeader from '@/components/activity-page/ActivityPageHeader';
 import ActivityPeriodToolbar from '@/components/activity-page/ActivityPeriodToolbar';
 import ActivityFilterBar from '@/components/activity-page/ActivityFilterBar';
 import ActivityList from '@/components/activity-page/ActivityList';
 import ActivityDetailSheet from '@/components/activity-page/ActivityDetailSheet';
-import ExplainDrawer from '@/components/ExplainDrawer';
 import ModulePageLayout from '@/components/shell/ModulePageLayout';
 import { useActivityPage } from '@/hooks/useActivityPage';
 import { ActivityPageSkeleton, AsyncBoundary, EmptyState } from '@/components/ui';
@@ -18,13 +17,13 @@ function hasActiveFilters(filters: ActivityFilters): boolean {
     filters.risk !== 'all' ||
     filters.executor !== 'all' ||
     filters.status !== 'all' ||
+    filters.agentKey !== 'all' ||
     filters.searchQuery.trim().length > 0
   );
 }
 
 export default function ActionTimeline() {
   const page = useActivityPage();
-  const [explainApprovalId, setExplainApprovalId] = useState<string | null>(null);
   const filteredEmpty = useMemo(
     () => page.filtered.length === 0 && hasActiveFilters(page.filters),
     [page.filtered.length, page.filters],
@@ -59,6 +58,7 @@ export default function ActionTimeline() {
         onRiskChange={(r) => page.updateFilter('risk', r)}
         onExecutorChange={(e) => page.updateFilter('executor', e)}
         onStatusChange={(s) => page.updateFilter('status', s)}
+        onAgentChange={(a) => page.updateFilter('agentKey', a)}
       />
 
       <AsyncBoundary
@@ -91,20 +91,7 @@ export default function ActionTimeline() {
         item={page.selected}
         open={page.selectedId != null}
         onClose={() => page.setSelectedId(null)}
-        onExplainApproval={(id) => {
-          setExplainApprovalId(id);
-          page.setSelectedId(null);
-        }}
       />
-
-      {explainApprovalId && (
-        <ExplainDrawer
-          entityType="approval"
-          entityId={explainApprovalId}
-          open
-          onClose={() => setExplainApprovalId(null)}
-        />
-      )}
     </ModulePageLayout>
   );
 }

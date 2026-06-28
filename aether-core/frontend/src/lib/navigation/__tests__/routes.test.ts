@@ -41,6 +41,11 @@ describe('navigation routes', () => {
     expect(minimalNavItems.some((i) => i.to === '/suppliers')).toBe(true);
   });
 
+  it('includes agents hub in primary nav', () => {
+    expect(minimalNavItems.some((i) => i.to === '/agents')).toBe(true);
+    expect(lazyPageMap['/agents']).toBeDefined();
+  });
+
   it('resolves command center module from aliases', () => {
     expect(resolveModule('/')).toBe('command-center');
     expect(resolveModule(COMMAND_CENTER_PATH)).toBe('command-center');

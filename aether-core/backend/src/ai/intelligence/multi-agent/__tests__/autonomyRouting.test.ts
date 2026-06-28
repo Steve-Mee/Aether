@@ -2,34 +2,19 @@ import {
   resolveAutonomousRoute,
   assessAutonomousRouteAllowed,
 } from '../autonomyRouting';
+import { DEFAULT_MERCHANT_SETTINGS } from '../../../../shared/settings/merchantSettingsTypes';
 
 jest.mock('../../../../shared/settings/TenantSettingsService', () => ({
   getMerchantSettings: jest.fn().mockResolvedValue({
-    autonomyLevel: 'medium',
-    policyEnabled: true,
-    autoApproveLowRisk: true,
-    autoApproveMediumRiskMail: false,
-    maxAutoPriceChangePct: 5,
-    maxMarginImpactEuro: 100,
-    autonomousWindowStart: '00:00',
-    autonomousWindowEnd: '23:59',
+    ...require('../../../../shared/settings/merchantSettingsTypes').DEFAULT_MERCHANT_SETTINGS,
   }),
 }));
 
-jest.mock('../../../../shared/policy/assessApprovalAutoEligible', () => ({
-  assessApprovalAutoEligible: jest.fn(),
-}));
-
-import { assessApprovalAutoEligible } from '../../../../shared/policy/assessApprovalAutoEligible';
 import { getMerchantSettings } from '../../../../shared/settings/TenantSettingsService';
 
 describe('autonomyRouting', () => {
   beforeEach(() => {
-    jest.mocked(assessApprovalAutoEligible).mockResolvedValue({
-      eligible: true,
-      reason: 'Laag risico',
-      riskClass: 'low',
-    });
+    jest.mocked(getMerchantSettings).mockResolvedValue({ ...DEFAULT_MERCHANT_SETTINGS });
   });
 
   it('resolveAutonomousRoute maps pricing decisions', () => {
@@ -48,25 +33,15 @@ describe('autonomyRouting', () => {
 
   it('blocks medium risk when autonomyLevel is low', async () => {
     jest.mocked(getMerchantSettings).mockResolvedValueOnce({
+      ...DEFAULT_MERCHANT_SETTINGS,
       autonomyLevel: 'low',
-      policyEnabled: true,
-      autoApproveLowRisk: true,
-      autoApproveMediumRiskMail: false,
-      maxAutoPriceChangePct: 5,
-      maxMarginImpactEuro: 100,
-      autonomousWindowStart: '00:00',
-      autonomousWindowEnd: '23:59',
-    } as never);
-    jest.mocked(assessApprovalAutoEligible).mockResolvedValueOnce({
-      eligible: false,
-      reason: 'Medium risk',
-      riskClass: 'medium',
     });
 
     const result = await assessAutonomousRouteAllowed({
       tenantId: 'tenant_1',
       decisionType: 'pricing.adjust',
       result: 'increase 2%',
+      rationale: 'test',
     });
 
     expect(result.allowed).toBe(false);
@@ -74,7 +49,7 @@ describe('autonomyRouting', () => {
     expect(result.route?.agentKey).toBe('pricing');
   });
 
-  it('allows routing when policy eligible', async () => {
+  it('allows routing when policy eligible for mail read', async () => {
     const result = await assessAutonomousRouteAllowed({
       tenantId: 'tenant_1',
       decisionType: 'mail.summary',

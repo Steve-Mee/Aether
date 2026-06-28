@@ -34,6 +34,8 @@ import HomeWelcomeHeader from '@/components/home/HomeWelcomeHeader';
 import { useHomeLanding } from '@/hooks/useHomeLanding';
 import CommandCenterApprovalSheet from './command-center/CommandCenterApprovalSheet';
 import CommandCenterHeroBar from './command-center/CommandCenterHeroBar';
+import ProactiveSuggestionsSection from './command-center/ProactiveSuggestionsSection';
+import GoalsHomeWidget from './goals/GoalsHomeWidget';
 import TodayReadySection from './command-center/TodayReadySection';
 import { renderableInsights } from '@/lib/todayReadyDemo';
 
@@ -329,6 +331,17 @@ export default function CommandCenterShell() {
     setActiveIntent(intentId);
   }, []);
 
+  const handleProactiveSelect = useCallback(
+    (command: string, intentId: DemoIntentId, autoExecute?: boolean) => {
+      if (autoExecute) {
+        pendingAutoExecuteRef.current = true;
+        setAutoExecuteTrigger((t) => t + 1);
+      }
+      void demo.runCommand(command, intentId);
+    },
+    [demo],
+  );
+
   const handleSyncSuppliers = useCallback(() => {
     void demo.runCommand('Check leveranciers op prijsdalingen');
   }, [demo]);
@@ -397,6 +410,10 @@ export default function CommandCenterShell() {
         <HomeOutcomeMetrics viewModel={homeViewModel} />
 
         <HomeTodaySummary viewModel={homeViewModel} />
+
+        <GoalsHomeWidget />
+
+        <ProactiveSuggestionsSection onSelect={handleProactiveSelect} />
 
         <div className="space-y-4">
           <CommandCenterHeroBar

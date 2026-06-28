@@ -9,6 +9,7 @@ import {
   settingsRepository,
   suppliersRepository,
 } from '@/lib/data';
+import { overviewApi } from '@/features/aether-overview/api/overviewApi';
 import { queryKeys } from '@/lib/query/keys';
 import { queryTiming } from '@/lib/query/client';
 import { COMMAND_CENTER_PATH } from './routes';
@@ -100,6 +101,32 @@ export function prefetchNavRoute(queryClient: QueryClient, path: string): void {
       queryKey: queryKeys.activity({ days: 30, limit: 100 }),
       queryFn: () => activityRepository.fetch({ days: 30, limit: 100 }),
       staleTime: queryTiming.activityStale,
+    });
+    return;
+  }
+
+  if (path === '/overview') {
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.dashboard(),
+      queryFn: () => dashboardRepository.fetch(),
+      staleTime,
+    });
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.approvals.list(),
+      queryFn: () => approvalsRepository.list(),
+      staleTime,
+    });
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.aetherOverviewInfinite({ days: 7 }),
+      queryFn: () => overviewApi.fetchPage({ days: 7, limit: 25 }),
+      staleTime: queryTiming.activityStale,
+    });
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.agentMetrics(7),
+      queryFn: () => import('@/lib/api').then(({ apiFetch, apiRoutes }) =>
+        apiFetch(apiRoutes.admin.agentMetrics(7)),
+      ),
+      staleTime,
     });
     return;
   }

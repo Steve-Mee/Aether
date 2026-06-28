@@ -15,7 +15,11 @@ export type DomainEventType =
   | 'outcome.verified'
   | 'agent.peer.requested'
   | 'agent.peer.completed'
-  | 'agent.handoff.completed';
+  | 'agent.peer.notified'
+  | 'agent.handoff.completed'
+  | 'inventory.low_stock_detected'
+  | 'goals.progress_drift'
+  | 'goal.completed';
 
 export interface DomainEventPayload {
   tenantId: string;

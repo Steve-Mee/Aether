@@ -15,8 +15,9 @@ import CommandResultCard from './CommandResultCard';
 import CommandErrorCard from './CommandErrorCard';
 import AgentBadge from './AgentBadge';
 import HandoffChainRail, { executionModeBadgeLabel } from './HandoffChainRail';
+import SharedMemoryRail from './SharedMemoryRail';
 import { agentsWorkingParallelLabel } from './AgentContributionsPanel';
-import AgentGroupedTimeline from './AgentGroupedTimeline';
+import LiveExplainPanel from '@/components/explainability/LiveExplainPanel';
 
 export const COMMAND_PREFILL_STORAGE_KEY = 'aether_command_prefill';
 
@@ -32,8 +33,10 @@ export default function NaturalLanguageBar() {
     streamPlansByAgent,
     streamActiveAgentKeys,
     streamHandoffChain,
+    streamSharedMemory,
     streamExecutionMode,
     streamChainFrom,
+    streamLiveExplain,
     cancelStream,
     error,
     openPalette,
@@ -188,7 +191,17 @@ export default function NaturalLanguageBar() {
           <>
             {streaming && (
               <div className="mt-3 space-y-2" role="status" data-testid="command-stream-steps">
+                {settings.explainabilityPrefs.showLiveExplain !== false &&
+                  settings.explainabilityPrefs.detailLevel !== 'off' && (
+                    <LiveExplainPanel
+                      live={streamLiveExplain}
+                      handoffChainLength={streamHandoffChain.length}
+                    />
+                  )}
                 {streamHandoffChain.length > 0 && <HandoffChainRail chain={streamHandoffChain} />}
+                {streamSharedMemory.length > 0 && (
+                  <SharedMemoryRail entries={streamSharedMemory} defaultCollapsed />
+                )}
                 {streamActiveAgentKeys.length > 0 && (
                   <div className="flex flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">

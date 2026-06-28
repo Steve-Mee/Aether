@@ -55,7 +55,10 @@ export interface ActivityItem {
   related?: ActivityRelated;
   details?: Record<string, unknown>;
   searchText?: string;
+  agentKeys?: string[];
 }
+
+export type ActivityAgentFilter = 'all' | string;
 
 export interface ActivityFeedResponse {
   items: ActivityItem[];
@@ -68,6 +71,7 @@ export interface ActivityFilters {
   executor: ActivityExecutorFilter;
   status: ActivityStatusFilter;
   searchQuery: string;
+  agentKey: ActivityAgentFilter;
 }
 
 export interface ActivityCustomRange {

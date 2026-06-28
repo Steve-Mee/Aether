@@ -20,7 +20,27 @@ export class HandoffChainCollector {
         reason: event.handoffReason ?? '',
         mode: 'sync',
         handoffMode: event.handoffMode ?? 'orchestrated',
+        correlationId: event.correlationId,
+        messageType: event.messageType,
       });
+    }
+    if (event.type === 'agent_peer_message' && event.fromAgentKey && event.toAgentKey) {
+      const existing = this.entries.find(
+        (e) =>
+          e.from === event.fromAgentKey &&
+          e.to === event.toAgentKey &&
+          e.correlationId === event.correlationId
+      );
+      if (!existing) {
+        this.entries.push({
+          from: event.fromAgentKey,
+          to: event.toAgentKey,
+          reason: event.summary ?? 'peer message',
+          mode: 'sync',
+          correlationId: event.correlationId,
+          messageType: event.messageType,
+        });
+      }
     }
     if (event.type === 'peer_job_queued' && event.fromAgentKey && event.toAgentKey) {
       this.entries.push({

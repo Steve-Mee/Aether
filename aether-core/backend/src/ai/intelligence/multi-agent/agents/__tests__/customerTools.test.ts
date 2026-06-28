@@ -1,4 +1,11 @@
-import { getCustomerOverviewTool, getTopCustomersTool, getOrderTrendsTool, getRecentOrdersTool } from '../customerTools';
+import {
+  getCustomerOverviewTool,
+  getTopCustomersTool,
+  getOrderTrendsTool,
+  getRecentOrdersTool,
+  getCustomerSegmentsTool,
+  getChurnSignalsTool,
+} from '../customerTools';
 
 describe('customerTools', () => {
   const adminData = {
@@ -11,6 +18,24 @@ describe('customerTools', () => {
       priorCount: 10,
       trendPct: 50,
       statusBreakdown: { completed: 12, pending: 3 },
+    }),
+    getCustomerSegments: jest.fn().mockResolvedValue({
+      vip: 2,
+      atRisk: 3,
+      new: 1,
+      regular: 10,
+      total: 16,
+      segments: [],
+    }),
+    getChurnSignals: jest.fn().mockResolvedValue({
+      atRiskCount: 3,
+      decliningTrend: true,
+      trendPct: -20,
+      cancelledOrRefundedRatio: 5,
+      recentOrderCount: 10,
+      priorOrderCount: 15,
+      atRiskCustomers: [],
+      suggestedActions: ['outreach_campaign'],
     }),
     listRecentOrdersDetailed: jest.fn().mockResolvedValue([
       { id: 'o1', status: 'pending', total: 50, customerId: 'c1' },
@@ -63,5 +88,17 @@ describe('customerTools', () => {
     const result = await tool.executeRead!({ tenantId: 't1' }, { limit: 5 });
     expect(result).toMatchObject({ success: true, count: 1 });
     expect((result as { statusBreakdown: Record<string, number> }).statusBreakdown.pending).toBe(1);
+  });
+
+  it('getCustomerSegments returns segment summary', async () => {
+    const tool = getCustomerSegmentsTool({ adminData: adminData as never });
+    const result = await tool.executeRead!({ tenantId: 't1' }, {});
+    expect(result).toMatchObject({ success: true, vip: 2, atRisk: 3, total: 16 });
+  });
+
+  it('getChurnSignals flags churn risk', async () => {
+    const tool = getChurnSignalsTool({ adminData: adminData as never });
+    const result = await tool.executeRead!({ tenantId: 't1' }, {});
+    expect(result).toMatchObject({ success: true, churnRisk: true, atRiskCount: 3 });
   });
 });

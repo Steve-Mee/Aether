@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import React from 'react';
 import { InsightCard, Button, RiskBadge, ConfidenceBadge, ApprovalDialog } from '@/components/ui';
 import { AutonomyModeBadge } from '@/components/command-center/primitives';
-import ExplainDrawer from '@/components/ExplainDrawer';
+import AgentExplainabilitySheet from '@/components/explainability/AgentExplainabilitySheet';
 import { cn, interactiveSurface } from '@/lib/utils';
 import { formatDate, t } from '@/lib/i18n';
 import type { EnrichedApproval } from '@/lib/approvalPresentation';
@@ -226,7 +226,7 @@ export default function ApprovalCard({
         onCancel={() => setRejectConfirmOpen(false)}
       />
 
-      <ExplainDrawer
+      <AgentExplainabilitySheet
         entityType={email.emailId ? 'email' : 'approval'}
         entityId={entityId}
         open={explainOpen}

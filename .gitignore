@@ -21,6 +21,7 @@
 ## Local CI debug logs (not release artifacts)
 test-ci-out*.txt
 **/test-ci-output.txt
+**/_test-explain-out.txt
 
 ## Environment and secrets
 **/.env

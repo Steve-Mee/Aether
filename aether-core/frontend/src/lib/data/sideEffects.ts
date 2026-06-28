@@ -9,6 +9,7 @@ import type { ApprovalItem, HandledOutcome } from '@/types/approval';
 import type { ActivityItem } from '@/types/activity';
 import type { CommandResult } from '@/types/command';
 import { enrichApproval } from '@/lib/approvalPresentation';
+import { overviewHighlight } from '@/lib/navigation/moduleLinks';
 
 function buildApprovalActivityItem(item: ApprovalItem, outcome: HandledOutcome): ActivityItem {
   const enriched = enrichApproval(item);
@@ -64,7 +65,7 @@ export function afterApprovalResolved(
       outcome === 'approved' ? t('approvals.success.approved') : t('approvals.success.rejected'),
     body: enriched.title,
     severity: 'info',
-    href: '/approvals',
+    href: overviewHighlight('approval', item.id),
     source: 'user',
     category: 'high_risk_approval',
     skipAnnounce: options?.skipAnnounce,

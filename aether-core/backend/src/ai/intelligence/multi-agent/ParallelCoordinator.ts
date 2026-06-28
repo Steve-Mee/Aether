@@ -91,6 +91,7 @@ export class ParallelCoordinator {
           adaptiveLearningEnabled: request.adaptiveLearningEnabled,
           onEvent: wrapAgentEvent(request.onEvent, agentSpec.agentKey),
           abortSignal: request.abortSignal,
+          explainabilityCollector: request.explainabilityCollector,
         });
 
         if (request.abortSignal?.aborted) {

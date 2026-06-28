@@ -11,8 +11,11 @@ import {
 import { orchestrator } from '../ai/orchestrator/Orchestrator';
 import { getCompositionRoot } from './compositionRoot';
 import { isSupplierPeerEnabled } from '../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
+import { isNegotiationAutoLoopEnabled } from '../ai/intelligence/multi-agent/supervisorConfig';
 import { merchantNotificationService } from '../shared/notifications/merchantNotificationService';
 import { DefaultContributionGate } from '../ai/intelligence/knowledge-transfer/contribution/DefaultContributionGate';
+import { registerProactiveEventHandlers } from '../ai/intelligence/proactive/proactiveEventHandlers';
+import { registerGoalEventHandlers } from '../ai/intelligence/goals/goalEventHandlers';
 
 const contributionGate = new DefaultContributionGate();
 
@@ -234,8 +237,56 @@ export function registerEventHandlers(): void {
     logger.info('negotiation_updated', {
       tenantId: event.tenantId,
       negotiationId: event.payload.negotiationId,
+      decision: event.payload.decision,
     });
+
+    if (!isNegotiationAutoLoopEnabled()) return;
+
+    const root = getCompositionRoot();
+    const orchestrator = root?.negotiationSessionOrchestrator;
+    const runId = String(event.payload.parentRunId ?? event.payload.runId ?? '');
+    const negotiationId = String(event.payload.negotiationId ?? '');
+    const offer = Number(event.payload.offer ?? event.payload.counterOffer ?? 0);
+
+    if (!orchestrator || !runId || !negotiationId || !Number.isFinite(offer) || offer <= 0) {
+      return;
+    }
+
+    try {
+      await orchestrator.runRound({
+        tenantId: event.tenantId,
+        runId,
+        negotiationId,
+        offer,
+        actorId: String(event.payload.actorId ?? 'negotiation-auto-loop'),
+      });
+    } catch (err) {
+      logger.warn('negotiation_auto_loop_failed', {
+        tenantId: event.tenantId,
+        negotiationId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   });
+  markHandlerRegistered('negotiation.updated');
+
+  eventBus.subscribe('agent.peer.notified', async (event: DomainEventPayload) => {
+    logger.info('agent_peer_notified', {
+      tenantId: event.tenantId,
+      sourceAgentKey: event.payload.sourceAgentKey,
+      targetAgentKey: event.payload.targetAgentKey,
+      intent: event.payload.intent,
+    });
+    if (merchantNotificationService.notifyHandoffCompleted) {
+      await merchantNotificationService.notifyHandoffCompleted({
+        tenantId: event.tenantId,
+        jobId: String(event.payload.correlationId ?? event.payload.parentRunId ?? 'notify'),
+        narrative: String(event.payload.summary ?? 'Agent notify message'),
+        success: true,
+      });
+    }
+  });
+  markHandlerRegistered('agent.peer.notified');
 
   eventBus.subscribe('agent.peer.completed', async (event: DomainEventPayload) => {
     logger.info('agent_peer_completed', {
@@ -270,4 +321,8 @@ export function registerEventHandlers(): void {
       metric: event.payload.metric,
     });
   });
+  markHandlerRegistered('outcome.recorded');
+
+  registerProactiveEventHandlers();
+  registerGoalEventHandlers();
 }

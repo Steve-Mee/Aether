@@ -28,6 +28,9 @@ export const ALLOWED_METRIC_PATTERNS: RegExp[] = [
   /^[a-zA-Z][a-zA-Z0-9_]*_tool_approval_rate$/,
   /^[a-zA-Z][a-zA-Z0-9_]*_tool_rejection_rate$/,
   /^[a-zA-Z][a-zA-Z0-9_]*_success_rate$/,
+  /^proactive_(execute|dismiss|snooze)_rate$/,
+  /^goal_completion_rate$/,
+  /^goal_drift_recovery_rate$/,
 ];
 
 /** Metrics whose values must be in [0, 1] (rates / probabilities). */
@@ -41,6 +44,11 @@ export const RATE_METRICS = new Set([
   'reflection_failure_rate',
   'multi_step_completion_rate',
   'high_impact_success_rate',
+  'proactive_execute_rate',
+  'proactive_dismiss_rate',
+  'proactive_snooze_rate',
+  'goal_completion_rate',
+  'goal_drift_recovery_rate',
 ]);
 
 /** Metrics whose values must be in [-10, 10] (normalized indices). */

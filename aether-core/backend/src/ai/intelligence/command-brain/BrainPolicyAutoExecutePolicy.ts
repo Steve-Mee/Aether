@@ -1,6 +1,5 @@
 import type { MerchantSettings } from '../../../shared/settings/merchantSettingsTypes';
-import { isAutonomousWindowOpen } from '../../../shared/settings/merchantSettingsTypes';
-import { assessApprovalAutoEligible } from '../../../shared/policy/assessApprovalAutoEligible';
+import { assessAutonomy } from '../../../shared/policy/AutonomyPolicyService';
 import type { ToolProposal } from '../personal-brain/tools/types';
 
 /**
@@ -10,57 +9,42 @@ export async function shouldPolicyAutoExecuteProposal(input: {
   tenantId: string;
   settings: MerchantSettings;
   proposal: ToolProposal;
-}): Promise<{ eligible: boolean; reason: string }> {
-  const { proposal, settings, tenantId } = input;
+}): Promise<{ eligible: boolean; reason: string; reasonCode?: string }> {
+  const { proposal, settings } = input;
 
-  if (!settings.policyEnabled) {
-    return { eligible: false, reason: 'Tenant approval policy disabled' };
-  }
-  if (!isAutonomousWindowOpen(settings)) {
-    return { eligible: false, reason: 'Outside autonomous window' };
-  }
   if (proposal.approvalId) {
-    return { eligible: false, reason: 'Proposal routed to approval inbox' };
+    return { eligible: false, reason: 'Proposal routed to approval inbox', reasonCode: 'has_approval' };
   }
   if (proposal.risk === 'high' || proposal.tool === 'createApproval') {
-    return { eligible: false, reason: 'High-risk proposals require manual approval' };
+    return { eligible: false, reason: 'High-risk proposals require manual approval', reasonCode: 'high_risk_guard' };
   }
   if (proposal.tool === 'syncSupplier') {
-    return { eligible: false, reason: 'Supplier sync requires inbox approval' };
+    return { eligible: false, reason: 'Supplier sync requires inbox approval', reasonCode: 'supplier_sync' };
   }
 
-  if (proposal.tool === 'updatePrice') {
-    const assessment = await assessApprovalAutoEligible({
-      tenantId,
-      module: 'admin-command-bar',
-      actionType: 'price.change',
-      payload: proposal.payload,
-    });
-    if (!assessment.eligible) {
-      return { eligible: false, reason: assessment.reason };
-    }
-    return { eligible: true, reason: `Tenant policy: ${assessment.reason}` };
+  const riskClass =
+    proposal.risk === 'medium' ? 'medium' : proposal.risk === 'high' ? 'high' : 'low';
+
+  const assessment = assessAutonomy({
+    settings,
+    module: 'admin-command-bar',
+    actionType: proposal.tool,
+    tool: proposal.tool,
+    payload: proposal.payload,
+    riskClass,
+  });
+
+  if (assessment.executionMode === 'autonomous' && assessment.eligible) {
+    return {
+      eligible: true,
+      reason: `Tenant policy: ${assessment.reason}`,
+      reasonCode: assessment.reasonCode,
+    };
   }
 
-  if (proposal.tool === 'createInsight') {
-    const assessment = await assessApprovalAutoEligible({
-      tenantId,
-      module: 'personal-brain',
-      actionType: 'brain.createInsight',
-      payload: proposal.payload,
-    });
-    if (!assessment.eligible && proposal.risk !== 'low') {
-      return { eligible: false, reason: assessment.reason };
-    }
-    if (proposal.risk === 'low' && settings.autoApproveLowRisk) {
-      return { eligible: true, reason: 'Low-risk insight — tenant policy allows auto-execute' };
-    }
-    return { eligible: false, reason: assessment.reason };
-  }
-
-  if (proposal.risk === 'low' && settings.autoApproveLowRisk) {
-    return { eligible: true, reason: 'Low-risk — tenant autoApproveLowRisk' };
-  }
-
-  return { eligible: false, reason: 'Not eligible under tenant policy' };
+  return {
+    eligible: false,
+    reason: assessment.reason,
+    reasonCode: assessment.reasonCode,
+  };
 }

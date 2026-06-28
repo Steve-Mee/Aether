@@ -10,7 +10,7 @@ import {
   RiskBadge,
 } from '@/components/ui';
 import ModulePageLayout from '@/components/shell/ModulePageLayout';
-import ExplainDrawer from '../components/ExplainDrawer';
+import AgentExplainabilitySheet from '@/components/explainability/AgentExplainabilitySheet';
 import { cn, interactiveSurface } from '@/lib/utils';
 import { formatDate, t } from '../lib/i18n';
 import type { RiskBand } from '../lib/intentNavigation';
@@ -152,7 +152,7 @@ export default function Emails() {
         </aside>
 
         {page.selectedId && (
-          <ExplainDrawer
+          <AgentExplainabilitySheet
             entityType="email"
             entityId={page.selectedId}
             open={page.explainOpen}

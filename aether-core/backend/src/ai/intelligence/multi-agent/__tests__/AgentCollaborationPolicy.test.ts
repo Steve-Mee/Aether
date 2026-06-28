@@ -4,7 +4,10 @@ import {
   needsSupplierIntel,
   resolveCollaborationChain,
   resolveMultiAgentKeywords,
+  resolvePrimaryAgentByPriority,
+  sortAgentsByAutonomyPriority,
 } from '../AgentCollaborationPolicy';
+import { DEFAULT_AUTONOMY_PREFS } from '../../../../shared/settings/autonomyTypes';
 
 describe('AgentCollaborationPolicy', () => {
   const registry = new AgentRegistry(DEFAULT_SPECIALIST_AGENTS);
@@ -95,6 +98,28 @@ describe('AgentCollaborationPolicy', () => {
     expect(chain!.steps.map((s) => s.agentKey)).toEqual(['inventory', 'pricing']);
   });
 
+  it('resolves low-stock-to-promotion for promotion keywords', () => {
+    const chain = resolveCollaborationChain(
+      'low stock producten — stel promotie prijs voor',
+      'INVENTORY_STATUS',
+      registry
+    );
+    expect(chain).not.toBeNull();
+    expect(chain!.ruleId).toBe('low-stock-to-promotion');
+    expect(chain!.steps.map((s) => s.agentKey)).toEqual(['inventory', 'promotion']);
+  });
+
+  it('resolves pricing-to-inventory-check for stock validation', () => {
+    const chain = resolveCollaborationChain(
+      'optimaliseer prijs en doe voorraad check',
+      'PRICING_OPTIMIZE',
+      registry
+    );
+    expect(chain).not.toBeNull();
+    expect(chain!.ruleId).toBe('pricing-to-inventory-check');
+    expect(chain!.steps.map((s) => s.agentKey)).toEqual(['pricing', 'inventory']);
+  });
+
   it('resolves parallel-intel-supplier-pricing for read-only cross-domain', () => {
     const chain = resolveCollaborationChain(
       'check leverancier prijzen en marge rapport',
@@ -181,5 +206,17 @@ describe('AgentCollaborationPolicy', () => {
     expect(chain).not.toBeNull();
     expect(chain!.ruleId).toBe('cross-domain-outcomes-pricing');
     expect(chain!.steps.map((s) => s.agentKey)).toEqual(['outcomes', 'pricing']);
+  });
+
+  it('sorts agents by autonomy priority', () => {
+    const prefs = {
+      ...DEFAULT_AUTONOMY_PREFS,
+      agentOverrides: {
+        pricing: { enabled: true, priority: 9, allowLowRiskAutoExecute: null, allowMediumRiskAutoExecute: null },
+        inventory: { enabled: true, priority: 3, allowLowRiskAutoExecute: null, allowMediumRiskAutoExecute: null },
+      },
+    };
+    expect(sortAgentsByAutonomyPriority(['inventory', 'pricing'], prefs)).toEqual(['pricing', 'inventory']);
+    expect(resolvePrimaryAgentByPriority(['inventory', 'pricing'], prefs)).toBe('pricing');
   });
 });

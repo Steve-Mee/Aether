@@ -10,6 +10,10 @@ import type {
   SpecialistExecuteResult,
 } from './types';
 
+import type { RunWorkingMemoryPort } from './memory/RunWorkingMemoryPort';
+import { isMerchantMemoryEnabled, isRunMemoryEnabled } from './memory/runMemoryConfig';
+import { getCompositionRoot } from '../../../bootstrap/compositionRoot';
+
 export class SpecialistAgentRunner {
   constructor(
     private registry: AgentRegistry,
@@ -17,7 +21,8 @@ export class SpecialistAgentRunner {
     private agentLoop: BrainAgentLoop,
     private contextRetriever?: ContextRetriever,
     private merchantIndexer?: MerchantKnowledgeIndexer,
-    private personalBrainMemory?: PersonalBrainMemoryService
+    private personalBrainMemory?: PersonalBrainMemoryService,
+    private runMemory?: RunWorkingMemoryPort
   ) {}
 
   async run(request: SpecialistExecuteRequest): Promise<SpecialistExecuteResult> {
@@ -46,6 +51,7 @@ export class SpecialistAgentRunner {
     }
 
     let contextSnippets = request.contextSnippets;
+    const explainability = request.explainabilityCollector;
     if (this.contextRetriever) {
       try {
         const retrieved = await this.contextRetriever.retrieve({
@@ -55,6 +61,14 @@ export class SpecialistAgentRunner {
         });
         if (retrieved.length > 0) {
           contextSnippets = [...new Set([...contextSnippets, ...retrieved.map((c) => c.content)])];
+          explainability?.registerDataSources(
+            retrieved.map((c, i) => ({
+              kind: 'rag' as const,
+              label: `RAG — ${agentKey} fragment ${i + 1}`,
+              preview: c.content,
+              score: c.score,
+            }))
+          );
         }
       } catch {
         // Retrieval is best-effort
@@ -80,12 +94,64 @@ export class SpecialistAgentRunner {
       contextSnippets = [...contextSnippets, ...chainContext];
     }
 
+    if (this.runMemory && isMerchantMemoryEnabled()) {
+      try {
+        const merchantBlock = await this.runMemory.buildMerchantPromptBlock(
+          request.tenantId,
+          agentKey
+        );
+        if (merchantBlock) {
+          contextSnippets = [...contextSnippets, merchantBlock];
+          explainability?.registerDataSources([
+            { kind: 'merchant_memory', label: `Merchant-geheugen (${agentKey})`, preview: merchantBlock },
+          ]);
+        }
+      } catch {
+        // Merchant memory is best-effort
+      }
+    }
+
+    if (this.runMemory && request.parentRunId && isRunMemoryEnabled()) {
+      try {
+        const runMemoryBlock = await this.runMemory.buildPromptBlock(
+          request.tenantId,
+          request.parentRunId,
+          agentKey
+        );
+        if (runMemoryBlock) {
+          contextSnippets = [...contextSnippets, runMemoryBlock];
+          explainability?.registerDataSources([
+            { kind: 'shared_memory', label: `Run-geheugen (${agentKey})`, preview: runMemoryBlock },
+          ]);
+        }
+      } catch {
+        // Run memory is best-effort
+      }
+    }
+
+    try {
+      const goalBlock = await getCompositionRoot().goalContextProvider.buildAgentGoalsBlock(
+        request.tenantId,
+        agentKey
+      );
+      if (goalBlock) {
+        contextSnippets = [...contextSnippets, goalBlock];
+        explainability?.registerDataSources([
+          { kind: 'merchant_memory', label: `Doelen (${agentKey})`, preview: goalBlock },
+        ]);
+      }
+    } catch {
+      // Goal context is best-effort
+    }
+
     const brain = this.personalBrains.get(request.tenantId, agentKey);
     try {
       await brain.recall(request.command, 3);
     } catch {
       // Recall is best-effort
     }
+
+    explainability?.registerAgent(agentKey, 'specialist');
 
     const loopResult = await this.agentLoop.run({
       tenantId: request.tenantId,
@@ -108,6 +174,7 @@ export class SpecialistAgentRunner {
       parentRunId: request.parentRunId,
       handoffConstraints: request.handoffConstraints,
       peerDepth: request.peerDepth ?? 0,
+      correlationId: request.correlationId,
     });
 
     const summaryText =

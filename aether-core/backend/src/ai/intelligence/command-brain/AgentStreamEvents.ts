@@ -16,10 +16,13 @@ export type AgentStreamEventType =
   | 'agent_started'
   | 'agent_completed'
   | 'agent_handoff'
+  | 'agent_peer_message'
   | 'peer_job_queued'
   | 'peer_job_completed'
   | 'peer_job_failed'
   | 'handoff_chain_update'
+  | 'shared_memory_updated'
+  | 'explain_update'
   | 'run_started'
   | 'done'
   | 'error';
@@ -54,6 +57,13 @@ export interface AgentStreamEvent {
   handoffChain?: import('../multi-agent/types').HandoffChainEntry[];
   executionMode?: 'single' | 'sequential' | 'parallel';
   commandId?: string;
+  correlationId?: string;
+  messageType?: import('../multi-agent/types').AgentPeerMessageType;
+  namespace?: string;
+  key?: string;
+  valuePreview?: string;
+  explainSections?: import('../explainability/types').ExplainabilitySection[];
+  flowGraph?: import('../explainability/types').FlowGraph;
   timestamp: string;
 }
 

@@ -7,9 +7,12 @@ import {
   EXECUTOR_FILTER_OPTIONS,
   RISK_FILTER_OPTIONS,
   STATUS_FILTER_OPTIONS,
+  AGENT_FILTER_OPTIONS,
 } from '@/lib/activityPresentation';
+import { agentDisplayLabel } from '@/lib/agentDisplay';
 import type {
   ActivityCategory,
+  ActivityAgentFilter,
   ActivityExecutorFilter,
   ActivityFilters,
   ActivityRiskFilter,
@@ -23,6 +26,7 @@ interface ActivityFilterBarProps {
   onRiskChange: (r: ActivityRiskFilter) => void;
   onExecutorChange: (e: ActivityExecutorFilter) => void;
   onStatusChange: (s: ActivityStatusFilter) => void;
+  onAgentChange: (a: ActivityAgentFilter) => void;
 }
 
 function FilterPills<T extends string>({
@@ -73,6 +77,7 @@ export default function ActivityFilterBar({
   onRiskChange,
   onExecutorChange,
   onStatusChange,
+  onAgentChange,
 }: ActivityFilterBarProps) {
   return (
     <div className="mb-6 space-y-4" data-testid="activity-filter-bar">
@@ -97,6 +102,32 @@ export default function ActivityFilterBar({
           testIdPrefix="activity-category"
           groupLabel={t('activity.filter.type')}
         />
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-caption text-muted-foreground">Agent</p>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Agent filter">
+          {AGENT_FILTER_OPTIONS.map((opt) => {
+            const isActive = filters.agentKey === opt;
+            return (
+              <button
+                key={opt}
+                type="button"
+                data-testid={`activity-agent-${opt}`}
+                onClick={() => onAgentChange(opt)}
+                aria-pressed={isActive}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25',
+                  isActive
+                    ? 'bg-surface-elevated text-foreground'
+                    : 'text-muted-foreground hover:text-foreground border border-transparent',
+                )}
+              >
+                {opt === 'all' ? 'Alle' : agentDisplayLabel(opt)}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-8">

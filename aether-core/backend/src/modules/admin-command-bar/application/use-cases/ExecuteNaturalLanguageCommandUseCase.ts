@@ -15,14 +15,18 @@ import {
   shouldDeferToTools,
 } from '../../../../ai/intelligence/command-brain/BrainActionPolicyResolver';
 import { linkProposalsToCommand } from '../../../../ai/intelligence/personal-brain/tools/BrainToolProposalStore';
-import { updateBrainAgentRunCommandId } from '../../../../ai/intelligence/command-brain/BrainAgentRunStore';
+import { updateBrainAgentRunCommandId, createBrainAgentRun } from '../../../../ai/intelligence/command-brain/BrainAgentRunStore';
+import { isRunMemoryEnabled } from '../../../../ai/intelligence/multi-agent/memory/runMemoryConfig';
+import { isSupervisorModeEnabled } from '../../../../ai/intelligence/multi-agent/supervisorConfig';
+import { WORKFLOW_SUPERVISOR_KEY } from '../../../../ai/intelligence/multi-agent/agents/WorkflowSupervisorAgent';
 import type { ToolProposal } from '../../../../ai/intelligence/personal-brain/tools/types';
 import { shouldAutoExecuteProposal } from '../../../../ai/intelligence/command-brain/BrainAutoExecutePolicy';
 import { shouldPolicyAutoExecuteProposal } from '../../../../ai/intelligence/command-brain/BrainPolicyAutoExecutePolicy';
 import type { ExecuteBrainToolUseCase } from './ExecuteBrainToolUseCase';
 import type { AgentStreamCallback } from '../../../../ai/intelligence/command-brain/AgentStreamEvents';
 import { emitStreamEvent } from '../../../../ai/intelligence/command-brain/AgentStreamEvents';
-import { HandoffChainCollector } from '../../../../ai/intelligence/multi-agent/peer/HandoffChainCollector';
+import { ExplainabilityCollector } from '../../../../ai/intelligence/explainability/ExplainabilityCollector';
+import { persistCommandExplainability } from '../../../../shared/explain/ExplainabilityService';
 import type { PlanMemoryService } from '../../../../ai/intelligence/command-brain/PlanMemoryService';
 import type { PersonalBrainMemoryService } from '../../../../ai/intelligence/personal-brain/memory/PersonalBrainMemoryService';
 import { resolveTrigger } from '../../../../ai/intelligence/personal-brain/reflection/ReflectionTriggerPolicy';
@@ -79,6 +83,18 @@ function matchIntent(text: string): { intent: string; parameters?: Record<string
   if (/restock|aanvull|replenish|bestel.*voorraad|voorraad.*bestel/.test(lower)) {
     return { intent: 'RESTOCK_SUGGEST' };
   }
+  if (/low.?stock|onder.*voorraad|voorraad.*laag/.test(lower)) {
+    return { intent: 'RESTOCK_SUGGEST' };
+  }
+  if (/churn|verloop|afhaken|klant.*verlies/.test(lower)) {
+    return { intent: 'CUSTOMER_CHURN_SIGNALS' };
+  }
+  if (/segment|klantgroep|rfm/.test(lower)) {
+    return { intent: 'CUSTOMER_SEGMENT' };
+  }
+  if (/order.*trend|vraag.*trend|klant.*trend|bestelling.*trend/.test(lower)) {
+    return { intent: 'CUSTOMER_ORDER_TRENDS' };
+  }
   if (/inventory|stock|voorraad/.test(lower)) return { intent: 'INVENTORY_STATUS' };
   if (/order|bestelling/.test(lower) && /status|overzicht/.test(lower)) return { intent: 'ORDER_STATUS' };
   if (/verhoog|raise|verlaag|lower|optimaliseer|optimize/.test(lower) && /prijs|price|prijzen|prices/.test(lower)) {
@@ -116,10 +132,13 @@ export interface CommandBrainServices {
   personalBrainMemory?: PersonalBrainMemoryService;
   agentSupervisor?: AgentSupervisorPort;
   multiAgentResultAggregator?: MultiAgentResultAggregator;
+  runMemoryPromoter?: import('../../../../ai/intelligence/multi-agent/memory/RunMemoryPromoter').RunMemoryPromoter;
+  runWorkingMemory?: import('../../../../ai/intelligence/multi-agent/memory/RunWorkingMemoryPort').RunWorkingMemoryPort;
   reflectionExperimentService?: ReflectionExperimentService;
   reflectionMetricsRecorder?: ReflectionMetricsRecorder;
   reflectionDistillationService?: ReflectionDistillationService;
   agentPatternSync?: AgentPatternSyncService;
+  goalContextProvider?: import('../../../../ai/intelligence/goals/GoalContextProvider').GoalContextProvider;
 }
 
 function toolForIntent(intent: string): string {
@@ -168,10 +187,13 @@ export class ExecuteNaturalLanguageCommandUseCase {
   private personalBrainMemory?: PersonalBrainMemoryService;
   private agentSupervisor?: AgentSupervisorPort;
   private multiAgentResultAggregator?: MultiAgentResultAggregator;
+  private runMemoryPromoter?: import('../../../../ai/intelligence/multi-agent/memory/RunMemoryPromoter').RunMemoryPromoter;
+  private runWorkingMemory?: import('../../../../ai/intelligence/multi-agent/memory/RunWorkingMemoryPort').RunWorkingMemoryPort;
   private reflectionExperimentService?: ReflectionExperimentService;
   private reflectionMetricsRecorder?: ReflectionMetricsRecorder;
   private reflectionDistillationService?: ReflectionDistillationService;
   private agentPatternSync?: AgentPatternSyncService;
+  private goalContextProvider?: import('../../../../ai/intelligence/goals/GoalContextProvider').GoalContextProvider;
   private ktGate = new DefaultKnowledgeTransferGate();
 
   constructor(
@@ -205,15 +227,27 @@ export class ExecuteNaturalLanguageCommandUseCase {
     this.personalBrainMemory = services.personalBrainMemory;
     this.agentSupervisor = services.agentSupervisor;
     this.multiAgentResultAggregator = services.multiAgentResultAggregator;
+    this.runMemoryPromoter = services.runMemoryPromoter;
+    this.runWorkingMemory = services.runWorkingMemory;
     this.reflectionExperimentService = services.reflectionExperimentService;
     this.reflectionMetricsRecorder = services.reflectionMetricsRecorder;
     this.reflectionDistillationService = services.reflectionDistillationService;
     this.agentPatternSync = services.agentPatternSync;
+    this.goalContextProvider = services.goalContextProvider;
   }
 
   async execute(
     naturalLanguage: string,
-    ctx: { tenantId: string; actorId?: string },
+    ctx: {
+      tenantId: string;
+      actorId?: string;
+      proactiveContext?: {
+        agentKey?: string;
+        intentId?: string;
+        evidence?: Record<string, unknown>;
+        detectionRunId?: string;
+      };
+    },
     options?: { onEvent?: AgentStreamCallback; abortSignal?: AbortSignal }
   ) {
     return withServerSpan(
@@ -225,13 +259,22 @@ export class ExecuteNaturalLanguageCommandUseCase {
 
   private async executeCommand(
     naturalLanguage: string,
-    ctx: { tenantId: string; actorId?: string },
+    ctx: {
+      tenantId: string;
+      actorId?: string;
+      proactiveContext?: {
+        agentKey?: string;
+        intentId?: string;
+        evidence?: Record<string, unknown>;
+        detectionRunId?: string;
+      };
+    },
     options?: { onEvent?: AgentStreamCallback; abortSignal?: AbortSignal }
   ) {
     let workflowRunId: string | undefined;
-    const handoffCollector = new HandoffChainCollector();
+    const explainCollector = new ExplainabilityCollector();
     const streamOptions = options
-      ? { ...options, onEvent: handoffCollector.wrap(options.onEvent) }
+      ? { ...options, onEvent: explainCollector.wrap(options.onEvent) }
       : undefined;
     const useOrchestratorPrepare = process.env.COMMAND_BRAIN_USE_ORCHESTRATOR === 'true';
 
@@ -291,6 +334,17 @@ export class ExecuteNaturalLanguageCommandUseCase {
       }
     }
 
+    if (contextSnippets.length > 0) {
+      explainCollector.registerDataSources(
+        contextSnippets.slice(0, 10).map((snippet, i) => ({
+          kind: 'personal_brain' as const,
+          label: `Persoonlijk brein — fragment ${i + 1}`,
+          preview: snippet,
+          score: recallMatches[i]?.score,
+        }))
+      );
+    }
+
     if (this.personalBrainMemory) {
       try {
         const preliminaryIntent = matchIntent(naturalLanguage)?.intent;
@@ -303,8 +357,27 @@ export class ExecuteNaturalLanguageCommandUseCase {
         memoryNotice = memoryRecall.userNotice;
         reflectionNotice = memoryRecall.reflectionNotice;
         memoryRecalled = memoryRecall.memoryRecalled;
+        if (memoryNotice) {
+          explainCollector.registerDataSources([
+            { kind: 'personal_brain', label: memoryNotice },
+          ]);
+        }
       } catch {
         // Memory recall is best-effort
+      }
+    }
+
+    if (this.goalContextProvider) {
+      try {
+        const goalsBlock = await this.goalContextProvider.buildActiveGoalsBlock(ctx.tenantId);
+        if (goalsBlock) {
+          contextSnippets = [...contextSnippets, goalsBlock];
+          explainCollector.registerDataSources([
+            { kind: 'merchant_memory', label: 'Actieve merchant-doelen', preview: goalsBlock },
+          ]);
+        }
+      } catch {
+        // Goal context is best-effort
       }
     }
 
@@ -326,6 +399,20 @@ export class ExecuteNaturalLanguageCommandUseCase {
           : parsedFromLlm.intent !== 'ERROR'
             ? { ...parsedFromLlm, action: parsedFromLlm.action ?? null, source: 'llm' as const }
             : { intent: 'UNKNOWN', action: null, parameters: {}, confidence: 0, source: 'none' as const };
+
+    if (ctx.proactiveContext?.intentId) {
+      parsed = {
+        ...parsed,
+        intent: ctx.proactiveContext.intentId,
+        confidence: Math.max(parsed.confidence ?? 0, 0.9),
+      };
+    }
+    if (ctx.proactiveContext?.evidence) {
+      contextSnippets = [
+        ...contextSnippets,
+        `Proactive evidence: ${JSON.stringify(ctx.proactiveContext.evidence).slice(0, 500)}`,
+      ];
+    }
 
     const isLowConfidence = parsed.confidence < 0.6 || parsed.intent === 'UNKNOWN';
     if (isLowConfidence && !workflowRunId) {
@@ -458,6 +545,7 @@ export class ExecuteNaturalLanguageCommandUseCase {
     let agentContributions: AgentContribution[] | undefined;
     let actionConflicts: ActionConflict[] | undefined;
     let synthesisSource: SynthesisSource | undefined;
+    let sharedMemorySummary: Record<string, unknown> | undefined;
     let multiAgentResultsForAggregation:
       | import('../../../../ai/intelligence/multi-agent/types').AgentBranchResult[]
       | import('../../../../ai/intelligence/multi-agent/types').SpecialistExecuteResult[]
@@ -485,13 +573,48 @@ export class ExecuteNaturalLanguageCommandUseCase {
 
     const abortSignal = options?.abortSignal;
 
+    let rootRunId: string | undefined;
+    if (
+      delegationEnabled &&
+      isRunMemoryEnabled() &&
+      (parsed.intent === 'COMPOUND_WORKFLOW' || multiAgentPlan || Boolean(specialistDef))
+    ) {
+      try {
+        const rootRun = await createBrainAgentRun({
+          tenantId: ctx.tenantId,
+          commandId: earlyCommandId,
+          transcript: [],
+          agentKey: 'admin',
+          resumeContext: {
+            command: naturalLanguage,
+            handlerResult: handlerResult || '',
+            parsedIntent: parsed.intent,
+            contextSnippets,
+            actorId: ctx.actorId,
+            commandId: earlyCommandId,
+          },
+        });
+        rootRunId = rootRun.id;
+      } catch {
+        // Root run is best-effort for run memory
+      }
+    }
+
     const compoundSteps = parsed.compound?.steps?.map((s) => ({
       intent: s.intent,
       command: s.command,
     }));
 
+    const useSupervisorLead =
+      parsed.intent === 'COMPOUND_WORKFLOW' &&
+      isSupervisorModeEnabled() &&
+      delegationEnabled &&
+      Boolean(this.agentSupervisor?.executeSpecialist);
+
     const executionPlan =
-      parsed.intent === 'COMPOUND_WORKFLOW' && delegationEnabled && this.agentSupervisor?.resolveExecutionPlan
+      useSupervisorLead
+        ? null
+        : parsed.intent === 'COMPOUND_WORKFLOW' && delegationEnabled && this.agentSupervisor?.resolveExecutionPlan
         ? this.agentSupervisor.resolveExecutionPlan(
             naturalLanguage,
             parsed.intent,
@@ -503,6 +626,51 @@ export class ExecuteNaturalLanguageCommandUseCase {
           : null;
 
     let compoundHandled = false;
+
+    if (useSupervisorLead && this.agentSupervisor?.executeSpecialist) {
+      executionMode = 'sequential';
+      compoundHandled = true;
+      const supervisorResult = await this.agentSupervisor.executeSpecialist({
+        tenantId: ctx.tenantId,
+        agentKey: WORKFLOW_SUPERVISOR_KEY,
+        intent: 'PLAN_AND_DELEGATE',
+        command: naturalLanguage,
+        contextSnippets,
+        handlerResult,
+        parameters: (parsed.parameters as Record<string, unknown>) ?? {},
+        actorId: ctx.actorId,
+        collectiveSnippets: collective.allSnippets,
+        memoryPromptBlock: memoryPromptBlock || undefined,
+        deferToTools: true,
+        adaptiveLearningEnabled: settings.brainAdaptiveLearningEnabled,
+        onEvent: streamOptions?.onEvent,
+        explainabilityCollector: explainCollector,
+        abortSignal,
+        parentRunId: rootRunId,
+      });
+
+      brainResponse = {
+        narrative: supervisorResult.narrative || handlerResult,
+        actionProposal: supervisorResult.actionProposal,
+        error: supervisorResult.error,
+        toolTrace: supervisorResult.toolTrace,
+        pendingActions: supervisorResult.pendingActions,
+        agentRunId: supervisorResult.agentRunId ?? rootRunId,
+        checkpoint: supervisorResult.checkpoint,
+        awaitingApprovalId: supervisorResult.awaitingApprovalId,
+        runStatus: supervisorResult.runStatus,
+        plan: supervisorResult.plan,
+        summary: supervisorResult.summary,
+      };
+
+      specialistMeta = {
+        agentKey: WORKFLOW_SUPERVISOR_KEY,
+        delegatedFrom: 'admin',
+        specialistRunId: supervisorResult.agentRunId,
+        handoffSummary: supervisorResult.handoffPackage?.summary,
+        routingSource: 'intent' as RouteSource,
+      };
+    }
 
     if (
       executionPlan &&
@@ -529,7 +697,9 @@ export class ExecuteNaturalLanguageCommandUseCase {
         adaptiveLearningEnabled: settings.brainAdaptiveLearningEnabled,
         graphDefinition: executionPlan.graphDefinition,
         onEvent: streamOptions?.onEvent,
+        explainabilityCollector: explainCollector,
         abortSignal,
+        parentRunId: rootRunId,
       });
 
       if (graphResult.mode === 'parallel' && graphResult.parallelResult) {
@@ -539,7 +709,7 @@ export class ExecuteNaturalLanguageCommandUseCase {
           narrative: parallelResult.mergedNarrative || handlerResult,
           toolTrace: parallelResult.mergedToolTrace,
           pendingActions: parallelResult.pendingActions,
-          agentRunId: parallelResult.agentRunIds[0],
+          agentRunId: parallelResult.agentRunIds[0] ?? rootRunId,
           checkpoint: parallelResult.checkpoint,
           runStatus: parallelResult.checkpoint ? 'awaiting_approval' : 'completed',
         };
@@ -561,7 +731,7 @@ export class ExecuteNaturalLanguageCommandUseCase {
           narrative: graphResult.mergedNarrative || handlerResult,
           toolTrace: seqResults.flatMap((r) => r.toolTrace ?? []),
           pendingActions: seqResults.flatMap((r) => r.pendingActions ?? []),
-          agentRunId: last?.agentRunId,
+          agentRunId: last?.agentRunId ?? rootRunId,
           checkpoint: seqResults.some((r) => r.checkpoint),
           runStatus: seqResults.some((r) => r.checkpoint) ? 'awaiting_approval' : 'completed',
           plan: last?.plan,
@@ -603,14 +773,16 @@ export class ExecuteNaturalLanguageCommandUseCase {
         deferToTools: true,
         adaptiveLearningEnabled: settings.brainAdaptiveLearningEnabled,
         onEvent: streamOptions?.onEvent,
+        explainabilityCollector: explainCollector,
         abortSignal,
+        parentRunId: rootRunId,
       });
 
       brainResponse = {
         narrative: parallelResult.mergedNarrative || handlerResult,
         toolTrace: parallelResult.mergedToolTrace,
         pendingActions: parallelResult.pendingActions,
-        agentRunId: parallelResult.agentRunIds[0],
+        agentRunId: parallelResult.agentRunIds[0] ?? rootRunId,
         checkpoint: parallelResult.checkpoint,
         runStatus: parallelResult.checkpoint ? 'awaiting_approval' : 'completed',
       };
@@ -648,7 +820,9 @@ export class ExecuteNaturalLanguageCommandUseCase {
           deferToTools: true,
           adaptiveLearningEnabled: settings.brainAdaptiveLearningEnabled,
           onEvent: streamOptions?.onEvent,
+        explainabilityCollector: explainCollector,
           abortSignal,
+          parentRunId: rootRunId,
         }))
       );
 
@@ -657,7 +831,7 @@ export class ExecuteNaturalLanguageCommandUseCase {
         narrative: seqResults.map((r) => r.narrative).filter(Boolean).join('\n\n') || handlerResult,
         toolTrace: seqResults.flatMap((r) => r.toolTrace ?? []),
         pendingActions: seqResults.flatMap((r) => r.pendingActions ?? []),
-        agentRunId: last?.agentRunId,
+        agentRunId: last?.agentRunId ?? rootRunId,
         checkpoint: seqResults.some((r) => r.checkpoint),
         runStatus: seqResults.some((r) => r.checkpoint) ? 'awaiting_approval' : 'completed',
         plan: last?.plan,
@@ -674,13 +848,16 @@ export class ExecuteNaturalLanguageCommandUseCase {
       specialistMeta = specialistAgents[specialistAgents.length - 1];
       multiAgentResultsForAggregation = seqResults;
       multiAgentKeysForAggregation = executionPlan.agents.map((a) => a.agentKey);
-    } else if (specialistDef && this.agentSupervisor?.executeSpecialist) {
+    } else if (
+      (specialistDef || ctx.proactiveContext?.agentKey) &&
+      this.agentSupervisor?.executeSpecialist
+    ) {
       executionMode = 'single';
-      const primaryAgentKey = specialistDef.agentKey;
+      const primaryAgentKey = ctx.proactiveContext?.agentKey ?? specialistDef!.agentKey;
       const specialistResult = await this.agentSupervisor.executeSpecialist({
         tenantId: ctx.tenantId,
-        agentKey: specialistDef.agentKey,
-        intent: parsed.intent,
+        agentKey: primaryAgentKey as 'admin',
+        intent: ctx.proactiveContext?.intentId ?? parsed.intent,
         command: naturalLanguage,
         contextSnippets,
         handlerResult,
@@ -691,7 +868,9 @@ export class ExecuteNaturalLanguageCommandUseCase {
         deferToTools: deferToTools || isMutatingIntent(parsed.intent),
         adaptiveLearningEnabled: settings.brainAdaptiveLearningEnabled,
         onEvent: streamOptions?.onEvent,
+        explainabilityCollector: explainCollector,
         abortSignal: options?.abortSignal,
+        parentRunId: rootRunId,
       });
 
       brainResponse = {
@@ -732,6 +911,7 @@ export class ExecuteNaturalLanguageCommandUseCase {
           actorId: ctx.actorId,
           collectiveSnippets: collective.allSnippets,
           onEvent: streamOptions?.onEvent,
+        explainabilityCollector: explainCollector,
           abortSignal: options?.abortSignal,
           subGoals: parsed.compound?.steps,
         }
@@ -749,11 +929,28 @@ export class ExecuteNaturalLanguageCommandUseCase {
         results: multiAgentResultsForAggregation,
         agentKeys: multiAgentKeysForAggregation,
         fallbackNarrative: brainResponse.narrative,
+        tenantId: ctx.tenantId,
+        runId: rootRunId,
+        autonomyPrefs: settings.autonomyPrefs,
       });
       brainResponse = { ...brainResponse, narrative: aggregated.narrative };
       agentContributions = aggregated.perAgentContributions;
       actionConflicts = aggregated.conflicts;
       synthesisSource = aggregated.synthesisSource;
+      sharedMemorySummary = aggregated.sharedMemorySummary;
+    }
+
+    if (
+      this.runMemoryPromoter &&
+      rootRunId &&
+      multiAgentKeysForAggregation &&
+      multiAgentKeysForAggregation.length > 1
+    ) {
+      try {
+        await this.runMemoryPromoter.promoteRunToMerchant(ctx.tenantId, rootRunId);
+      } catch {
+        // Promotion is best-effort
+      }
     }
 
     if (multiAgentResultsForAggregation && multiAgentKeysForAggregation) {
@@ -797,7 +994,7 @@ export class ExecuteNaturalLanguageCommandUseCase {
           intent: parsed.intent,
           command: naturalLanguage,
           context: contextSnippets,
-          parentRunId: brainResponse.agentRunId,
+          parentRunId: rootRunId ?? brainResponse.agentRunId,
         });
       } catch {
         // Delegation is best-effort
@@ -1109,7 +1306,37 @@ export class ExecuteNaturalLanguageCommandUseCase {
       module: 'admin-command-bar',
       action: 'command_executed',
       actor: ctx.actorId,
-      details: { intent: parsed.intent, result, verifiedUplift: uplift, workflowRunId },
+      details: {
+        intent: parsed.intent,
+        result,
+        verifiedUplift: uplift,
+        workflowRunId,
+        commandId: saved.id,
+        explainabilitySourceType: 'command',
+        explainabilitySourceId: saved.id,
+        agentKey:
+          specialistAgents?.[specialistAgents.length - 1]?.agentKey ??
+          specialistMeta?.agentKey ??
+          specialistDef?.agentKey,
+        agentKeys:
+          specialistAgents?.map((a) => a.agentKey) ??
+          (specialistMeta ? [specialistMeta.agentKey] : specialistDef ? [specialistDef.agentKey] : undefined),
+        executionMode,
+      },
+    });
+
+    await persistCommandExplainability({
+      tenantId: ctx.tenantId,
+      commandId: saved.id,
+      rootRunId: brainResponse.agentRunId ?? rootRunId,
+      collector: explainCollector,
+      contextSnippets,
+      recallMatches,
+      collectiveSnippetCount: collective.allSnippets.length,
+      globalKnowledgeMessage: globalKnowledgeMeta?.message,
+      agentContributions,
+      planReasoning: brainResponse.plan?.reasoning,
+      executionMode,
     });
 
     await orchestrator.execute({
@@ -1172,11 +1399,16 @@ export class ExecuteNaturalLanguageCommandUseCase {
         specialist: specialistMeta,
         agents: specialistAgents,
         executionMode,
-        handoffChain: handoffCollector.snapshot().length > 0 ? handoffCollector.snapshot() : undefined,
+        handoffChain:
+          explainCollector.snapshotHandoffChain().length > 0
+            ? explainCollector.snapshotHandoffChain()
+            : undefined,
         agentContributions,
         actionConflicts,
         synthesisSource,
+        sharedMemorySummary,
         agentTranscripts,
+        explainabilityId: saved.id,
       },
     };
   }

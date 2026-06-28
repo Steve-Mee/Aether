@@ -75,7 +75,7 @@ function AllProviders({
     createElement(
       MemoryRouter,
       { initialEntries: options.initialEntries ?? ['/approvals'] },
-      createElement(DashboardProvider, null, tree),
+      createElement(MerchantSettingsProvider, null, createElement(DashboardProvider, null, tree)),
     ),
   );
 }

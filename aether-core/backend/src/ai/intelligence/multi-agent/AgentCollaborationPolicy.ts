@@ -1,6 +1,8 @@
 import type { AgentRegistry } from './AgentRegistry';
 import { classifyMultiAgentMode } from './ExecutionModeClassifier';
 import { isMutatingIntent } from '../command-brain/BrainActionPolicyResolver';
+import type { AutonomyPrefs } from '../../../shared/settings/autonomyTypes';
+import { getAgentPriority } from '../../../shared/settings/autonomyTypes';
 import type { CollaborationChain, CollaborationChainStep, ExecutionPlan } from './types';
 
 export type { CollaborationChain, CollaborationChainStep };
@@ -141,6 +143,18 @@ const DEFAULT_RULES: CollaborationRule[] = [
     chain: [
       { agentKey: 'customer', intent: 'CUSTOMER_CHURN_SIGNALS' },
       { agentKey: 'mail', intent: 'EMAIL_SUMMARY' },
+    ],
+    mode: 'sequential',
+  },
+  {
+    id: 'customer-to-inventory-demand',
+    trigger: {
+      intents: ['CUSTOMER_SEGMENT', 'CUSTOMER_ORDER_TRENDS', 'CUSTOMER_CHURN_SIGNALS'],
+      commandPattern: INVENTORY_KEYWORD_PATTERN,
+    },
+    chain: [
+      { agentKey: 'customer', intent: 'CUSTOMER_ORDER_TRENDS' },
+      { agentKey: 'inventory', intent: 'INVENTORY_STATUS' },
     ],
     mode: 'sequential',
   },
@@ -328,6 +342,54 @@ const DEFAULT_RULES: CollaborationRule[] = [
     mode: 'sequential',
   },
   {
+    id: 'low-stock-to-promotion',
+    trigger: {
+      intents: ['INVENTORY_STATUS', 'RESTOCK_SUGGEST'],
+      commandPattern: /\b(promotie\w*|korting\w*|clearance|uitverkoop|markdown)\b/i,
+    },
+    chain: [
+      { agentKey: 'inventory', intent: 'INVENTORY_STATUS' },
+      { agentKey: 'promotion', intent: 'CLEARANCE_PRICING' },
+    ],
+    mode: 'sequential',
+  },
+  {
+    id: 'inventory-to-promotion',
+    trigger: {
+      intents: ['INVENTORY_STATUS'],
+      commandPattern: /\b(promotie\w*|clearance|uitverkoop)\b/i,
+    },
+    chain: [
+      { agentKey: 'inventory', intent: 'INVENTORY_STATUS' },
+      { agentKey: 'promotion', intent: 'PROMOTION_SUGGEST' },
+    ],
+    mode: 'sequential',
+  },
+  {
+    id: 'promotion-to-pricing',
+    trigger: {
+      intents: ['PROMOTION_SUGGEST', 'CLEARANCE_PRICING'],
+      commandPattern: PRICING_KEYWORD_PATTERN,
+    },
+    chain: [
+      { agentKey: 'promotion', intent: 'PROMOTION_SUGGEST' },
+      { agentKey: 'pricing', intent: 'PRICING_OPTIMIZE' },
+    ],
+    mode: 'sequential',
+  },
+  {
+    id: 'pricing-to-inventory-check',
+    trigger: {
+      intents: ['PRICING_OPTIMIZE', 'PRICE_UPDATE'],
+      commandPattern: /\b(voorraad\s*check|stock\s*level|verify\s*stock|controleer\s*voorraad)\b/i,
+    },
+    chain: [
+      { agentKey: 'pricing', intent: 'PRICING_OPTIMIZE' },
+      { agentKey: 'inventory', intent: 'INVENTORY_STATUS' },
+    ],
+    mode: 'sequential',
+  },
+  {
     id: 'pricing-needs-supplier',
     trigger: {
       intents: ['PRICE_UPDATE', 'PRICING_OPTIMIZE'],
@@ -405,6 +467,24 @@ function matchesKeywordAgents(
 
 export function resolveMultiAgentKeywords(command: string, registry: AgentRegistry): string[] {
   return registry.resolveKeywordMatches(command).map((m) => m.agentKey);
+}
+
+export function sortAgentsByAutonomyPriority(
+  agentKeys: string[],
+  autonomyPrefs: AutonomyPrefs,
+): string[] {
+  return [...agentKeys].sort(
+    (a, b) => getAgentPriority(autonomyPrefs, b) - getAgentPriority(autonomyPrefs, a),
+  );
+}
+
+export function resolvePrimaryAgentByPriority(
+  agentKeys: string[],
+  autonomyPrefs: AutonomyPrefs,
+): string | null {
+  if (agentKeys.length === 0) return null;
+  const sorted = sortAgentsByAutonomyPriority(agentKeys, autonomyPrefs);
+  return sorted[0] ?? null;
 }
 
 export function resolveCollaborationChain(

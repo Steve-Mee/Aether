@@ -18,6 +18,8 @@ export function agentBadgeClass(agentKey: string): string {
       return 'bg-teal-500/15 text-teal-800 dark:text-teal-300 border-teal-500/25';
     case 'negotiation':
       return 'bg-fuchsia-500/15 text-fuchsia-800 dark:text-fuchsia-300 border-fuchsia-500/25';
+    case 'promotion':
+      return 'bg-pink-500/15 text-pink-800 dark:text-pink-300 border-pink-500/25';
     case 'catalog':
       return 'bg-lime-500/15 text-lime-800 dark:text-lime-300 border-lime-500/25';
     case 'autonomy':
@@ -51,6 +53,8 @@ export function agentDisplayLabel(agentKey: string): string {
       return 'Outcomes Agent';
     case 'negotiation':
       return 'Negotiation Agent';
+    case 'promotion':
+      return 'Promotion Agent';
     case 'catalog':
       return 'Product Catalog Agent';
     case 'autonomy':

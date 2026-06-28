@@ -1,6 +1,7 @@
 import { prisma } from '../../../../shared/prisma/client';
 import { labelForAction } from '../../../../shared/audit/activityLabels';
 import { requireTenantId } from '../../../../shared/tenant/tenantContext';
+import { explainabilityPersister } from '../../../../ai/intelligence/explainability/ExplainabilityPersister';
 
 export type ActivityRisk = 'low' | 'high' | 'none';
 export type ActivityStatus = 'autonomous' | 'approved' | 'rejected' | 'pending' | 'info';
@@ -22,6 +23,7 @@ export interface ActivityFeedItem {
   rationale?: string;
   related?: { type: 'approval' | 'insight' | 'email'; id: string };
   details?: Record<string, unknown>;
+  agentKeys?: string[];
 }
 
 export interface ActivityFeedQuery {
@@ -30,6 +32,7 @@ export interface ActivityFeedQuery {
   limit?: number;
   module?: string;
   includeNav?: boolean;
+  agentKey?: string;
 }
 
 function parseDetails(raw: string | null): Record<string, unknown> {
@@ -43,6 +46,24 @@ function parseDetails(raw: string | null): Record<string, unknown> {
     return {};
   }
 }
+
+function extractAgentKeys(details: Record<string, unknown>): string[] | undefined {
+  if (Array.isArray(details.agentKeys)) {
+    return details.agentKeys.filter((k): k is string => typeof k === 'string');
+  }
+  if (typeof details.agentKey === 'string') {
+    return [details.agentKey];
+  }
+  return undefined;
+}
+
+function itemMatchesAgentKey(item: ActivityFeedItem, agentKey: string): boolean {
+  if (item.agentKeys?.includes(agentKey)) return true;
+  const fromDetails = extractAgentKeys(item.details ?? {});
+  return fromDetails?.includes(agentKey) ?? false;
+}
+
+export { itemMatchesAgentKey, extractAgentKeys };
 
 function riskFromDetails(details: Record<string, unknown>, action: string): ActivityRisk {
   const r = details.risk ?? details.riskBand;
@@ -74,6 +95,9 @@ function mapAuditStatus(action: string, details: Record<string, unknown>): Activ
   if (action === 'brain_approval_created') return 'pending';
   if (action === 'brain_tool_auto_executed' || action === 'brain_tool_executed') return 'autonomous';
   if (action === 'brain_tool_rejected') return 'rejected';
+  if (action === 'autonomy_action_allowed') return 'autonomous';
+  if (action === 'autonomy_action_blocked') return 'rejected';
+  if (action === 'autonomy_action_deferred') return 'pending';
   if (
     action === 'autonomy_approve' ||
     action === 'mail_approval_required_received' ||
@@ -111,6 +135,17 @@ function buildDescription(action: string, module: string, details: Record<string
   }
   if (typeof details.summary === 'string') return details.summary;
   if (typeof details.message === 'string') return details.message;
+  if (
+    action === 'autonomy_action_allowed' ||
+    action === 'autonomy_action_blocked' ||
+    action === 'autonomy_action_deferred'
+  ) {
+    const reason = typeof details.reason === 'string' ? details.reason : '';
+    const category = typeof details.category === 'string' ? details.category : '';
+    const parts = [reason];
+    if (category) parts.push(`categorie: ${category}`);
+    return parts.filter(Boolean).join(' · ');
+  }
   const entity = details.entityName ?? details.productName ?? details.supplierName;
   if (entity) return `${labelForAction(action)} — ${String(entity)}`;
   return `${labelForAction(action)} (${module})`;
@@ -137,7 +172,7 @@ function extractRelated(details: Record<string, unknown>): ActivityFeedItem['rel
   return undefined;
 }
 
-function mapAuditRow(row: {
+export function mapAuditRowToActivityItem(row: {
   id: string;
   module: string;
   action: string;
@@ -171,7 +206,66 @@ function mapAuditRow(row: {
     rationale: typeof details.rationale === 'string' ? details.rationale : undefined,
     related: extractRelated(details),
     details: Object.keys(details).length > 0 ? details : undefined,
+    agentKeys: extractAgentKeys(details),
   };
+}
+
+async function enrichWithExplainability(
+  tenantId: string,
+  items: ActivityFeedItem[]
+): Promise<ActivityFeedItem[]> {
+  const explainRefs: Array<{ index: number; sourceType: 'command' | 'proactive_suggestion'; sourceId: string }> =
+    [];
+
+  items.forEach((item, index) => {
+    const details = item.details ?? {};
+    const sourceType = details.explainabilitySourceType;
+    const sourceId = details.explainabilitySourceId;
+    if (sourceType === 'command' && typeof sourceId === 'string') {
+      explainRefs.push({ index, sourceType: 'command', sourceId });
+    } else if (sourceType === 'proactive_suggestion' && typeof sourceId === 'string') {
+      explainRefs.push({ index, sourceType: 'proactive_suggestion', sourceId });
+    } else if (item.source === 'command') {
+      explainRefs.push({ index, sourceType: 'command', sourceId: item.id.replace(/^command-/, '') });
+    } else if (
+      item.actionType === 'proactive_auto_executed' &&
+      typeof details.suggestionId === 'string'
+    ) {
+      explainRefs.push({
+        index,
+        sourceType: 'proactive_suggestion',
+        sourceId: details.suggestionId,
+      });
+    }
+  });
+
+  if (explainRefs.length === 0) return items;
+
+  const snapshots = await Promise.all(
+    explainRefs.map((ref) =>
+      explainabilityPersister.getSnapshot(tenantId, ref.sourceType, ref.sourceId)
+    )
+  );
+
+  const enriched = items.map((item) => ({ ...item }));
+  snapshots.forEach((snap, i) => {
+    if (!snap) return;
+    const ref = explainRefs[i]!;
+    const item = enriched[ref.index]!;
+    enriched[ref.index] = {
+      ...item,
+      rationale: item.rationale ?? snap.summary,
+      agentKeys: snap.agentKeys.length > 0 ? snap.agentKeys : item.agentKeys,
+      details: {
+        ...(item.details ?? {}),
+        explainabilitySourceType: ref.sourceType,
+        explainabilitySourceId: ref.sourceId,
+        agentKeys: snap.agentKeys.length > 0 ? snap.agentKeys : item.agentKeys,
+      },
+    };
+  });
+
+  return enriched;
 }
 
 function mapCommandRow(row: {
@@ -204,6 +298,8 @@ function mapCommandRow(row: {
     details: {
       intent: row.intent,
       result: row.result,
+      explainabilitySourceType: 'command',
+      explainabilitySourceId: row.id,
     },
   };
 }
@@ -242,14 +338,18 @@ export async function buildActivityFeed(query: ActivityFeedQuery): Promise<{
   ]);
 
   const items = [
-    ...audits.map(mapAuditRow),
+    ...audits.map(mapAuditRowToActivityItem),
     ...commands.map(mapCommandRow),
   ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
   const capped = items.slice(0, limit);
-  const source = capped.length >= 5 ? 'live' : 'partial';
+  const enriched = await enrichWithExplainability(tenantId, capped);
+  const filtered = query.agentKey
+    ? enriched.filter((item) => itemMatchesAgentKey(item, query.agentKey!))
+    : enriched;
+  const source = filtered.length >= 5 ? 'live' : 'partial';
 
-  return { items: capped, source };
+  return { items: filtered, source };
 }
 
 export function resolveActivitySince(days?: number, sinceIso?: string): Date {

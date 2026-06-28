@@ -4,7 +4,8 @@ import { apiStreamPostFetch } from '@/lib/api/client';
 import { apiRoutes } from '@/lib/api/routes';
 import { commandsApi } from '@/features/commands/api';
 import { agentDisplayLabel, agentHandoffLabel, agentWorkingLabel, formatAgentKeysLabel } from '@/lib/agentDisplay';
-import type { AgentPlanStep, AgentStreamEvent, CommandResult, HandoffChainEntry } from '@/types/command';
+import type { AgentPlanStep, AgentStreamEvent, CommandResult, HandoffChainEntry, SharedMemoryEntry } from '@/types/command';
+import type { LiveExplainState } from '@/types/explainability';
 import { t } from '@/lib/i18n';
 import { humanizeHandoffReason } from '@/lib/agentDisplay';
 
@@ -217,11 +218,14 @@ export function useCommandStream() {
   const [streaming, setStreaming] = useState(false);
   const [activeAgentKeys, setActiveAgentKeys] = useState<string[]>([]);
   const [handoffChain, setHandoffChain] = useState<HandoffChainEntry[]>([]);
+  const [sharedMemory, setSharedMemory] = useState<SharedMemoryEntry[]>([]);
   const [executionMode, setExecutionMode] = useState<'single' | 'sequential' | 'parallel' | null>(
     null,
   );
   const [chainFrom, setChainFrom] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
+  const [liveExplain, setLiveExplain] = useState<LiveExplainState | null>(null);
+  const [executingProactiveId, setExecutingProactiveId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const streamCommandIdRef = useRef<string | null>(null);
 
@@ -232,9 +236,12 @@ export function useCommandStream() {
     setStreaming(false);
     setActiveAgentKeys([]);
     setHandoffChain([]);
+    setSharedMemory([]);
     setExecutionMode(null);
     setChainFrom(null);
     setCancelled(false);
+    setLiveExplain(null);
+    setExecutingProactiveId(null);
     streamCommandIdRef.current = null;
     abortRef.current?.abort();
     abortRef.current = null;
@@ -291,6 +298,15 @@ export function useCommandStream() {
               const event = JSON.parse(line.slice(5).trim()) as AgentStreamEvent;
               if (event.type === 'result' && event.result) {
                 finalResult = event.result;
+                continue;
+              }
+
+              if (event.type === 'explain_update') {
+                setLiveExplain({
+                  summary: event.summary,
+                  sections: event.explainSections,
+                  flowGraph: event.flowGraph,
+                });
                 continue;
               }
 
@@ -379,11 +395,46 @@ export function useCommandStream() {
                 setHandoffChain(event.handoffChain);
               }
 
+              if (
+                event.type === 'shared_memory_updated' &&
+                event.namespace &&
+                event.key
+              ) {
+                setSharedMemory((prev) => {
+                  const idx = prev.findIndex(
+                    (e) => e.namespace === event.namespace && e.key === event.key,
+                  );
+                  const nextEntry: SharedMemoryEntry = {
+                    namespace: event.namespace!,
+                    key: event.key!,
+                    updatedByAgentKey: event.agentKey,
+                    updatedAt: event.timestamp,
+                    valuePreview: event.valuePreview,
+                  };
+                  if (idx >= 0) {
+                    const next = [...prev];
+                    next[idx] = { ...next[idx], ...nextEntry };
+                    return next;
+                  }
+                  return [...prev, nextEntry];
+                });
+              }
+
               if (event.type === 'result' && event.result?.brain?.executionMode) {
                 setExecutionMode(event.result.brain.executionMode);
               }
               if (event.type === 'result' && event.result?.brain?.handoffChain) {
                 setHandoffChain(event.result.brain.handoffChain);
+              }
+              if (event.type === 'result' && event.result?.brain?.sharedMemorySummary) {
+                const summary = event.result.brain.sharedMemorySummary;
+                setSharedMemory(
+                  Object.entries(summary).map(([key, value]) => ({
+                    namespace: 'shared',
+                    key,
+                    valuePreview: JSON.stringify(value).slice(0, 200),
+                  })),
+                );
               }
 
               if (event.type === 'plan_ready' && event.goal && event.steps) {
@@ -462,6 +513,88 @@ export function useCommandStream() {
     [reset],
   );
 
+  const executeProactiveWithStream = useCallback(
+    async (suggestionId: string): Promise<CommandResult | null> => {
+      if (env.isMockMode) return null;
+
+      reset();
+      setExecutingProactiveId(suggestionId);
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setStreaming(true);
+
+      try {
+        const response = await apiStreamPostFetch(
+          apiRoutes.admin.proactiveSuggestionExecute(suggestionId),
+          {},
+          controller.signal,
+        );
+
+        if (!response.ok || !response.body) {
+          setStreaming(false);
+          setExecutingProactiveId(null);
+          return null;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let finalResult: CommandResult | null = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() ?? '';
+
+          for (const part of parts) {
+            const line = part.split('\n').find((l) => l.startsWith('data:'));
+            if (!line) continue;
+            try {
+              const event = JSON.parse(line.slice(5).trim()) as AgentStreamEvent;
+              if (event.type === 'result' && event.result) {
+                finalResult = event.result;
+                continue;
+              }
+              if (event.type === 'explain_update') {
+                setLiveExplain({
+                  summary: event.summary,
+                  sections: event.explainSections,
+                  flowGraph: event.flowGraph,
+                });
+              }
+              if (event.type === 'agent_handoff' && event.fromAgentKey && event.toAgentKey) {
+                setHandoffChain((prev) => [
+                  ...prev,
+                  {
+                    from: event.fromAgentKey!,
+                    to: event.toAgentKey!,
+                    reason: event.handoffReason ?? '',
+                    mode: 'sync',
+                    handoffMode: event.handoffMode,
+                  },
+                ]);
+              }
+            } catch {
+              /* ignore malformed chunk */
+            }
+          }
+        }
+
+        setStreaming(false);
+        setExecutingProactiveId(null);
+        return finalResult;
+      } catch {
+        setStreaming(false);
+        setExecutingProactiveId(null);
+        return null;
+      }
+    },
+    [reset],
+  );
+
   return {
     steps,
     plan,
@@ -470,11 +603,15 @@ export function useCommandStream() {
     activeAgentKey: activeAgentKeys[0] ?? null,
     activeAgentKeys,
     handoffChain,
+    sharedMemory,
     executionMode,
     chainFrom,
     cancelled,
+    liveExplain,
+    executingProactiveId,
     reset,
     cancel,
     executeWithStream,
+    executeProactiveWithStream,
   };
 }

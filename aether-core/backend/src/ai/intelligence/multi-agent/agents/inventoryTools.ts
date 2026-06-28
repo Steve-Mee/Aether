@@ -36,7 +36,8 @@ export function listLowStockTool(deps: InventoryToolsDeps): BrainToolExecutor {
   return {
     definition: {
       name: 'listLowStock',
-      description: 'List products with low stock levels',
+      description:
+        'List products with low stock levels. Returns suggestedPricingActions for clearance/promotion handoff to Pricing Agent.',
       parameters: {
         threshold: {
           type: 'number',
@@ -60,11 +61,23 @@ export function listLowStockTool(deps: InventoryToolsDeps): BrainToolExecutor {
       const threshold = Number(input.threshold ?? 10);
       const limit = Math.min(Number(input.limit ?? 20), 50);
       const items = await deps.adminData.listLowStockInventory(ctx.tenantId, threshold);
+      const lowStockSkus = items.slice(0, limit).map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        warehouseId: item.warehouseId,
+      }));
+      const suggestedPricingActions = items.slice(0, 5).map((item) => ({
+        productId: item.productId,
+        action: 'suggest_clearance_pricing' as const,
+        reason: `Low stock (${item.quantity} units, threshold ${threshold}) — consider clearance or promotion pricing`,
+      }));
       return {
         success: true,
         threshold,
         count: items.length,
         items: items.slice(0, limit),
+        lowStockSkus,
+        suggestedPricingActions,
       };
     },
   };

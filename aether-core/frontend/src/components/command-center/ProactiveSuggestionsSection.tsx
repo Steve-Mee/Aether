@@ -1,20 +1,18 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Package, PieChart, Sparkles, TrendingUp, Truck } from 'lucide-react';
 import React from 'react';
 import { Button, Card, CardContent, EmptyState } from '@/components/ui';
 import { useCommand } from '@/lib/CommandContext';
+import { env } from '@/lib/config/env';
 import type { DemoIntentId } from '@/lib/localIntentMatcher';
-import {
-  dismissSuggestion,
-  getProactiveSuggestions,
-  snoozeSuggestion,
-  type ProactiveCategory,
-  type ProactiveSuggestion,
-} from '@/lib/proactiveSuggestionsDemo';
+import type { ProactiveCategory, ProactiveSuggestion } from '@/lib/proactiveSuggestionsDemo';
+import { useProactiveSuggestions } from '@/hooks/useProactiveSuggestions';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import { cn } from '@/lib/utils';
 import { t } from '@/lib/i18n';
 import { AutonomyModeBadge, IconBadge, SectionLabel, StatChip } from './primitives';
+import LiveExplainPanel from '@/components/explainability/LiveExplainPanel';
+import AgentExplainabilitySheet from '@/components/explainability/AgentExplainabilitySheet';
 
 const categoryIcons: Record<ProactiveCategory, React.ReactNode> = {
   prijs: <TrendingUp size={16} strokeWidth={1.75} />,
@@ -36,35 +34,51 @@ export default function ProactiveSuggestionsSection({
 }: ProactiveSuggestionsSectionProps) {
   const { openPalette } = useCommand();
   const { settings } = useMerchantSettings();
-  const [version, setVersion] = useState(0);
-  const suggestions = useMemo(() => getProactiveSuggestions(settings), [version, settings]);
+  const { suggestions, dismiss, snooze, execute, executingId, streaming, liveExplain } =
+    useProactiveSuggestions();
+  const [explainTarget, setExplainTarget] = useState<ProactiveSuggestion | null>(null);
+  const showExplain = settings.explainabilityPrefs.detailLevel !== 'off';
 
-  const refresh = useCallback(() => setVersion((v) => v + 1), []);
+  const handleSelect = useCallback(
+    (suggestion: ProactiveSuggestion) => {
+      if (env.isLiveMode) {
+        execute(suggestion.id);
+        return;
+      }
+      dismiss(suggestion.id);
+      void onSelect(suggestion.command, suggestion.intentId);
+    },
+    [dismiss, execute, onSelect],
+  );
 
-  const handleSelect = (suggestion: ProactiveSuggestion) => {
-    dismissSuggestion(suggestion.id);
-    refresh();
-    void onSelect(suggestion.command, suggestion.intentId);
-  };
+  const handleAutoExecute = useCallback(
+    (e: React.MouseEvent, suggestion: ProactiveSuggestion) => {
+      e.stopPropagation();
+      if (env.isLiveMode) {
+        execute(suggestion.id);
+        return;
+      }
+      dismiss(suggestion.id);
+      void onSelect(suggestion.command, suggestion.intentId, true);
+    },
+    [dismiss, execute, onSelect],
+  );
 
-  const handleAutoExecute = (e: React.MouseEvent, suggestion: ProactiveSuggestion) => {
-    e.stopPropagation();
-    dismissSuggestion(suggestion.id);
-    refresh();
-    void onSelect(suggestion.command, suggestion.intentId, true);
-  };
+  const handleDismiss = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      dismiss(id);
+    },
+    [dismiss],
+  );
 
-  const handleDismiss = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    dismissSuggestion(id);
-    refresh();
-  };
-
-  const handleSnooze = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    snoozeSuggestion(id);
-    refresh();
-  };
+  const handleSnooze = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      snooze(id);
+    },
+    [snooze],
+  );
 
   return (
     <section className="mb-8 w-full" aria-labelledby="proactive-suggestions-heading">
@@ -74,6 +88,13 @@ export default function ProactiveSuggestionsSection({
         subtitle={t('commandCenter.section.proactive.subtitle')}
       />
 
+      {streaming &&
+        settings.explainabilityPrefs.showLiveExplain !== false &&
+        settings.explainabilityPrefs.detailLevel !== 'off' && (
+          <div className="mb-4">
+            <LiveExplainPanel live={liveExplain} handoffChainLength={0} />
+          </div>
+        )}
       {suggestions.length === 0 ? (
         <EmptyState
           variant="premium"
@@ -94,7 +115,10 @@ export default function ProactiveSuggestionsSection({
             <Card
               key={suggestion.id}
               data-testid={`proactive-suggestion-${suggestion.id}`}
-              className="group rounded-2xl border-border/25 bg-card/40 backdrop-blur-sm insight-card-shadow"
+              className={cn(
+                'group rounded-2xl border-border/25 bg-card/40 backdrop-blur-sm insight-card-shadow',
+                executingId === suggestion.id && streaming && 'ring-1 ring-primary/30',
+              )}
             >
               <CardContent className="p-4 sm:p-5">
                 <div className="flex items-start gap-3">
@@ -126,7 +150,23 @@ export default function ProactiveSuggestionsSection({
                       >
                         {t('commandCenter.proactive.run')}
                       </Button>
-                      {suggestion.executionMode === 'autonomous' && (
+                      {showExplain && (suggestion.hasExplainability !== false) && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 rounded-lg px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExplainTarget(suggestion);
+                          }}
+                          aria-label={`${t('explain.why')} ${suggestion.title}`}
+                        >
+                          {t('explain.why')}
+                        </Button>
+                      )}
+                      {suggestion.executionMode === 'autonomous' &&
+                        settings.proactivePrefs.allowAutoExecute && (
                         <Button
                           type="button"
                           size="sm"
@@ -141,7 +181,9 @@ export default function ProactiveSuggestionsSection({
                         type="button"
                         size="sm"
                         variant="ghost"
-                        className="h-7 rounded-lg px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                        className={cn(
+                          'h-7 rounded-lg px-2 text-[11px] text-muted-foreground hover:text-foreground',
+                        )}
                         onClick={(e) => handleDismiss(e, suggestion.id)}
                         aria-label={`Negeren: ${suggestion.title}`}
                       >
@@ -165,6 +207,15 @@ export default function ProactiveSuggestionsSection({
             </Card>
           ))}
         </div>
+      )}
+      {explainTarget && (
+        <AgentExplainabilitySheet
+          entityType="proactive_suggestion"
+          entityId={explainTarget.id}
+          title={explainTarget.title}
+          open={Boolean(explainTarget)}
+          onClose={() => setExplainTarget(null)}
+        />
       )}
     </section>
   );

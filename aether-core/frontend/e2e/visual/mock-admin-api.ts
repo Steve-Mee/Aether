@@ -4,7 +4,6 @@ import {
   mockConnectedServices,
   mockDashboard,
   mockMerchantSettings,
-  mockPolicy,
   mockSupplierOverview,
   mockTruthStatus,
 } from './fixtures';
@@ -67,10 +66,6 @@ export async function setupMockAdminApi(page: Page) {
 
     if (url.includes('/api/admin/dashboard') || url.includes('/api/admin/events/stream')) {
       await route.fulfill({ json: mockDashboard });
-      return;
-    }
-    if (url.includes('/api/admin/policies/approval')) {
-      await route.fulfill({ json: mockPolicy });
       return;
     }
     if (url.includes('/api/admin/settings')) {

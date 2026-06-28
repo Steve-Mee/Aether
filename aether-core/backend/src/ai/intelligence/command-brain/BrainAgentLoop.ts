@@ -14,6 +14,7 @@ import { BrainAgentPlanner } from './BrainAgentPlanner';
 import { BrainAgentReflector } from './BrainAgentReflector';
 import type { PlanMemoryService } from './PlanMemoryService';
 import type { CompoundStep } from '../agent-runtime/types';
+import type { ExplainabilityCollector } from '../explainability/ExplainabilityCollector';
 import {
   buildAgentRunSummary,
   type AgentPlan,
@@ -73,12 +74,14 @@ export interface AgentLoopRunInput extends GenerateResponseInput {
   parentRunId?: string;
   handoffConstraints?: string[];
   peerDepth?: number;
+  correlationId?: string;
   resumeState?: {
     agentRunId: string;
     startStep: number;
     totalSteps: number;
     transcript: ReturnType<AgentTranscript['getMessages']>;
   };
+  explainabilityCollector?: ExplainabilityCollector;
 }
 
 interface LoopContext {
@@ -313,6 +316,9 @@ export class BrainAgentLoop {
         resumeContext,
         agentKey: input.agentKey,
         parentRunId: input.parentRunId,
+        delegationMeta: input.correlationId
+          ? ({ correlationId: input.correlationId } as import('@prisma/client').Prisma.InputJsonValue)
+          : undefined,
       });
       agentRunId = run.id;
     }

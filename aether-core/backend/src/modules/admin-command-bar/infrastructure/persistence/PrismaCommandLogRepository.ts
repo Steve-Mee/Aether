@@ -1,4 +1,5 @@
 import { prisma } from '../../../../shared/prisma/client';
+import { notifyOverviewActivity } from '../../application/services/OverviewFeedNotify';
 
 export interface CommandLogEntry {
   id: string;
@@ -37,7 +38,7 @@ export class PrismaCommandLogRepository {
         undoExpiresAt: options?.undoExpiresAt,
       } as Parameters<typeof prisma.command.create>[0]['data'],
     });
-    return {
+    const saved: CommandLogEntry = {
       id: row.id,
       command: row.command,
       result: row.result,
@@ -45,6 +46,19 @@ export class PrismaCommandLogRepository {
       confidence: row.confidence,
       createdAt: row.createdAt,
     };
+    notifyOverviewActivity(entry.tenantId, {
+      id: `command-${saved.id}`,
+      source: 'command',
+      at: saved.createdAt.toISOString(),
+      actionType: 'command_executed',
+      actionLabel: 'Commando',
+      description: saved.command,
+      module: 'admin-command-bar',
+      risk: 'low',
+      status: saved.result ? 'autonomous' : 'info',
+      executor: entry.actor ?? 'merchant',
+    });
+    return saved;
   }
 
   async findById(id: string, tenantId: string): Promise<CommandLogEntry | null> {

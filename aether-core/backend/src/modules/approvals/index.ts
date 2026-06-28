@@ -7,8 +7,10 @@ import { validateBody } from '../../shared/security/validate';
 import { withServerSpan } from '../../shared/observability/sentry';
 
 import {
-  assessApprovalAutoEligible,
-} from '../../shared/policy/tenantApprovalPolicyService';
+  assessAutonomyForTenant,
+} from '../../shared/policy/AutonomyPolicyService';
+import { logAutonomyDecision } from '../../shared/policy/AutonomyAuditLogger';
+import { getMerchantSettings } from '../../shared/settings/TenantSettingsService';
 
 const resolveSchema = z.object({
   approve: z.boolean(),
@@ -37,11 +39,13 @@ router.post('/auto-apply', requireOperator, async (req: Request, res: Response) 
 
   for (const approval of pending) {
     const payload = JSON.parse(approval.payload) as Record<string, unknown>;
-    const assessment = await assessApprovalAutoEligible({
+    const settings = await getMerchantSettings(tenantId);
+    const assessment = await assessAutonomyForTenant({
       tenantId,
       module: approval.module,
       actionType: approval.actionType,
       payload,
+      getSettings: getMerchantSettings,
     });
 
     if (assessment.eligible) {
@@ -51,8 +55,24 @@ router.post('/auto-apply', requireOperator, async (req: Request, res: Response) 
         approve: true,
         resolvedBy: req.actorId ?? 'policy-auto',
       });
+      await logAutonomyDecision({
+        tenantId,
+        source: 'approval',
+        assessment,
+        preset: settings.autonomyPrefs.preset,
+        relatedId: approval.id,
+        actor: req.actorId ?? 'policy-auto',
+      });
       applied++;
     } else {
+      await logAutonomyDecision({
+        tenantId,
+        source: 'approval',
+        assessment,
+        preset: settings.autonomyPrefs.preset,
+        relatedId: approval.id,
+        actor: req.actorId ?? 'policy-auto',
+      });
       skipped.push(approval.id);
     }
   }

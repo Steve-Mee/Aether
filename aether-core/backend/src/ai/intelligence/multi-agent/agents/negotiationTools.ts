@@ -4,6 +4,13 @@ import type { BrainToolExecutor } from '../../personal-brain/tools/types';
 
 export interface NegotiationToolsDeps {
   adminData: AdminDataPort;
+  respondToOffer?: {
+    execute(
+      negotiationId: string,
+      params: { offer: number; agentId: string; parentRunId?: string },
+      ctx: { tenantId: string; actorId?: string }
+    ): Promise<{ decision: string; counterOffer?: number; status: string }>;
+  };
 }
 
 export function listActiveNegotiationsTool(deps: NegotiationToolsDeps): BrainToolExecutor {
@@ -122,12 +129,31 @@ export function proposeCounterOfferTool(deps: NegotiationToolsDeps): BrainToolEx
     },
     async executeConfirmed(ctx, payload) {
       const p = payload as { negotiationId: string; price: number; conditions?: string };
+      if (deps.respondToOffer) {
+        const result = await deps.respondToOffer.execute(
+          p.negotiationId,
+          {
+            offer: p.price,
+            agentId: ctx.actorId ?? 'negotiation-agent',
+            parentRunId: ctx.parentRunId,
+          },
+          { tenantId: ctx.tenantId, actorId: ctx.actorId }
+        );
+        return {
+          success: true,
+          result: `Counter-offer processed: ${result.decision}`,
+          negotiationId: p.negotiationId,
+          price: p.price,
+          decision: result.decision,
+          counterOffer: result.counterOffer,
+        };
+      }
       return {
         success: true,
         result: `Counter-offer €${p.price} queued for negotiation ${p.negotiationId}`,
         negotiationId: p.negotiationId,
         price: p.price,
-        note: 'Execute via agentic-commerce RespondToOfferUseCase after approval',
+        note: 'RespondToOfferUseCase not wired',
       };
     },
   };

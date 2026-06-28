@@ -45,6 +45,7 @@ export function invalidateAfterApprovalChange(queryClient: QueryClient): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all() });
   void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
   void queryClient.invalidateQueries({ queryKey: ['activity'] });
+  void queryClient.invalidateQueries({ queryKey: ['aether-overview'] });
   invalidateHomeLandingQueries(queryClient);
   void queryClient.invalidateQueries({ queryKey: queryKeys.outcomes() });
   void queryClient.invalidateQueries({ queryKey: queryKeys.autonomyMetrics() });
@@ -55,6 +56,7 @@ export function invalidateAfterCommandChange(queryClient: QueryClient): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
   void queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all() });
   void queryClient.invalidateQueries({ queryKey: ['activity'] });
+  void queryClient.invalidateQueries({ queryKey: ['aether-overview'] });
   invalidateHomeLandingQueries(queryClient);
   void queryClient.invalidateQueries({ queryKey: queryKeys.autonomyMetrics() });
   void queryClient.invalidateQueries({ queryKey: queryKeys.outcomes() });
@@ -64,6 +66,7 @@ export function invalidateAfterCommandChange(queryClient: QueryClient): void {
 export function invalidateAfterSupplierChange(queryClient: QueryClient): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.suppliers.all() });
   void queryClient.invalidateQueries({ queryKey: ['activity'] });
+  void queryClient.invalidateQueries({ queryKey: ['aether-overview'] });
   void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
 }
 

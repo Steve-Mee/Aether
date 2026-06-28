@@ -91,7 +91,7 @@ export class ProcessIncomingEmailUseCase {
       confidence: classification.confidence,
     });
 
-    const autonomyDecision = merchantAutonomyKernel.evaluate({
+    const autonomyDecision = await merchantAutonomyKernel.evaluate({
       tenantId: ctx.tenantId,
       module: 'aether-mail',
       action: 'email.auto_reply',

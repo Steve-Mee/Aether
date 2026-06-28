@@ -3,6 +3,10 @@ import { isMutatingIntent } from '../command-brain/BrainActionPolicyResolver';
 import { emitStreamEvent } from '../command-brain/AgentStreamEvents';
 import { wrapAgentEvent } from './agentStreamWrap';
 import { humanizeHandoffReason, buildChainHandoffReason } from './peer/handoffReason';
+import { peerContextToChainLine } from './peer/AgentPeerMessage';
+import { isRunMemoryEnabled } from './memory/runMemoryConfig';
+import type { RunWorkingMemoryPort } from './memory/RunWorkingMemoryPort';
+import type { SharedMemoryBridge } from './memory/SharedMemoryBridge';
 import { DEFAULT_BRAIN_AGENT_KEY } from '../global-knowledge/constants';
 import type { ReflectionMetricsRecorder } from '../personal-brain/reflection/ReflectionMetricsRecorder';
 import type { PersonalBrainMemoryService } from '../personal-brain/memory/PersonalBrainMemoryService';
@@ -57,6 +61,8 @@ export interface ChainHandoffInput {
   actorId?: string;
   peerDepth?: number;
   abortSignal?: AbortSignal;
+  contextPayload?: import('./types').AgentPeerMessage;
+  correlationId?: string;
 }
 
 export class AgentOrchestrator implements AgentSupervisorPort {
@@ -69,7 +75,9 @@ export class AgentOrchestrator implements AgentSupervisorPort {
     private agentRouter?: AgentRouterService,
     private parallelCoordinator?: ParallelCoordinator,
     private graphOrchestrator?: GraphOrchestratorPort,
-    private reflectionMetrics?: ReflectionMetricsRecorder
+    private reflectionMetrics?: ReflectionMetricsRecorder,
+    private runMemory?: RunWorkingMemoryPort,
+    private sharedMemoryBridge?: SharedMemoryBridge
   ) {}
 
   isDelegationEnabled(): boolean {
@@ -176,7 +184,28 @@ export class AgentOrchestrator implements AgentSupervisorPort {
         agentRunIds: [],
       };
     }
-    return this.parallelCoordinator.executeParallel(request);
+    const result = await this.parallelCoordinator.executeParallel(request);
+
+    if (
+      this.sharedMemoryBridge &&
+      request.parentRunId &&
+      isRunMemoryEnabled() &&
+      result.results.length > 0
+    ) {
+      const contributions = result.results.map((r) => ({
+        agentKey: r.agentKey,
+        summary: r.narrative?.slice(0, 200) ?? r.error ?? 'No output',
+        status: (r.status === 'failed' || r.error ? 'failed' : 'completed') as 'completed' | 'failed',
+      }));
+      await this.sharedMemoryBridge.recordContributions({
+        tenantId: request.tenantId,
+        runId: request.parentRunId,
+        contributions,
+        onEvent: request.onEvent,
+      });
+    }
+
+    return result;
   }
 
   async executeSequential(
@@ -223,10 +252,25 @@ export class AgentOrchestrator implements AgentSupervisorPort {
       }
       if (result.narrative) {
         chainContext = [...chainContext, result.narrative];
-      } else if (result.error) {
+      } else       if (result.error) {
         chainContext = [...chainContext, `[${req.agentKey} error] ${result.error}`];
       }
     }
+
+    if (this.sharedMemoryBridge && requests[0]?.parentRunId && isRunMemoryEnabled()) {
+      const contributions = results.map((r, i) => ({
+        agentKey: requests[i]?.agentKey ?? 'admin',
+        summary: r.narrative?.slice(0, 200) ?? r.error ?? 'No output',
+        status: (r.error ? 'failed' : 'completed') as 'completed' | 'failed',
+      }));
+      await this.sharedMemoryBridge.recordContributions({
+        tenantId: requests[0].tenantId,
+        runId: requests[0].parentRunId!,
+        contributions,
+        onEvent: requests[0].onEvent,
+      });
+    }
+
     return results;
   }
 
@@ -339,11 +383,42 @@ export class AgentOrchestrator implements AgentSupervisorPort {
     if (result.handoffPackage && request.parentRunId) {
       result.handoffPackage.delegationId = handoffPackage.delegationId;
       result.handoffPackage.resumeToken = resumeToken;
-      await this.resumeFromChild({
+      const resume = await this.resumeFromChild({
         tenantId: request.tenantId,
         parentRunId: request.parentRunId,
         childRunId: result.agentRunId ?? '',
         handoffPackage: result.handoffPackage,
+      });
+      if (resume.contextBlock && this.sharedMemoryBridge && isRunMemoryEnabled()) {
+        await this.sharedMemoryBridge.recordAgentCompletion({
+          tenantId: request.tenantId,
+          runId: request.parentRunId,
+          agentKey: def.agentKey,
+          narrative: result.narrative,
+          resumeContextBlock: resume.contextBlock,
+          onEvent: request.onEvent,
+        });
+      } else if (this.sharedMemoryBridge && isRunMemoryEnabled()) {
+        await this.sharedMemoryBridge.recordAgentCompletion({
+          tenantId: request.tenantId,
+          runId: request.parentRunId,
+          agentKey: def.agentKey,
+          narrative: result.narrative,
+          onEvent: request.onEvent,
+        });
+      }
+    } else if (
+      this.sharedMemoryBridge &&
+      request.parentRunId &&
+      isRunMemoryEnabled() &&
+      result.narrative
+    ) {
+      await this.sharedMemoryBridge.recordAgentCompletion({
+        tenantId: request.tenantId,
+        runId: request.parentRunId,
+        agentKey: def.agentKey,
+        narrative: result.narrative,
+        onEvent: request.onEvent,
       });
     }
 
@@ -369,12 +444,17 @@ export class AgentOrchestrator implements AgentSupervisorPort {
 
     try {
       const started = Date.now();
+      const chainContext = [...(input.context ?? [])];
+      if (input.contextPayload) {
+        chainContext.push(peerContextToChainLine(input.contextPayload));
+      }
+
       const result = await this.specialistRunner.runWithDefinition(targetDef, {
         tenantId: input.tenantId,
         agentKey: input.toAgentKey,
         intent: input.intent,
         command: input.command,
-        contextSnippets: input.context,
+        contextSnippets: chainContext,
         handlerResult: `Chained from ${input.fromAgentKey}`,
         parentRunId: input.parentRunId,
         actorId: input.actorId,
@@ -382,6 +462,7 @@ export class AgentOrchestrator implements AgentSupervisorPort {
         onEvent: wrapAgentEvent(onEvent, input.toAgentKey),
         abortSignal: input.abortSignal,
         peerDepth: input.peerDepth ?? 0,
+        correlationId: input.correlationId,
       });
       void this.reflectionMetrics?.recordHandoffLatency(
         input.tenantId,

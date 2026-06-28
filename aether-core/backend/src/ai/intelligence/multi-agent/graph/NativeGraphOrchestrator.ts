@@ -100,6 +100,7 @@ export class NativeGraphOrchestrator implements GraphOrchestratorPort {
       adaptiveLearningEnabled: request.adaptiveLearningEnabled,
       onEvent: request.onEvent,
       abortSignal: request.abortSignal,
+      explainabilityCollector: request.explainabilityCollector,
     });
 
     return {
@@ -127,6 +128,32 @@ export class NativeGraphOrchestrator implements GraphOrchestratorPort {
         );
         if (subResult.mergedNarrative) narratives.push(subResult.mergedNarrative);
         if (subResult.sequentialResults) sequentialResults.push(...subResult.sequentialResults);
+        continue;
+      }
+
+      if (node.kind === 'supervisor' && node.agentKey && this.specialistRunner) {
+        const supDef = this.agentRegistry.resolveByKey(node.agentKey);
+        if (supDef) {
+          const result = await this.specialistRunner.runWithDefinition(supDef, {
+            tenantId: request.tenantId,
+            agentKey: node.agentKey,
+            intent: node.intent ?? 'PLAN_AND_DELEGATE',
+            command: node.command ?? request.command,
+            contextSnippets: request.contextSnippets ?? [],
+            handlerResult: 'Supervisor graph node',
+            parentRunId: request.parentRunId,
+            actorId: request.actorId,
+            collectiveSnippets: request.collectiveSnippets,
+            memoryPromptBlock: request.memoryPromptBlock,
+            deferToTools: request.deferToTools,
+            adaptiveLearningEnabled: request.adaptiveLearningEnabled,
+            onEvent: request.onEvent,
+            abortSignal: request.abortSignal,
+            explainabilityCollector: request.explainabilityCollector,
+          });
+          if (result.narrative) narratives.push(result.narrative);
+          sequentialResults.push(result);
+        }
         continue;
       }
 
@@ -167,6 +194,7 @@ export class NativeGraphOrchestrator implements GraphOrchestratorPort {
         onEvent: request.onEvent,
         parentRunId: request.parentRunId,
         abortSignal: request.abortSignal,
+        explainabilityCollector: request.explainabilityCollector,
       });
       if (result.narrative) narratives.push(result.narrative);
       sequentialResults.push(result);
@@ -188,7 +216,7 @@ export class NativeGraphOrchestrator implements GraphOrchestratorPort {
       visited.add(nodeId);
       const node = graphDef.nodes.find((n) => n.id === nodeId);
       if (!node) return;
-      if (node.kind === 'agent' || node.kind === 'peer' || node.kind === 'subgraph') ordered.push(node);
+      if (node.kind === 'agent' || node.kind === 'peer' || node.kind === 'subgraph' || node.kind === 'supervisor') ordered.push(node);
       for (const edge of graphDef.edges.filter((e) => e.from === nodeId)) {
         visit(edge.to);
       }
@@ -247,6 +275,7 @@ export class NativeGraphOrchestrator implements GraphOrchestratorPort {
         onEvent: request.onEvent,
         parentRunId: request.parentRunId,
         abortSignal: request.abortSignal,
+        explainabilityCollector: request.explainabilityCollector,
       }))
     );
 

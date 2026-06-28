@@ -79,13 +79,16 @@ export type AgentStreamEventType =
   | 'agent_started'
   | 'agent_completed'
   | 'agent_handoff'
+  | 'agent_peer_message'
   | 'peer_job_queued'
   | 'peer_job_completed'
   | 'peer_job_failed'
   | 'handoff_chain_update'
+  | 'shared_memory_updated'
   | 'run_started'
   | 'done'
   | 'error'
+  | 'explain_update'
   | 'result';
 
 export type StepProgressStatus = 'running' | 'done' | 'failed' | 'skipped';
@@ -118,8 +121,21 @@ export interface AgentStreamEvent {
   handoffChain?: HandoffChainEntry[];
   executionMode?: 'single' | 'sequential' | 'parallel';
   commandId?: string;
+  namespace?: string;
+  key?: string;
+  valuePreview?: string;
+  explainSections?: import('./explainability').ExplainabilitySection[];
+  flowGraph?: import('./explainability').FlowGraph;
   timestamp?: string;
   result?: CommandResult;
+}
+
+export interface SharedMemoryEntry {
+  namespace: string;
+  key: string;
+  updatedByAgentKey?: string;
+  updatedAt?: string;
+  valuePreview?: string;
 }
 
 export type RouteSource = 'intent' | 'keyword' | 'llm' | 'llm-plan' | 'none';
@@ -155,6 +171,8 @@ export interface HandoffChainEntry {
   summary?: string;
   planDepth?: number;
   handoffMode?: 'direct' | 'orchestrated';
+  messageType?: 'intel' | 'request' | 'notify';
+  correlationId?: string;
 }
 
 export interface AgentRunSummary {
@@ -237,7 +255,9 @@ export interface CommandResult {
     agentContributions?: AgentContribution[];
     actionConflicts?: ActionConflict[];
     synthesisSource?: SynthesisSource;
+    sharedMemorySummary?: Record<string, unknown>;
     agentTranscripts?: Record<string, AgentMessage[]>;
+    explainabilityId?: string;
   };
 }
 

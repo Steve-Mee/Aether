@@ -6,10 +6,14 @@ import { SettingsSectionSkeleton } from '@/components/ui/skeletons/SettingsSecti
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import { PageHeader } from '@/components/ui/page-header';
 import { t } from '@/lib/i18n';
-import AutonomyRiskSection from '@/components/settings/AutonomyRiskSection';
+import AutonomyConfigPanel from '@/components/settings/AutonomyConfigPanel';
+import ExplainabilitySection from '@/components/settings/ExplainabilitySection';
+import ProactiveBehaviorSection from '@/components/settings/ProactiveBehaviorSection';
+import GoalPursuitSection from '@/components/settings/GoalPursuitSection';
 import NotificationsSection from '@/components/settings/NotificationsSection';
 import ConnectedServicesSection from '@/components/settings/ConnectedServicesSection';
 import GeneralPreferencesSection from '@/components/settings/GeneralPreferencesSection';
+import OverviewLayoutSection from '@/components/settings/OverviewLayoutSection';
 import DataPrivacySection from '@/components/settings/DataPrivacySection';
 import GlobalKnowledgePanel from '@/components/settings/GlobalKnowledgePanel';
 import MemoryPanel from '@/components/settings/MemoryPanel';
@@ -29,6 +33,7 @@ const SECTIONS = [
   { id: 'notifications', labelKey: 'settings.section.notifications' },
   { id: 'services', labelKey: 'settings.section.services' },
   { id: 'general', labelKey: 'settings.section.general' },
+  { id: 'overview', labelKey: 'settings.section.overview' },
   { id: 'privacy', labelKey: 'settings.section.privacy' },
   { id: 'bilateralExchange', labelKey: 'settings.section.bilateralExchange' },
   { id: 'platform', labelKey: 'settings.section.platform', operatorOnly: true },
@@ -39,7 +44,14 @@ type SectionId = (typeof SECTIONS)[number]['id'];
 function SectionContent({ id }: { id: SectionId }) {
   switch (id) {
     case 'autonomy':
-      return <AutonomyRiskSection />;
+      return (
+        <div className="space-y-6">
+          <AutonomyConfigPanel />
+          <ExplainabilitySection />
+          <ProactiveBehaviorSection />
+          <GoalPursuitSection />
+        </div>
+      );
     case 'personalMemory':
       return <MemoryPanel />;
     case 'reflectionTimeline':
@@ -54,6 +66,8 @@ function SectionContent({ id }: { id: SectionId }) {
       return <ConnectedServicesSection />;
     case 'general':
       return <GeneralPreferencesSection />;
+    case 'overview':
+      return <OverviewLayoutSection />;
     case 'privacy':
       return <DataPrivacySection />;
     case 'bilateralExchange':
@@ -83,8 +97,12 @@ export default function Settings() {
 
   useEffect(() => {
     const param = searchParams.get('section');
-    if (param && SECTION_IDS.has(param as SectionId) && param !== active) {
-      setActive(param as SectionId);
+    const hash = typeof window !== 'undefined' ? window.location.hash.replace(/^#/, '') : '';
+    const fromHash =
+      hash && SECTION_IDS.has(hash as SectionId) ? (hash as SectionId) : null;
+    const next = fromHash ?? (param && SECTION_IDS.has(param as SectionId) ? (param as SectionId) : null);
+    if (next && next !== active) {
+      setActive(next);
     }
   }, [searchParams, active]);
 

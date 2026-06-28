@@ -27,6 +27,7 @@ import { WebScraperService } from '../modules/supplier-intelligence/application/
 import { PriceChangeDetectorService } from '../modules/supplier-intelligence/application/services/PriceChangeDetectorService';
 
 import { MonitorSupplierUseCase } from '../modules/supplier-intelligence/application/use-cases/MonitorSupplierUseCase';
+import { MonitorLowStockUseCase } from '../modules/inventory-pricing/application/use-cases/MonitorLowStockUseCase';
 
 import { SupplierDecisionEngine } from '../modules/supplier-intelligence/application/services/SupplierDecisionEngine';
 
@@ -38,6 +39,7 @@ import { GetAgentRunUseCase } from '../modules/admin-command-bar/application/use
 import { ResumeBrainAgentRunUseCase } from '../ai/intelligence/command-brain/ResumeBrainAgentRunUseCase';
 import { ManagePersonalBrainMemoryUseCase } from '../modules/admin-command-bar/application/use-cases/ManagePersonalBrainMemoryUseCase';
 import { GetReflectionTimelineUseCase } from '../modules/admin-command-bar/application/use-cases/GetReflectionTimelineUseCase';
+import { AgentRosterService } from '../modules/admin-command-bar/application/services/AgentRosterService';
 import { ManageReflectionExperimentsUseCase } from '../modules/admin-command-bar/application/use-cases/ManageReflectionExperimentsUseCase';
 import { BrainToolKnowledgeTransferService } from '../ai/intelligence/command-brain/BrainToolKnowledgeTransferService';
 import { BrainToolApprovalHandler } from '../shared/approval/handlers/brainToolApprovalHandler';
@@ -46,6 +48,31 @@ import { registerBrainToolApprovalHandler } from '../shared/approval/approvalExe
 import { UndoCommandUseCase } from '../modules/admin-command-bar/application/use-cases/UndoCommandUseCase';
 
 import { SuggestionService } from '../modules/admin-command-bar/application/services/SuggestionService';
+
+import {
+  ProactiveSuggestionRepository,
+  ProactiveSuggestionService,
+} from '../ai/intelligence/proactive';
+import { ProactiveLearningService } from '../ai/intelligence/proactive/learning/ProactiveLearningService';
+import { ProactiveEnrichmentService } from '../ai/intelligence/proactive/enrichment/ProactiveEnrichmentService';
+import { ProactiveAutoExecuteService } from '../ai/intelligence/proactive/execution/ProactiveAutoExecuteService';
+import { ProactiveNotificationDispatcher } from '../ai/intelligence/proactive/notifications/ProactiveNotificationDispatcher';
+import { ProactivePatternContributionService } from '../ai/intelligence/proactive/global/ProactivePatternContributionService';
+import { ProactiveGlobalHintService } from '../ai/intelligence/proactive/global/ProactiveGlobalHintService';
+import { ProactiveDetectionOrchestrator } from '../ai/intelligence/proactive/orchestration/ProactiveDetectionOrchestrator';
+import { AgentPatternDistillationService } from '../ai/intelligence/global-knowledge/agent-patterns/AgentPatternDistillationService';
+import {
+  GoalRepository,
+  GoalMetricResolver,
+  GoalProgressService,
+  GoalService,
+  GoalContextProvider,
+  GoalSuggestionLinker,
+} from '../ai/intelligence/goals';
+import { GoalOutcomeAttributionService } from '../ai/intelligence/goals/GoalOutcomeAttributionService';
+import { GoalSuggestionRepository } from '../ai/intelligence/goals/suggestions/GoalSuggestionRepository';
+import { GoalSuggestionEngine } from '../ai/intelligence/goals/suggestions/GoalSuggestionEngine';
+import { GoalPlanningOrchestrator } from '../ai/intelligence/goals/planning/GoalPlanningOrchestrator';
 
 import { SupplierMonitorPort } from '../modules/admin-command-bar/application/ports/SupplierMonitorPort';
 
@@ -88,6 +115,8 @@ import { CommandLogPort } from '../modules/admin-command-bar/application/ports/C
 import { paymentGateway } from '../modules/payment-fulfillment/infrastructure/adapters/PaymentGatewayAdapter';
 
 import { RespondToOfferUseCase } from '../modules/agentic-commerce/application/use-cases/RespondToOfferUseCase';
+import { NegotiationSessionOrchestrator } from '../ai/intelligence/multi-agent/negotiation/NegotiationSessionOrchestrator';
+import { proposeCounterOfferTool } from '../ai/intelligence/multi-agent/agents/negotiationTools';
 
 import {
 
@@ -218,6 +247,14 @@ export interface AppCompositionRoot {
 
   suggestionService: SuggestionService;
 
+  proactiveSuggestionService: ProactiveSuggestionService;
+
+  proactiveLearningService: ProactiveLearningService;
+
+  proactiveEnrichmentService: ProactiveEnrichmentService;
+
+  proactiveAutoExecuteService: ProactiveAutoExecuteService;
+
   undoCommandUseCase: UndoCommandUseCase;
 
   updateInventory: UpdateInventoryUseCase;
@@ -248,6 +285,8 @@ export interface AppCompositionRoot {
 
   respondToOffer: RespondToOfferUseCase;
 
+  negotiationSessionOrchestrator?: NegotiationSessionOrchestrator;
+
   startNegotiation: StartNegotiationUseCase;
 
   getNegotiation: GetNegotiationUseCase;
@@ -265,6 +304,8 @@ export interface AppCompositionRoot {
   emailRepository: PrismaEmailRepository;
 
   monitorSupplierUseCase: MonitorSupplierUseCase;
+
+  monitorLowStockUseCase: MonitorLowStockUseCase;
 
   supplierWebhook: SupplierWebhookAdapter;
 
@@ -310,7 +351,25 @@ export interface AppCompositionRoot {
 
   memoryConsolidationJob: import('../ai/intelligence/personal-brain/memory/jobs/MemoryConsolidationJob').MemoryConsolidationJob;
 
+  runMemoryGcJob?: import('../ai/intelligence/multi-agent/memory/jobs/RunMemoryGcJob').RunMemoryGcJob;
+
+  runWorkingMemory?: import('../ai/intelligence/multi-agent/memory/RunWorkingMemoryPort').RunWorkingMemoryPort;
+
   bilateralExchangeService: BilateralExchangeService;
+
+  goalService: GoalService;
+
+  goalProgressService: GoalProgressService;
+
+  goalContextProvider: GoalContextProvider;
+
+  goalRepository: GoalRepository;
+
+  goalSuggestionEngine?: import('../ai/intelligence/goals/suggestions/GoalSuggestionEngine').GoalSuggestionEngine;
+
+  agentRegistry?: import('../ai/intelligence/multi-agent/AgentRegistry').AgentRegistry;
+
+  agentRosterService?: import('../modules/admin-command-bar/application/services/AgentRosterService').AgentRosterService;
 
 }
 
@@ -422,8 +481,70 @@ export function bootstrapApplication(): AppCompositionRoot {
     decisionRepository: decisionRepo,
   });
 
+  const agentRosterService = intelligence.agentRegistry
+    ? new AgentRosterService(intelligence.agentRegistry)
+    : undefined;
+
   const bilateralExchangeService = new BilateralExchangeService(
     new BilateralImportAdapter(intelligence.personalBrainRegistry)
+  );
+
+  const proactiveSuggestionRepository = new ProactiveSuggestionRepository();
+  const goalRepository = new GoalRepository();
+  const goalMetricResolver = new GoalMetricResolver(adminData);
+  const goalContextProvider = new GoalContextProvider(goalRepository);
+  const goalSuggestionLinker = new GoalSuggestionLinker(goalRepository);
+  const proactiveLearningService = new ProactiveLearningService(intelligence.personalBrainRegistry);
+  const proactiveGlobalHintService = new ProactiveGlobalHintService();
+  const proactiveGlobalContributionService = new ProactivePatternContributionService(
+    new AgentPatternDistillationService()
+  );
+  const proactiveEnrichmentService = new ProactiveEnrichmentService(
+    proactiveSuggestionRepository,
+    adminData,
+    proactiveGlobalHintService
+  );
+  const proactiveNotificationDispatcher = new ProactiveNotificationDispatcher();
+  const proactiveDetectionOrchestrator = new ProactiveDetectionOrchestrator(
+    proactiveSuggestionRepository,
+    intelligence.agentSupervisor
+  );
+  const proactiveSuggestionService = new ProactiveSuggestionService(
+    proactiveSuggestionRepository,
+    adminData,
+    undefined,
+    {
+      learning: proactiveLearningService,
+      enrichment: proactiveEnrichmentService,
+      notifications: proactiveNotificationDispatcher,
+      globalContribution: proactiveGlobalContributionService,
+      globalHints: proactiveGlobalHintService,
+      detectionOrchestrator: proactiveDetectionOrchestrator,
+      goalLinker: goalSuggestionLinker,
+    }
+  );
+
+  const goalOutcomeAttributionService = new GoalOutcomeAttributionService();
+  const goalSuggestionRepository = new GoalSuggestionRepository();
+  const goalSuggestionEngine = new GoalSuggestionEngine(adminData, goalSuggestionRepository);
+  const goalPlanningOrchestrator = new GoalPlanningOrchestrator(goalRepository);
+
+  const goalProgressService = new GoalProgressService(
+    goalRepository,
+    goalMetricResolver,
+    proactiveSuggestionService,
+    goalOutcomeAttributionService
+  );
+  const goalService = new GoalService(
+    goalRepository,
+    goalMetricResolver,
+    goalProgressService,
+    proactiveSuggestionRepository,
+    proactiveSuggestionService,
+    goalOutcomeAttributionService,
+    goalSuggestionRepository,
+    goalSuggestionEngine,
+    goalPlanningOrchestrator
   );
 
   const monitorSupplierUseCase = new MonitorSupplierUseCase(
@@ -433,7 +554,14 @@ export function bootstrapApplication(): AppCompositionRoot {
     supplierDecisionEngine,
     supplierChangePort,
     intelligence.personalBrainRegistry,
-    intelligence.peerDelegationBridge
+    intelligence.peerDelegationBridge,
+    proactiveSuggestionService
+  );
+
+  const monitorLowStockUseCase = new MonitorLowStockUseCase(
+    adminData,
+    intelligence.peerDelegationBridge,
+    proactiveSuggestionService
   );
 
   const supplierMonitorAdapter = new SupplierMonitorAdapter(monitorSupplierUseCase);
@@ -482,39 +610,64 @@ export function bootstrapApplication(): AppCompositionRoot {
 
 
 
+  const respondToOfferUseCase = new RespondToOfferUseCase(
+    negotiationRepo,
+    productQueryAdapter,
+    negotiationEngine,
+    intelligence.peerDelegationBridge,
+    intelligence.runWorkingMemory
+  );
+
+  if (intelligence.toolRegistry) {
+    intelligence.toolRegistry.register(
+      proposeCounterOfferTool({ adminData, respondToOffer: respondToOfferUseCase })
+    );
+  }
+
+  const negotiationSessionOrchestrator = intelligence.runWorkingMemory
+    ? new NegotiationSessionOrchestrator(respondToOfferUseCase, intelligence.runWorkingMemory)
+    : undefined;
+
+  const executeNaturalLanguageCommand = new ExecuteNaturalLanguageCommandUseCase(
+    supplierMonitorAdapter,
+    adminData,
+    commandLog,
+    {
+      agentRuntime: intelligence.agentRuntime,
+      commandBrain: intelligence.commandBrainService,
+      brainResponse: intelligence.brainResponseService,
+      personalBrainRegistry: intelligence.personalBrainRegistry,
+      merchantKnowledgeIndexer: intelligence.merchantKnowledgeIndexer,
+      adaptiveLearning: intelligence.adaptiveLearning,
+      executeBrainTool,
+      globalBrain: intelligence.globalBrain,
+      knowledgeTransfer: intelligence.knowledgeTransfer,
+      knowledgeContributionService: intelligence.knowledgeContributionService,
+      globalKnowledgeService: intelligence.globalKnowledgeService,
+      planMemory: intelligence.planMemoryService,
+      personalBrainMemory: intelligence.personalBrainMemory,
+      agentSupervisor: intelligence.agentSupervisor,
+      multiAgentResultAggregator: intelligence.multiAgentResultAggregator,
+      runMemoryPromoter: intelligence.runMemoryPromoter,
+      runWorkingMemory: intelligence.runWorkingMemory,
+      reflectionExperimentService: intelligence.reflectionExperimentService,
+      reflectionMetricsRecorder: intelligence.reflectionMetricsRecorder,
+      reflectionDistillationService: intelligence.reflectionDistillationService,
+      agentPatternSync: intelligence.agentPatternSync,
+      goalContextProvider,
+    }
+  );
+
+  const proactiveAutoExecuteService = new ProactiveAutoExecuteService(
+    proactiveSuggestionRepository,
+    proactiveLearningService,
+    executeNaturalLanguageCommand
+  );
+  proactiveSuggestionService.setAutoExecute(proactiveAutoExecuteService);
+
   root = {
 
-    executeNaturalLanguageCommand: new ExecuteNaturalLanguageCommandUseCase(
-
-      supplierMonitorAdapter,
-
-      adminData,
-
-      commandLog,
-
-      {
-        agentRuntime: intelligence.agentRuntime,
-        commandBrain: intelligence.commandBrainService,
-        brainResponse: intelligence.brainResponseService,
-        personalBrainRegistry: intelligence.personalBrainRegistry,
-        merchantKnowledgeIndexer: intelligence.merchantKnowledgeIndexer,
-        adaptiveLearning: intelligence.adaptiveLearning,
-        executeBrainTool,
-        globalBrain: intelligence.globalBrain,
-        knowledgeTransfer: intelligence.knowledgeTransfer,
-        knowledgeContributionService: intelligence.knowledgeContributionService,
-        globalKnowledgeService: intelligence.globalKnowledgeService,
-        planMemory: intelligence.planMemoryService,
-        personalBrainMemory: intelligence.personalBrainMemory,
-        agentSupervisor: intelligence.agentSupervisor,
-        multiAgentResultAggregator: intelligence.multiAgentResultAggregator,
-        reflectionExperimentService: intelligence.reflectionExperimentService,
-        reflectionMetricsRecorder: intelligence.reflectionMetricsRecorder,
-        reflectionDistillationService: intelligence.reflectionDistillationService,
-        agentPatternSync: intelligence.agentPatternSync,
-      }
-
-    ),
+    executeNaturalLanguageCommand,
 
     executeBrainTool,
 
@@ -550,7 +703,15 @@ export function bootstrapApplication(): AppCompositionRoot {
 
     commandBrainService: intelligence.commandBrainService,
 
-    suggestionService: new SuggestionService(),
+    suggestionService: new SuggestionService(proactiveSuggestionService),
+
+    proactiveSuggestionService,
+
+    proactiveLearningService,
+
+    proactiveEnrichmentService,
+
+    proactiveAutoExecuteService,
 
     undoCommandUseCase: new UndoCommandUseCase({
       personalBrainRegistry: intelligence.personalBrainRegistry,
@@ -591,12 +752,9 @@ export function bootstrapApplication(): AppCompositionRoot {
 
     getDecision: new GetDecisionUseCase(decisionRepo),
 
-    respondToOffer: new RespondToOfferUseCase(
-      negotiationRepo,
-      productQueryAdapter,
-      negotiationEngine,
-      intelligence.peerDelegationBridge
-    ),
+    respondToOffer: respondToOfferUseCase,
+
+    negotiationSessionOrchestrator,
 
     startNegotiation: new StartNegotiationUseCase(negotiationRepo),
 
@@ -615,6 +773,8 @@ export function bootstrapApplication(): AppCompositionRoot {
     emailRepository,
 
     monitorSupplierUseCase,
+
+    monitorLowStockUseCase,
 
     supplierWebhook: new SupplierWebhookAdapter(),
 
@@ -662,7 +822,25 @@ export function bootstrapApplication(): AppCompositionRoot {
 
     memoryConsolidationJob: intelligence.memoryConsolidationJob,
 
+    runMemoryGcJob: intelligence.runMemoryGcJob,
+
+    runWorkingMemory: intelligence.runWorkingMemory,
+
     bilateralExchangeService,
+
+    goalService,
+
+    goalProgressService,
+
+    goalContextProvider,
+
+    goalRepository,
+
+    goalSuggestionEngine,
+
+    agentRegistry: intelligence.agentRegistry,
+
+    agentRosterService,
 
   };
 

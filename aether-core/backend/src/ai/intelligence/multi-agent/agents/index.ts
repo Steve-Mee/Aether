@@ -8,6 +8,7 @@ import { forecastAgentDefinition } from './ForecastAgent';
 import { approvalsAgentDefinition } from './ApprovalsAgent';
 import { outcomesAgentDefinition } from './OutcomesAgent';
 import { negotiationAgentDefinition } from './NegotiationAgent';
+import { promotionAgentDefinition } from './PromotionAgent';
 import { catalogAgentDefinition } from './CatalogAgent';
 import { autonomyAgentDefinition } from './AutonomyAgent';
 import type { SpecialistAgentDefinition } from '../types';
@@ -37,6 +38,8 @@ export {
   getTopCustomersTool,
   getOrderTrendsTool,
   getRecentOrdersTool,
+  getCustomerSegmentsTool,
+  getChurnSignalsTool,
 } from './customerTools';
 export {
   getForecastSummaryTool,
@@ -58,6 +61,12 @@ export {
   getNegotiationDetailTool,
   proposeCounterOfferTool,
 } from './negotiationTools';
+export {
+  suggestPromotionTool,
+  suggestClearancePricingTool,
+  createPromotionTool,
+} from './promotionTools';
+export { promotionAgentDefinition, PROMOTION_AGENT_KEY } from './PromotionAgent';
 export {
   listProductsTool,
   searchCatalogProductsTool,
@@ -82,6 +91,7 @@ export const DEFAULT_SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
   approvalsAgentDefinition,
   outcomesAgentDefinition,
   negotiationAgentDefinition,
+  promotionAgentDefinition,
   catalogAgentDefinition,
   autonomyAgentDefinition,
   workflowSupervisorDefinition,

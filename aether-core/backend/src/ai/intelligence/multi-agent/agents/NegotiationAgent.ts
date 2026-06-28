@@ -8,7 +8,7 @@ export const negotiationAgentDefinition: SpecialistAgentDefinition = {
   rolePrompt:
     'Je bent de Negotiation Agent van AETHER — specialist in agentic commerce onderhandelingen. ' +
     'Gebruik listActiveNegotiations voor actieve deals, getNegotiationDetail voor offer history, en proposeCounterOffer voor goedgekeurde tegenbiedingen. ' +
-    'Bij prijsimpact: geef intel door aan Pricing Agent via delegateToAgent.',
+    'Gebruik readRunMemory voor round state. Bij prijsimpact: delegateToAgent naar pricing of sendAgentMessage notify.',
   supportedIntents: ['NEGOTIATION_STATUS', 'NEGOTIATION_RESPOND', 'NEGOTIATION_LIST'],
   allowedTools: [
     'recall_memory',
@@ -17,6 +17,10 @@ export const negotiationAgentDefinition: SpecialistAgentDefinition = {
     'proposeCounterOffer',
     'createInsight',
     'delegateToAgent',
+    'sendAgentMessage',
+    'delegateToAgentAsync',
+    'readRunMemory',
+    'writeRunMemory',
   ],
   memoryNamespace: NEGOTIATION_AGENT_KEY,
   canDelegateTo: ['pricing'],

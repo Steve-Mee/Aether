@@ -57,6 +57,63 @@ function mockCommandResult(command: string): CommandResult {
 }
 
 function mockExplainTimeline(entityType: string, entityId: string): ExplainTimeline {
+  if (entityType === 'command' || entityType === 'proactive_suggestion') {
+    return {
+      entityType,
+      entityId,
+      detailLevel: 'extended',
+      summary: 'AETHER heeft deze actie voorbereid op basis van recente data en je huidige beleid.',
+      summarySource: 'template',
+      sections: [
+        {
+          id: 'summary',
+          title: 'Samenvatting',
+          items: [
+            {
+              label:
+                'Voorraad-agent en Prijs-agent hebben samengewerkt op basis van signalen in je catalogus.',
+            },
+          ],
+        },
+        {
+          id: 'agents',
+          title: 'Betrokken agents',
+          items: [
+            { label: 'Voorraad-agent', detail: 'Low-stock analyse' },
+            { label: 'Prijs-agent', detail: 'Marge-impact beoordeeld' },
+          ],
+        },
+        {
+          id: 'dataSources',
+          title: 'Gebruikte data',
+          items: [{ label: '12 SKU\'s met lage voorraad' }],
+        },
+      ],
+      flowGraph: {
+        nodes: [
+          { id: 'start', type: 'start', label: 'AETHER', position: { x: 0, y: 0 } },
+          { id: 'inventory', type: 'agent', label: 'Voorraad-agent', agentKey: 'inventory', position: { x: 160, y: 0 } },
+          { id: 'pricing', type: 'agent', label: 'Prijs-agent', agentKey: 'pricing', position: { x: 320, y: 0 } },
+          { id: 'end', type: 'end', label: 'Resultaat', position: { x: 480, y: 0 } },
+        ],
+        edges: [
+          { id: 'e1', source: 'start', target: 'inventory' },
+          { id: 'e2', source: 'inventory', target: 'pricing', label: 'Marge check' },
+          { id: 'e3', source: 'pricing', target: 'end' },
+        ],
+      },
+      similarActions: [
+        {
+          sourceType: 'command',
+          sourceId: 'cmd_prev',
+          summary: 'Eerdere low-stock analyse zonder prijs-agent',
+          at: new Date(Date.now() - 86400000).toISOString(),
+          similarityScore: 2.4,
+          diffHints: ['Eerdere actie miste: pricing'],
+        },
+      ],
+    };
+  }
   return {
     entityType,
     entityId,
@@ -237,6 +294,16 @@ export const mockDataAdapter: DataAdapter = {
       }));
   },
 
+  fetchNotificationsPage: async ({ limit = 25 } = {}) => {
+    const notifications = await mockDataAdapter.fetchNotifications();
+    return {
+      notifications: notifications.slice(0, limit),
+      hasMore: notifications.length > limit,
+      nextCursor: null,
+      unreadCount: notifications.filter((n) => !n.read).length,
+    };
+  },
+
   markNotificationRead: async (id) => {
     mockNotificationRead.add(id);
   },
@@ -301,5 +368,128 @@ export const mockDataAdapter: DataAdapter = {
     suggestions: [],
   }),
 
+  fetchProactiveSuggestions: async () => ({ suggestions: [] }),
+
+  dismissProactiveSuggestion: async () => undefined,
+
+  snoozeProactiveSuggestion: async () => undefined,
+
+  executeProactiveSuggestion: async () => undefined,
+
   trackUiEvent: async () => undefined,
+
+  fetchGoals: async () => ({ goals: [] }),
+
+  fetchGoal: async (id) => ({
+    goal: {
+      id,
+      tenantId: 'demo',
+      title: 'Demo doel',
+      description: null,
+      metricType: 'margin',
+      metricScope: {},
+      targetValue: 30,
+      baselineValue: 20,
+      currentValue: 22,
+      unit: 'percent',
+      direction: 'increase',
+      deadline: new Date(Date.now() + 30 * 86400000).toISOString(),
+      status: 'active',
+      pursuitMode: 'balanced',
+      parentGoalId: null,
+      progressPct: 20,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      completedAt: null,
+    },
+    snapshots: [],
+  }),
+
+  createGoal: async (payload) => ({
+    goal: {
+      id: `goal-${Date.now()}`,
+      tenantId: 'demo',
+      title: payload.title,
+      description: payload.description ?? null,
+      metricType: payload.metricType,
+      metricScope: payload.metricScope ?? {},
+      targetValue: payload.targetValue,
+      baselineValue: payload.baselineValue ?? 0,
+      currentValue: payload.baselineValue ?? 0,
+      unit: payload.unit ?? 'percent',
+      direction: payload.direction ?? 'increase',
+      deadline: payload.deadline,
+      status: 'active',
+      pursuitMode: payload.pursuitMode ?? 'balanced',
+      parentGoalId: null,
+      progressPct: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      completedAt: null,
+    },
+  }),
+
+  updateGoal: async (id, payload) => ({
+    goal: {
+      id,
+      tenantId: 'demo',
+      title: payload.title ?? 'Demo doel',
+      description: payload.description ?? null,
+      metricType: 'margin',
+      metricScope: {},
+      targetValue: payload.targetValue ?? 30,
+      baselineValue: 20,
+      currentValue: 22,
+      unit: 'percent',
+      direction: 'increase',
+      deadline: payload.deadline ?? new Date(Date.now() + 30 * 86400000).toISOString(),
+      status: payload.status ?? 'active',
+      pursuitMode: payload.pursuitMode ?? 'balanced',
+      parentGoalId: null,
+      progressPct: 20,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      completedAt: null,
+    },
+  }),
+
+  deleteGoal: async () => undefined,
+
+  refreshGoal: async () => ({ goal: {}, progressPct: 0 }),
+
+  fetchGoalLinkedSuggestions: async () => ({ suggestions: [] }),
+
+  fetchAiGoalSuggestions: async () => ({ suggestions: [] }),
+
+  acceptAiGoalSuggestion: async (id) => ({
+    goal: {
+      id,
+      tenantId: 'demo',
+      title: 'Accepted',
+      description: null,
+      metricType: 'margin',
+      metricScope: {},
+      targetValue: 25,
+      baselineValue: 20,
+      currentValue: 20,
+      unit: 'percent',
+      direction: 'increase',
+      deadline: new Date(Date.now() + 30 * 86400000).toISOString(),
+      status: 'active',
+      pursuitMode: 'balanced',
+      parentGoalId: null,
+      progressPct: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      completedAt: null,
+    },
+  }),
+
+  dismissAiGoalSuggestion: async () => undefined,
+
+  fetchGoalConflicts: async () => ({ conflicts: [], ranked: [] }),
+
+  buildGoalPlan: async () => ({ plan: null }),
+
+  fetchActiveGoalPlan: async () => ({ plan: null }),
 };

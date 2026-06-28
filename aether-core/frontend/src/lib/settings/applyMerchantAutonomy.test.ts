@@ -76,6 +76,30 @@ describe('applyMerchantAutonomy', () => {
     );
   });
 
+  it('blocks when pricing category disabled for low risk', () => {
+    const settings = {
+      ...base,
+      autonomyPrefs: {
+        ...base.autonomyPrefs,
+        actionCategories: {
+          ...base.autonomyPrefs.actionCategories,
+          pricing: {
+            enabled: true,
+            allowLowRiskAutoExecute: false,
+            allowMediumRiskAutoExecute: false,
+          },
+        },
+      },
+    };
+    expect(
+      applyMerchantAutonomy(settings, {
+        riskBand: 'low',
+        requiresApproval: false,
+        category: 'pricing',
+      }),
+    ).toBe('approval_required');
+  });
+
   it('resolveMerchantExecutionModeFromResult downgrades low-risk demo response when auto off', () => {
     expect(
       resolveMerchantExecutionModeFromResult(

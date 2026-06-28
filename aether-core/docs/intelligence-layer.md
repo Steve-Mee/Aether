@@ -619,6 +619,81 @@ See [`multi-agent/README.md`](../backend/src/ai/intelligence/multi-agent/README.
 
 See [`multi-agent/README.md`](../backend/src/ai/intelligence/multi-agent/README.md) for full routing cascade and examples.
 
+### Agent-to-Agent v1 — structured peer messages
+
+| Component | Role |
+|-----------|------|
+| `AgentPeerMessage` | Typed payload builder/parser (`buildPeerQuery`, `peerContextToChainLine`) |
+| `delegateToAgent` / `sendAgentMessage` | Brain tools with optional `contextPayload` |
+| `UnifiedPeerGuard` | Payload scope filter per source→target pair |
+| `MonitorLowStockUseCase` | Event-driven inventory → pricing handoff |
+| SSE `agent_peer_message` | Lightweight peer message trace before full handoff |
+
+**Hybrid model:** Orchestrator plans upfront chains (`routePlan`); agents may also call peers at runtime via tools without re-planning. Depth limit + audit log prevent runaway loops.
+
+## Phase 12 — Run memory, notify peer, promotion, supervisor, negotiation
+
+| Phase | Feature | Component |
+|-------|---------|-----------|
+| 12a | Run blackboard | `RunWorkingMemoryPort`, `PrismaRunWorkingMemoryAdapter`, `readRunMemory` / `writeRunMemory` |
+| 12b | Notify-only peer | `AgentPeerNotifyHandler`, async `jobMode: notify`, `agent.peer.notified` |
+| 12c | Promotion Agent | `PromotionAgent`, `promotionTools`, `inventory→promotion→pricing` collaboration rules |
+| 12d | Supervisor-led compound | `MULTI_AGENT_SUPERVISOR_MODE`, `workflow_supervisor` graph nodes |
+| 12e | Negotiation loop | `NegotiationSessionOrchestrator`, bridge to `RespondToOfferUseCase` |
+
+### Env vars (Phase 12)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MULTI_AGENT_RUN_MEMORY` | off prod | Shared per-run working memory |
+| `MULTI_AGENT_NOTIFY_PEER` | off prod | Notify without full specialist execution |
+| `MULTI_AGENT_PROMOTION_PEER` | off prod | Low-stock monitor → promotion agent |
+| `MULTI_AGENT_SUPERVISOR_MODE` | on dev | Route COMPOUND via workflow supervisor |
+| `MULTI_AGENT_NEGOTIATION_AUTO_LOOP` | off | Autonomous negotiation rounds |
+
+## Phase 13 — Shared Memory v1 (hardened blackboard)
+
+| Phase | Feature | Component |
+|-------|---------|-----------|
+| 13a | Structured shared keys | `sharedMemorySchema.ts`, canonical `priceDrops`, `lowStockSkus`, etc. |
+| 13b | Read/write ACL | `canReadRunMemoryKey`, `RUN_MEMORY_READ_SCOPE`, `RUN_MEMORY_SHARED_WRITE_SCOPE` |
+| 13c | Optimistic versioning | `version` column, `compareAndSet`, `mergeWithVersion` |
+| 13d | Bridge + orchestrator | `SharedMemoryBridge`, aggregator `buildSharedSnapshot`, parallel join contributions |
+| 13e | Performance | `CachingRunWorkingMemoryAdapter` (in-process TTL cache) |
+
+Tools: `readRunMemory`, `writeRunMemory`, `listRunMemory`, `appendRunMemory`. SSE: `shared_memory_updated`.
+
+### Env vars (Phase 13)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MULTI_AGENT_RUN_MEMORY_CACHE_TTL_MS` | `2000` | Read cache TTL for parallel agent runs |
+
+## Phase 14 — Shared Memory extensions
+
+| Phase | Feature | Component |
+|-------|---------|-----------|
+| 14a | TTL / GC | `RunMemoryGcJob`, `expiresAt`, per-key TTL in `runMemoryConfig` |
+| 14b | Redis cache | `RedisRunMemoryCacheAdapter` (optional; not a message broker) |
+| 14c | UI panel | `SharedMemoryRail`, `shared_memory_updated` SSE with `valuePreview` |
+| 14d | Merchant memory | `MerchantSharedMemory`, `RunMemoryPromoter`, composite port |
+| 14e | CRDT merges | `mergeStrategies.ts` — `mergeById`, `appendUnique`, `deepMerge`, `lww` |
+
+### Env vars (Phase 14)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `RUN_MEMORY_GC_ENABLED` | `false` | Expired row cleanup job |
+| `RUN_MEMORY_GC_INTERVAL_MS` | `3600000` | GC interval |
+| `RUN_MEMORY_RUN_TTL_MS` | `86400000` | Run memory default TTL |
+| `MERCHANT_MEMORY_TTL_MS` | `604800000` | Merchant memory default TTL |
+| `RUN_MEMORY_MAX_AGE_MS` | `2592000000` | Fallback purge age |
+| `RUN_MEMORY_REDIS_CACHE` | `false` | Redis hot cache |
+| `RUN_MEMORY_REDIS_TTL_SEC` | `30` | Redis TTL |
+| `MULTI_AGENT_MERCHANT_MEMORY` | off prod | Cross-session merchant scope |
+| `MULTI_AGENT_MERCHANT_MEMORY_PROMOTE` | on when enabled | Promote whitelisted keys at run end |
+| `MULTI_AGENT_MERCHANT_MEMORY_DUAL_WRITE` | `false` | Bridge writes to merchant |
+
 ## Phase 8 — Async peers, federated advisory, UI & graph edges
 
 | Phase | Feature | Component |
@@ -697,6 +772,12 @@ Place at `{storagePath}/manifest.json`:
 - **SaaS:** pgvector + shared Ollama
 - **Hybrid:** dedicated schema per tenant; optional `brainVectorBackend` per tenant
 - **Self-hosted:** `INTELLIGENCE_VECTOR_BACKEND=lancedb` uses portable JSON file store (not native `@lancedb/lancedb` v1) + export/import
+
+## Proactive Brain (v3)
+
+Cross-tenant proactive outcome rates flow through `GlobalAgentPattern` (`proactive_trigger_outcome:{triggerId}`) when `PROACTIVE_GLOBAL_PATTERNS_ENABLED` and tenant KT/agent-pattern gates allow. Inbound hints are advisory only — PersonalBrain learning remains authoritative for suppress.
+
+Detection-time agent orchestration (`PROACTIVE_DETECTION_ORCHESTRATION_ENABLED`) runs a read-only specialist pass after template ingest; execute path accepts `proactiveContext` to preserve `agentKey` and evidence.
 
 ### Staging checklist
 

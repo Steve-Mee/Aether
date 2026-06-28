@@ -12,6 +12,9 @@ import { merchantAutonomyKernel } from '../../../../ai/autonomy/DecisionContract
 import type { PersonalBrainRegistry } from '../../../../ai/intelligence/personal-brain/PersonalBrainRegistry';
 import type { PeerDelegationBridge } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
 import { isSupplierPeerEnabled } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
+import type { ProactiveSuggestionService } from '../../../../ai/intelligence/proactive/ProactiveSuggestionService';
+import { PROACTIVE_SUPPLIER_DROP_PCT } from '../../../../ai/intelligence/proactive/proactiveConfig';
+import { createCorrelationId } from '../../../../ai/intelligence/multi-agent/peer/AgentPeerMessage';
 
 export class MonitorSupplierUseCase {
   constructor(
@@ -21,7 +24,8 @@ export class MonitorSupplierUseCase {
     private decisionEngine: SupplierDecisionEngine,
     private supplierChanges: SupplierChangePort,
     private personalBrains?: PersonalBrainRegistry,
-    private peerBridge?: PeerDelegationBridge
+    private peerBridge?: PeerDelegationBridge,
+    private proactiveService?: ProactiveSuggestionService
   ) {}
 
   async execute(supplierId: string, ctx: { tenantId: string; actorId?: string }): Promise<any> {
@@ -70,7 +74,7 @@ export class MonitorSupplierUseCase {
         changeType: change.type === 'new_product' ? 'new_product' : 'price_change',
         changePercent: changePct,
       });
-      const autonomy = merchantAutonomyKernel.evaluate({
+      const autonomy = await merchantAutonomyKernel.evaluate({
         tenantId: ctx.tenantId,
         module: 'supplier-intelligence',
         action: `supplier.${decision.action}`,
@@ -104,6 +108,21 @@ export class MonitorSupplierUseCase {
         payload: JSON.stringify({ ...change, decision: decision.action, reason: decision.reason }),
         status: needsApproval ? 'pending' : 'auto_applied',
       });
+
+      if (
+        change.type === 'price_change' &&
+        changePct >= PROACTIVE_SUPPLIER_DROP_PCT &&
+        this.proactiveService
+      ) {
+        void this.proactiveService
+          .evaluateAndIngestEvent(ctx.tenantId, 'supplier.price_changed', {
+            supplierId,
+            change,
+            changePercent: changePct,
+            autoApplied: !needsApproval,
+          })
+          .catch(() => undefined);
+      }
 
       if (needsApproval) {
         await writeAuditLog({
@@ -144,6 +163,7 @@ export class MonitorSupplierUseCase {
           change.type === 'price_change'
         ) {
           try {
+            const correlationId = createCorrelationId();
             await this.peerBridge.chainHandoff({
               tenantId: ctx.tenantId,
               fromAgentKey: 'supplier',
@@ -152,6 +172,22 @@ export class MonitorSupplierUseCase {
               command: `${supplier.name} price change ${changePct}%`,
               context: supplierRecall,
               actorId: ctx.actorId,
+              correlationId,
+              contextPayload: {
+                messageType: 'intel',
+                summary: `Supplier ${supplier.name} price change ${changePct}%`,
+                payload: {
+                  supplierId,
+                  changePct: Math.round(changePct * 10) / 10,
+                  suggestedPricingActions: [
+                    {
+                      action: 'review_price_decrease_opportunity',
+                      reason: `${supplier.name} cost change ${changePct}%`,
+                    },
+                  ],
+                },
+                correlationId,
+              },
             });
           } catch {
             // Peer chain is best-effort

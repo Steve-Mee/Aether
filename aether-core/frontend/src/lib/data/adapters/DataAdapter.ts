@@ -32,12 +32,16 @@ export interface ActivityFetchParams {
   since?: string;
   limit?: number;
   module?: string;
+  agentKey?: string;
 }
 
 export interface ExplainTimeline {
   entityType: string;
   entityId: string;
-  events: Array<{
+  detailLevel?: 'simple' | 'extended';
+  summary?: string;
+  sections?: import('@/types/explainability').ExplainabilitySection[];
+  events?: Array<{
     at: string;
     label: string;
     status?: string;
@@ -96,6 +100,11 @@ export interface DataAdapter {
   cancelAgentRun(commandId: string): Promise<{ success: boolean }>;
 
   fetchNotifications(): Promise<AppNotification[]>;
+  fetchNotificationsPage(params: {
+    limit?: number;
+    cursor?: string;
+    groupKey?: string;
+  }): Promise<import('@/types/notification').NotificationInboxResponse>;
   markNotificationRead(id: string): Promise<void>;
   markAllNotificationsRead(ids?: string[]): Promise<void>;
   dismissNotification(id: string): Promise<void>;
@@ -121,5 +130,22 @@ export interface DataAdapter {
     route: string,
     limit: number,
   ): Promise<import('@/types/suggestions').ApiSuggestionsResponse>;
+  fetchProactiveSuggestions(): Promise<import('@/types/suggestions').ApiProactiveSuggestionsResponse>;
+  dismissProactiveSuggestion(id: string): Promise<void>;
+  snoozeProactiveSuggestion(id: string, hours?: number): Promise<void>;
+  executeProactiveSuggestion(id: string): Promise<void>;
   trackUiEvent(event: { type: string; path: string }): Promise<void>;
+  fetchGoals(includeCompleted?: boolean): Promise<import('@/types/goals').GoalsListResponse>;
+  fetchGoal(id: string): Promise<import('@/types/goals').GoalDetailResponse>;
+  createGoal(payload: import('@/types/goals').CreateGoalPayload): Promise<{ goal: import('@/types/goals').MerchantGoal }>;
+  updateGoal(id: string, payload: import('@/types/goals').UpdateGoalPayload): Promise<{ goal: import('@/types/goals').MerchantGoal }>;
+  deleteGoal(id: string): Promise<void>;
+  refreshGoal(id: string): Promise<unknown>;
+  fetchGoalLinkedSuggestions(id: string): Promise<import('@/types/goals').GoalLinkedSuggestionsResponse>;
+  fetchAiGoalSuggestions(): Promise<import('@/types/goals').AiGoalSuggestionsResponse>;
+  acceptAiGoalSuggestion(id: string): Promise<{ goal: import('@/types/goals').MerchantGoal }>;
+  dismissAiGoalSuggestion(id: string): Promise<void>;
+  fetchGoalConflicts(): Promise<import('@/types/goals').GoalConflictsResponse>;
+  buildGoalPlan(): Promise<{ plan: unknown }>;
+  fetchActiveGoalPlan(): Promise<{ plan: unknown | null }>;
 }

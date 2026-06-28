@@ -34,6 +34,10 @@ export async function recordOutcome(params: {
   periodStart: Date;
   periodEnd: Date;
   verificationStatus?: VerificationStatus;
+  goalId?: string;
+  sourceType?: string;
+  sourceId?: string;
+  rootRunId?: string;
 }): Promise<{ uplift: number; id: string }> {
   const baseline =
     params.baseline ??
@@ -60,6 +64,10 @@ export async function recordOutcome(params: {
       verificationStatus: params.verificationStatus ?? 'proposed',
       periodStart: params.periodStart,
       periodEnd: params.periodEnd,
+      goalId: params.goalId ?? null,
+      sourceType: params.sourceType ?? null,
+      sourceId: params.sourceId ?? null,
+      rootRunId: params.rootRunId ?? null,
     },
   });
 

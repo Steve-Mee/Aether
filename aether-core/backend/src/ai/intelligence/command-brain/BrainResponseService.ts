@@ -24,6 +24,7 @@ import type { AgentStreamCallback } from './AgentStreamEvents';
 import type { AgentPlan, AgentRunSummary } from './types/AgentPlan';
 
 import type { CompoundStep } from '../agent-runtime/types';
+import type { ExplainabilityCollector } from '../explainability/ExplainabilityCollector';
 
 export interface GenerateResponseOptions {
   deferToTools?: boolean;
@@ -34,6 +35,7 @@ export interface GenerateResponseOptions {
   commandId?: string;
   abortSignal?: AbortSignal;
   subGoals?: CompoundStep[];
+  explainabilityCollector?: ExplainabilityCollector;
 }
 
 /**
@@ -82,6 +84,7 @@ export class BrainResponseService {
           commandId: options?.commandId,
           abortSignal: options?.abortSignal,
           subGoals: options?.subGoals,
+          explainabilityCollector: options?.explainabilityCollector,
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Agent loop failed';

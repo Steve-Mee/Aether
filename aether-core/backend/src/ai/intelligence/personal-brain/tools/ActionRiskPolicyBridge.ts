@@ -1,4 +1,6 @@
 import { assessApprovalAutoEligible } from '../../../../shared/policy/assessApprovalAutoEligible';
+import { assessAutonomyForTenant } from '../../../../shared/policy/AutonomyPolicyService';
+import { getMerchantSettings } from '../../../../shared/settings/TenantSettingsService';
 import {
   classifyBrainAction,
   LOW_RISK_EXECUTE_WHITELIST,
@@ -8,6 +10,8 @@ import {
 
 export type BrainActionRiskAssessment = ActionRiskAssessment & {
   policyEligible?: boolean;
+  categoryBlocked?: boolean;
+  autonomyReason?: string;
 };
 
 export async function assessBrainActionRisk(
@@ -18,10 +22,34 @@ export async function assessBrainActionRisk(
 ): Promise<BrainActionRiskAssessment> {
   const base = classifyBrainAction(tool, input, ctx);
 
-  if (tool !== 'updatePrice') {
+  const autonomyAssessment = await assessAutonomyForTenant({
+    tenantId,
+    module: 'admin-command-bar',
+    actionType: tool,
+    tool,
+    payload: input,
+    riskClass: base.risk === 'high' ? 'high' : base.risk === 'medium' ? 'medium' : 'low',
+    getSettings: getMerchantSettings,
+  });
+
+  if (autonomyAssessment.executionMode === 'blocked') {
     return {
       ...base,
-      policyEligible: base.risk === 'low' && !base.requiresInbox,
+      requiresInbox: true,
+      policyEligible: false,
+      categoryBlocked: true,
+      autonomyReason: autonomyAssessment.reason,
+    };
+  }
+
+  if (tool !== 'updatePrice') {
+    const eligible =
+      autonomyAssessment.eligible ||
+      (base.risk === 'low' && !base.requiresInbox && autonomyAssessment.executionMode === 'autonomous');
+    return {
+      ...base,
+      policyEligible: eligible,
+      autonomyReason: autonomyAssessment.reason,
     };
   }
 
@@ -46,10 +74,15 @@ export async function assessBrainActionRisk(
       confidence: 0.82,
       rationale: `Kleine prijswijziging (${pct}%) — binnen tenant auto-drempel. ${policy.reason}`,
       policyEligible: true,
+      autonomyReason: policy.reason,
     };
   }
 
-  return { ...base, policyEligible: policy.eligible };
+  return {
+    ...base,
+    policyEligible: policy.eligible,
+    autonomyReason: policy.reason,
+  };
 }
 
 export async function isLowRiskExecutableAsync(
@@ -61,7 +94,14 @@ export async function isLowRiskExecutableAsync(
   if (LOW_RISK_EXECUTE_WHITELIST.has(tool)) return true;
   if (tool === 'updatePrice') {
     const assessment = await assessBrainActionRisk(tenantId, tool, input, ctx);
-    return assessment.risk === 'low' && !assessment.requiresInbox && assessment.policyEligible === true;
+    return (
+      assessment.risk === 'low' &&
+      !assessment.requiresInbox &&
+      assessment.policyEligible === true &&
+      !assessment.categoryBlocked
+    );
   }
-  return false;
+  const assessment = await assessBrainActionRisk(tenantId, tool, input, ctx);
+  if (assessment.categoryBlocked) return false;
+  return assessment.policyEligible === true;
 }

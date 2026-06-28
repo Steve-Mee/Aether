@@ -5,6 +5,9 @@ import { dashboardRepository } from '@/lib/data';
 import { toUserMessage } from '@/lib/api/errors';
 import { apiStreamFetch, type DashboardSummary } from './api';
 import { queryKeys } from './query/keys';
+import { dispatchNotification, dispatchNotificationState } from './aetherLiveBus';
+import type { NotificationPushEvent, NotificationStateChangedEvent } from '@/types/notification';
+import { useCurrentUser } from '@/lib/auth/AuthProvider';
 
 const FALLBACK_POLL_MS = 60_000;
 
@@ -26,6 +29,7 @@ export function useDashboardStream(): {
   reload: () => void;
 } {
   const queryClient = useQueryClient();
+  const currentUser = useCurrentUser();
   const [data, setData] = useState<DashboardSummary | null>(
     () => queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard()) ?? null,
   );
@@ -108,7 +112,50 @@ export function useDashboardStream(): {
             const line = part.split('\n').find((l) => l.startsWith('data:'));
             if (!line) continue;
             try {
-              const json = JSON.parse(line.slice(5).trim()) as DashboardSummary;
+              const json = JSON.parse(line.slice(5).trim()) as DashboardSummary & {
+                type?: string;
+                proactiveCount?: number;
+                notification?: NotificationPushEvent['notification'];
+                actorId?: string;
+                notificationId?: string;
+                action?: NotificationStateChangedEvent['action'];
+              };
+              if (json.type === 'proactive_updated') {
+                void queryClient.invalidateQueries({ queryKey: queryKeys.proactiveSuggestions() });
+                void queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+                void queryClient.invalidateQueries({ queryKey: ['goals'] });
+                void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
+                const current =
+                  queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard()) ?? ({} as DashboardSummary);
+                const next = {
+                  ...current,
+                  proactiveCount: json.proactiveCount ?? current.proactiveCount ?? 0,
+                };
+                if (!cancelled) applyData(next);
+                continue;
+              }
+              if (json.type === 'notification_push' && json.notification) {
+                const event = json as unknown as NotificationPushEvent;
+                if (event.actorId && event.actorId === currentUser?.id) {
+                  continue;
+                }
+                dispatchNotification({
+                  ...event.notification,
+                  read: false,
+                  source: event.notification.source ?? 'system',
+                });
+                void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
+                continue;
+              }
+              if (json.type === 'notification_state_changed' && json.actorId && json.notificationId) {
+                dispatchNotificationState(json as unknown as NotificationStateChangedEvent);
+                void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
+                continue;
+              }
+              if (json.type === 'overview_item') {
+                void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
+                continue;
+              }
               if (!cancelled) applyData(json);
             } catch {
               /* ignore malformed chunk */
@@ -132,7 +179,7 @@ export function useDashboardStream(): {
         fallbackRef.current = null;
       }
     };
-  }, [queryClient]);
+  }, [queryClient, currentUser?.id]);
 
   return { data, connected, error, reload };
 }

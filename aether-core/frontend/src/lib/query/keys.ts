@@ -12,8 +12,10 @@ export const queryKeys = {
     detail: (id: string) => ['suppliers', 'detail', id] as const,
     changes: (status?: string) => ['suppliers', 'changes', status ?? 'pending'] as const,
   },
-  activity: (params?: { days?: number; since?: string; limit?: number }) =>
+  activity: (params?: { days?: number; since?: string; limit?: number; agentKey?: string }) =>
     ['activity', params ?? {}] as const,
+  agents: () => ['agents', 'roster'] as const,
+  agentActivity: (agentKey: string, days?: number) => ['agents', agentKey, 'activity', days ?? 7] as const,
   truthStatus: () => ['truth-status'] as const,
   emails: {
     all: () => ['emails'] as const,
@@ -30,6 +32,9 @@ export const queryKeys = {
   workstream: () => ['workstream'] as const,
   outcomes: (days?: number) => ['outcomes', days ?? 30] as const,
   suggestions: (pathname: string) => ['suggestions', pathname] as const,
+  proactiveSuggestions: () => ['proactive-suggestions'] as const,
+  goals: (includeCompleted?: boolean) => ['goals', includeCompleted ?? false] as const,
+  goal: (id: string) => ['goals', id] as const,
   commands: {
     history: () => ['commands', 'history'] as const,
   },
@@ -41,4 +46,19 @@ export const queryKeys = {
   },
   explain: (entityType: string, entityId: string) => ['explain', entityType, entityId] as const,
   autonomyTrace: (limit?: number) => ['autonomy-trace', limit ?? 30] as const,
+  aetherOverview: (params?: {
+    days?: number;
+    limit?: number;
+    agentKey?: string;
+    risk?: string;
+    module?: string;
+    executionMode?: string;
+    actionType?: string;
+    search?: string;
+    cursor?: string;
+  }) => ['aether-overview', params ?? {}] as const,
+  aetherOverviewInfinite: (params?: Record<string, unknown>) =>
+    ['aether-overview', 'infinite', params ?? {}] as const,
+  aetherOverviewHandoffs: (days?: number) => ['aether-overview', 'handoffs', days ?? 7] as const,
+  agentMetrics: (days?: number) => ['agents', 'metrics', days ?? 30] as const,
 } as const;

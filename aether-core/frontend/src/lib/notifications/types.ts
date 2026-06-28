@@ -5,4 +5,5 @@ export type {
   NotificationSeverity,
   NotificationSource,
   NotificationCategory,
+  NotificationKind,
 } from '@/types/notification';

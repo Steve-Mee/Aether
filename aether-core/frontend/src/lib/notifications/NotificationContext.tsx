@@ -17,10 +17,11 @@ import type { AetherNotification, PushNotificationInput } from './types';
 import { useNotificationUiStore } from '@/lib/stores/uiStore';
 import { showCalmToast } from '@/lib/toast';
 import { t } from '@/lib/i18n';
-import { subscribeActivityItem, subscribeNotification } from '@/lib/aetherLiveBus';
+import { subscribeActivityItem, subscribeNotification, subscribeNotificationState } from '@/lib/aetherLiveBus';
+import { queryClient } from '@/lib/query/client';
 import { announceStatus } from '@/lib/a11y/announceBus';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
-import { inferNotificationCategory, shouldShowNotification } from './notificationPrefsFilter';
+import { inferNotificationCategory, shouldShowNotification, sortNotifications } from './notificationPrefsFilter';
 import { trackBusinessEvent } from '@/lib/observability/businessEvents';
 
 const ACTIVITY_WINDOW_MS = 30 * 60 * 1000;
@@ -47,6 +48,7 @@ function normalizeInput(input: PushNotificationInput): AetherNotification {
   const category = inferNotificationCategory(input);
   return {
     id: input.id ?? nextId(),
+    kind: input.kind,
     title: input.title,
     body: input.body,
     severity: input.severity,
@@ -57,6 +59,21 @@ function normalizeInput(input: PushNotificationInput): AetherNotification {
     source: input.source,
     category,
   };
+}
+
+function mergeWithLocalState(
+  prev: AetherNotification[],
+  api: AetherNotification[],
+  prefs: import('@/lib/settings/merchantSettingsTypes').NotificationPrefs,
+): AetherNotification[] {
+  const apiIds = new Set(api.map((n) => n.id));
+  const pushedOnly = prev.filter((n) => !apiIds.has(n.id));
+  // Server read/dismiss state wins on refetch (do not override with stale local state).
+  const fromApi = api.map((n) => ({ ...n }));
+  return filterNotificationsByPrefs(
+    sortNotifications([...pushedOnly, ...fromApi].slice(0, 50)),
+    prefs,
+  );
 }
 
 interface NotificationContextValue {
@@ -95,11 +112,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     staleTime: Infinity,
   });
 
-  const { data: liveInbox } = useQuery({
-    queryKey: [...queryKeys.notifications.inbox(), 'live'],
+  const { data: liveInbox, dataUpdatedAt: liveInboxUpdatedAt } = useQuery({
+    queryKey: queryKeys.notifications.inbox(),
     queryFn: () => notificationsRepository.list(),
     enabled: env.isLiveMode && !settingsLoading,
-    staleTime: 60_000,
+    staleTime: 30_000,
   });
 
   useEffect(() => {
@@ -116,13 +133,30 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       liveDemo: env.liveDemo,
     });
     const merged = mergeNotificationInbox(demoSeed, liveInbox);
-    setNotifications(filterNotificationsByPrefs(merged, settings.notificationPrefs));
+    setNotifications(
+      sortNotifications(filterNotificationsByPrefs(merged, settings.notificationPrefs)),
+    );
     setSeedApplied(true);
   }, [settingsLoading, settings.notificationPrefs, seedApplied, mockInbox, liveInbox]);
 
+  const liveInboxSyncRef = useRef<number>(0);
+  useEffect(() => {
+    if (!seedApplied || env.isMockMode || liveInbox === undefined) return;
+    if (liveInboxSyncRef.current === liveInboxUpdatedAt) return;
+    liveInboxSyncRef.current = liveInboxUpdatedAt;
+    const demoSeed = resolveLiveNotificationSeed({
+      hybridDemo: env.hybridDemo,
+      liveDemo: env.liveDemo,
+    });
+    const merged = mergeNotificationInbox(demoSeed, liveInbox);
+    setNotifications((prev) => mergeWithLocalState(prev, merged, settings.notificationPrefs));
+  }, [liveInbox, liveInboxUpdatedAt, seedApplied, settings.notificationPrefs]);
+
   useEffect(() => {
     if (!seedApplied) return;
-    setNotifications((prev) => filterNotificationsByPrefs(prev, settings.notificationPrefs));
+    setNotifications((prev) =>
+      sortNotifications(filterNotificationsByPrefs(prev, settings.notificationPrefs)),
+    );
   }, [settings.notificationPrefs, seedApplied]);
 
   const push = useCallback(
@@ -132,7 +166,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (input.skipAnnounce) {
         suppressUnreadAnnounceRef.current = true;
       }
-      setNotifications((prev) => [item, ...prev].slice(0, 50));
+      trackBusinessEvent('notification.received', { kind: item.kind ?? item.category ?? 'unknown' });
+      setNotifications((prev) =>
+        sortNotifications([item, ...prev.filter((n) => n.id !== item.id)].slice(0, 50)),
+      );
       if (input.severity === 'warning' || input.severity === 'action') {
         showCalmToast({
           variant: 'warning',
@@ -154,6 +191,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => subscribeNotification(push), [push]);
+
+  useEffect(
+    () =>
+      subscribeNotificationState((event) => {
+        if (event.action === 'read') {
+          setNotifications((prev) =>
+            prev.map((n) =>
+              event.notificationId === '*' || n.id === event.notificationId
+                ? { ...n, read: true }
+                : n,
+            ),
+          );
+        } else if (event.action === 'dismiss') {
+          setNotifications((prev) => prev.filter((n) => n.id !== event.notificationId));
+        } else if (event.action === 'mark_all_read') {
+          setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        }
+        void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
+      }),
+    [],
+  );
 
   useEffect(
     () =>
@@ -203,7 +261,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
+  const sortedNotifications = useMemo(
+    () => sortNotifications(notifications),
+    [notifications],
+  );
+
+  const unreadCount = useMemo(
+    () => sortedNotifications.filter((n) => !n.read).length,
+    [sortedNotifications],
+  );
 
   useEffect(() => {
     if (!seedApplied || seedBaselineRef.current) return;
@@ -244,7 +310,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
-      notifications,
+      notifications: sortedNotifications,
       unreadCount,
       lastActivityAt,
       recentActivityCount,
@@ -257,7 +323,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       dismiss,
     }),
     [
-      notifications,
+      sortedNotifications,
       unreadCount,
       lastActivityAt,
       recentActivityCount,

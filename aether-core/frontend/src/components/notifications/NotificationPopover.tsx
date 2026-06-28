@@ -27,6 +27,10 @@ export function NotificationPopover({ children }: NotificationPopoverProps) {
     }
   };
 
+  const handleMarkRead = (id: string) => {
+    markRead(id);
+  };
+
   return (
     <Popover open={panelOpen} onOpenChange={setPanelOpen}>
       {children}
@@ -66,7 +70,12 @@ export function NotificationPopover({ children }: NotificationPopoverProps) {
             <ul role="list" className="divide-y divide-border/30">
               {notifications.slice(0, 12).map((n) => (
                 <li key={n.id}>
-                  <NotificationRow notification={n} onSelect={handleSelect} onDismiss={dismiss} />
+                  <NotificationRow
+                    notification={n}
+                    onSelect={handleSelect}
+                    onMarkRead={handleMarkRead}
+                    onDismiss={dismiss}
+                  />
                 </li>
               ))}
             </ul>
@@ -84,11 +93,11 @@ export function NotificationPopover({ children }: NotificationPopoverProps) {
             {t('notifications.markAllRead')}
           </Button>
           <Link
-            to="/timeline"
+            to="/notifications"
             className="text-meta text-primary hover:underline"
             onClick={() => setPanelOpen(false)}
           >
-            {t('notifications.viewActivity')}
+            {t('notifications.viewAll')}
           </Link>
         </div>
       </PopoverContent>
