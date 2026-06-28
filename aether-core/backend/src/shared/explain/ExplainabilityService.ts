@@ -55,4 +55,4 @@ export {
   persistProactiveAutoExplainability,
 } from './explainabilityTimeline';
 
-export { explainabilityDiffService } from '../ai/intelligence/explainability/ExplainabilityDiffService';
+export { explainabilityDiffService } from '../../ai/intelligence/explainability/ExplainabilityDiffService';

@@ -1,4 +1,4 @@
-import type { ExplainabilityBuildContext, ExplainabilityContributor } from './types';
+import type { ExplainabilityBuildContext, ExplainabilityContributor } from '../types';
 
 /** Registers collective / global brain snippets used during a run. */
 export class GlobalBrainContributor implements ExplainabilityContributor {
