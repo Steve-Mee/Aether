@@ -50,7 +50,7 @@ describe('CommandBrainService', () => {
     }),
     updateProductPricesByIds: jest.fn(),
     restoreProductPrices: jest.fn(),
-  };
+  } as unknown as AdminDataPort;
 
   const indexer = new MerchantKnowledgeIndexer(layer.personalBrainRegistry, mockAdminData);
   const retriever = new ContextRetriever(layer.personalBrainRegistry, mockAdminData);

@@ -30,6 +30,7 @@ const baseRecord = {
   detectionRunId: null,
   orchestrationSource: null,
   expiresAt: null,
+  goalId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

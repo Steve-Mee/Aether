@@ -1,4 +1,5 @@
 import { prisma } from '../../../../shared/prisma/client';
+import type { Prisma } from '@prisma/client';
 import type { GoalSuggestionInput, GoalSuggestionRecord } from './types';
 import type { GoalMetricType } from '../types';
 
@@ -52,13 +53,13 @@ export class GoalSuggestionRepository {
         dedupeKey: input.dedupeKey,
         title: input.title,
         metricType: input.metricType,
-        metricScope: input.metricScope ?? {},
+        metricScope: (input.metricScope ?? {}) as Prisma.InputJsonValue,
         suggestedTarget: input.suggestedTarget,
         suggestedBaseline: input.suggestedBaseline,
         suggestedDeadline: input.suggestedDeadline,
         confidence: input.confidence,
         rationale: input.rationale,
-        evidence: input.evidence,
+        evidence: input.evidence as Prisma.InputJsonValue,
         status: 'pending',
       },
       update: {
@@ -68,7 +69,7 @@ export class GoalSuggestionRepository {
         suggestedDeadline: input.suggestedDeadline,
         confidence: input.confidence,
         rationale: input.rationale,
-        evidence: input.evidence,
+        evidence: input.evidence as Prisma.InputJsonValue,
       },
     });
     return toRecord(row);

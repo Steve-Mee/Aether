@@ -1,15 +1,15 @@
-import { logger } from '../../../shared/logging/logger';
-import { getMerchantSettings } from '../../../shared/settings/TenantSettingsService';
+import { logger } from '../../../../shared/logging/logger';
+import { getMerchantSettings } from '../../../../shared/settings/TenantSettingsService';
 import {
   isExplainabilityLlmSummaryEnabled,
   resolveExplainabilityNarrativeJobIntervalMs,
-} from './explainabilityConfig';
-import { explainabilityPersister } from './ExplainabilityPersister';
+} from '../explainabilityConfig';
+import { explainabilityPersister } from '../ExplainabilityPersister';
 import {
   ExplainabilityNarrativeService,
   explainabilityNarrativeService,
-} from './ExplainabilityNarrativeService';
-import type { ExplainabilityPayload, ExplainabilitySourceType } from './types';
+} from '../ExplainabilityNarrativeService';
+import type { ExplainabilityPayload, ExplainabilitySourceType } from '../types';
 
 export class ExplainabilityNarrativeJob {
   private timer: NodeJS.Timeout | null = null;

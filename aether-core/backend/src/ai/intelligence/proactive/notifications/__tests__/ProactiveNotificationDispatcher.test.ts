@@ -42,6 +42,7 @@ describe('ProactiveNotificationDispatcher', () => {
         enrichmentSource: null,
         detectionRunId: null,
         orchestrationSource: null,
+        goalId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       })

@@ -1,4 +1,5 @@
 import { prisma } from '../../../shared/prisma/client';
+import type { Prisma } from '@prisma/client';
 import type { ProactiveFinding } from './ProactiveTriggerDefinition';
 import { PROACTIVE_SUGGESTION_TTL_MS } from './proactiveConfig';
 
@@ -120,7 +121,7 @@ export class ProactiveSuggestionRepository {
         riskLevel: finding.riskLevel,
         executionMode: finding.executionMode,
         status: 'active',
-        evidence: finding.evidence,
+        evidence: finding.evidence as Prisma.InputJsonValue,
         priority: finding.priority,
         expiresAt,
         clusterKey: finding.clusterKey ?? null,
@@ -137,7 +138,7 @@ export class ProactiveSuggestionRepository {
         executionMode: finding.executionMode,
         status: 'active',
         snoozedUntil: null,
-        evidence: finding.evidence,
+        evidence: finding.evidence as Prisma.InputJsonValue,
         priority: finding.priority,
         expiresAt,
         clusterKey: finding.clusterKey ?? null,

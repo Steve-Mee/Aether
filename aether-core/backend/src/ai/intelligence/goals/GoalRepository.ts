@@ -1,4 +1,5 @@
 import { prisma } from '../../../shared/prisma/client';
+import type { Prisma } from '@prisma/client';
 import type {
   CreateGoalInput,
   GoalMetricScope,
@@ -83,7 +84,7 @@ export class GoalRepository {
         title: input.title.trim(),
         description: input.description?.trim() ?? null,
         metricType: input.metricType,
-        metricScope: input.metricScope ?? {},
+        metricScope: (input.metricScope ?? {}) as Prisma.InputJsonValue,
         targetValue: input.targetValue,
         baselineValue,
         currentValue: baselineValue,

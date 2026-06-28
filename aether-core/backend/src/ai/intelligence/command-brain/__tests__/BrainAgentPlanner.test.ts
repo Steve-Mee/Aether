@@ -54,7 +54,7 @@ describe('BrainAgentPlanner', () => {
     listLowStockInventory: jest.fn(),
     listProductsForBrain: jest.fn(),
     searchProductsByName: jest.fn(),
-  };
+  } as unknown as AdminDataPort;
 
   const tools = new PersonalBrainToolRegistry({
     adminData: mockAdminData,

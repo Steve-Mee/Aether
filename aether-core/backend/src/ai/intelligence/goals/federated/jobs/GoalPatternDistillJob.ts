@@ -1,5 +1,5 @@
-import { logger } from '../../../shared/logging/logger';
-import { isGoalFederatedPatternsEnabled } from '../goalConfig';
+import { logger } from '../../../../../shared/logging/logger';
+import { isGoalFederatedPatternsEnabled } from '../../goalConfig';
 
 export class GoalPatternDistillJob {
   private timer: NodeJS.Timeout | null = null;

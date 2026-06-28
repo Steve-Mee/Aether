@@ -1,6 +1,6 @@
-import { prisma } from '../../../shared/prisma/client';
-import { logger } from '../../../shared/logging/logger';
-import { getCompositionRoot } from '../../../bootstrap/compositionRoot';
+import { prisma } from '../../../../shared/prisma/client';
+import { logger } from '../../../../shared/logging/logger';
+import { getCompositionRoot } from '../../../../bootstrap/compositionRoot';
 import { isGoalAiSuggestionsEnabled } from '../goalConfig';
 import { GOAL_SUGGESTION_INTERVAL_MS } from '../goalConfig';
 

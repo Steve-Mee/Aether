@@ -7,6 +7,7 @@ import type {
 } from './autonomyTypes';
 import { AUTONOMY_AGENT_KEYS, DEFAULT_CATEGORY_POLICIES } from './autonomyTypes';
 import type { AutonomyLevel, GoalPursuitMode, MerchantSettings } from './merchantSettingsTypes';
+import { DEFAULT_GOAL_PREFS, DEFAULT_PROACTIVE_PREFS } from './merchantSettingsTypes';
 
 export interface AutonomyPresetBundle {
   preset: AutonomyPreset;
@@ -134,9 +135,11 @@ export function applyAutonomyPreset(
       customRules: [],
     },
     proactivePrefs: {
+      ...DEFAULT_PROACTIVE_PREFS,
       allowAutoExecute: bundle.proactiveAllowAutoExecute,
     },
     goalPrefs: {
+      ...DEFAULT_GOAL_PREFS,
       defaultPursuitMode: bundle.goalPursuitMode,
       allowGoalLinkedAutoExecute: bundle.goalAllowGoalLinkedAutoExecute,
     },

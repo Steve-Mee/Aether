@@ -37,7 +37,7 @@ describe('MerchantKnowledgeIndexer', () => {
     searchProductsByName: jest.fn(),
     updateProductPricesByIds: jest.fn(),
     restoreProductPrices: jest.fn(),
-  };
+  } as unknown as AdminDataPort;
 
   it('indexes products into PersonalBrain vector store', async () => {
     const indexer = new MerchantKnowledgeIndexer(layer.personalBrainRegistry, mockAdminData);

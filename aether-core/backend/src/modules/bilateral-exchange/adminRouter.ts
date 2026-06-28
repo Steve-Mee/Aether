@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { requireOperator } from '../../../shared/security/rbac';
-import { getCompositionRoot } from '../../../bootstrap/compositionRoot';
+import { requireOperator } from '../../shared/security/rbac';
+import { getCompositionRoot } from '../../bootstrap/compositionRoot';
 
 const router = Router();
 

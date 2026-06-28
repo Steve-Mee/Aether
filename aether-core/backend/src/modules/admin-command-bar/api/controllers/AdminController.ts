@@ -64,6 +64,8 @@ import {
 import {
   notificationEmitter,
   isNotificationSseEnabled,
+  type NotificationPushEvent,
+  type NotificationStateChangedEvent,
 } from '../../application/services/notifications/NotificationEmitter';
 import { getWebPushPublicKey } from '../../../../shared/notifications/WebPushNotificationDispatcher';
 import { buildNotificationInbox } from '../../application/services/NotificationInboxService';
@@ -1406,7 +1408,7 @@ export class AdminController {
         unsubscribe = proactiveSuggestionEmitter.subscribe(tenantId, pushProactive);
       }
 
-      const pushNotification = (event: Record<string, unknown>) => {
+      const pushNotification = (event: NotificationPushEvent | NotificationStateChangedEvent) => {
         if (closed) return;
         res.write(`data: ${JSON.stringify(event)}\n\n`);
       };

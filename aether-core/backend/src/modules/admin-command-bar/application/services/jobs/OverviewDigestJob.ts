@@ -1,6 +1,6 @@
-import { prisma } from '../../../../shared/prisma/client';
+import { prisma } from '../../../../../shared/prisma/client';
 import { overviewNotificationDispatcher } from '../OverviewNotificationDispatcher';
-import { logger } from '../../../../shared/logging/logger';
+import { logger } from '../../../../../shared/logging/logger';
 
 const DIGEST_INTERVAL_MS = 24 * 60 * 60 * 1000;
 

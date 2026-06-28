@@ -139,6 +139,22 @@ const mockAdminData: AdminDataPort = {
   listRecentOrdersDetailed: jest.fn().mockResolvedValue([]),
   listActiveNegotiations: jest.fn().mockResolvedValue([]),
   getNegotiationDetail: jest.fn().mockResolvedValue(null),
+  getMarginMetrics: jest.fn().mockResolvedValue({
+    lowMarginCount: 0,
+    totalProducts: 0,
+    marginPct: 0,
+  }),
+  getCategoryRevenue: jest.fn().mockResolvedValue({
+    categoryId: 'cat_1',
+    revenue: 0,
+    orderCount: 0,
+    trendPct: 0,
+  }),
+  getInventoryCostSummary: jest.fn().mockResolvedValue({
+    lowStockCount: 0,
+    totalSkus: 0,
+    totalQuantity: 0,
+  }),
 };
 
 const mockCommandLog = {

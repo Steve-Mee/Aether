@@ -65,7 +65,7 @@ export class BrainController {
       }
       const patch = await getCompositionRoot().globalKnowledgeAdminService.createPatch(
         parsed.data,
-        req.actorId ?? req.userId
+        req.actorId
       );
       res.status(201).json({ patch });
     },
@@ -94,7 +94,7 @@ export class BrainController {
       const patch = await getCompositionRoot().globalKnowledgeAdminService.publishPatch(
         req.params.id!,
         tenantId,
-        req.actorId ?? req.userId
+        req.actorId
       );
       res.json({ patch });
     },
@@ -107,7 +107,7 @@ export class BrainController {
       const patch = await getCompositionRoot().globalKnowledgeAdminService.retirePatch(
         req.params.id!,
         tenantId,
-        req.actorId ?? req.userId
+        req.actorId
       );
       res.json({ patch });
     },
