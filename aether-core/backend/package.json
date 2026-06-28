@@ -46,7 +46,7 @@
     "@sentry/node": "^10.57.0",
     "@types/pdfkit": "^0.17.6",
     "argon2": "^0.44.0",
-    "axios": "^1.6.8",
+    "axios": "^1.18.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
