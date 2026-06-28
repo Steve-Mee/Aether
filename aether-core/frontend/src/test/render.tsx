@@ -7,9 +7,7 @@ import { DashboardProvider } from '@/lib/DashboardContext';
 import { MerchantSettingsProvider } from '@/lib/settings/MerchantSettingsContext';
 import QueryInvalidationBridge from '@/lib/query/QueryInvalidationBridge';
 import { NotificationProvider } from '@/lib/notifications/NotificationContext';
-import type { DashboardSummary } from '@/lib/api';
 import { setDataAdapterForTests } from '@/lib/data/createDataAdapter';
-import { vi } from 'vitest';
 import type { DataAdapter } from '@/lib/data/adapters/DataAdapter';
 import { createTestDataAdapter } from './createTestDataAdapter';
 
@@ -21,25 +19,6 @@ function createTestQueryClient(): QueryClient {
     },
   });
 }
-
-vi.mock('@/lib/useDashboardStream', () => ({
-  useDashboardStream: () => ({
-    data: {
-      status: 'live' as const,
-      tenantDisplayName: 'Demo Merchant',
-      productCount: 12,
-      lowMarginProducts: 2,
-      unreadEmails: 3,
-      pendingApprovals: 1,
-      recentCommands: 8,
-      revenueUplift30d: 1200,
-      timestamp: '2026-06-04T10:00:00.000Z',
-    } satisfies DashboardSummary,
-    connected: true,
-    error: null,
-    reload: vi.fn(),
-  }),
-}));
 
 export interface ProviderOptions {
   initialEntries?: string[];

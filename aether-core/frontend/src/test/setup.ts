@@ -7,6 +7,26 @@ import { resetDataAdapter, setDataAdapterForTests } from '@/lib/data/createDataA
 import { resetMockAdapterState } from '@/lib/data/adapters/mockAdapter';
 import { resetApprovalFactorySeq } from './factories/approval';
 import { resetCommandFactorySeq } from './factories/command';
+import type { DashboardSummary } from '@/lib/api';
+
+vi.mock('@/lib/useDashboardStream', () => ({
+  useDashboardStream: () => ({
+    data: {
+      status: 'live' as const,
+      tenantDisplayName: 'Demo Merchant',
+      productCount: 12,
+      lowMarginProducts: 2,
+      unreadEmails: 3,
+      pendingApprovals: 1,
+      recentCommands: 8,
+      revenueUplift30d: 1200,
+      timestamp: '2026-06-04T10:00:00.000Z',
+    } satisfies DashboardSummary,
+    connected: true,
+    error: null,
+    reload: vi.fn(),
+  }),
+}));
 
 vi.mock('@/lib/toast', () => ({
   showCalmToast: vi.fn(),
