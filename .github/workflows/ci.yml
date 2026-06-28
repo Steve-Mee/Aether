@@ -73,7 +73,7 @@ jobs:
       STRIPE_API_PROTOCOL: http
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -190,7 +190,7 @@ jobs:
         working-directory: aether-core/frontend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
