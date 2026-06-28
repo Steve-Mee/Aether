@@ -8,6 +8,7 @@ declare global {
       tenantId?: string;
       userRole?: UserRole;
       actorId?: string;
+      userEmail?: string;
     }
   }
 }

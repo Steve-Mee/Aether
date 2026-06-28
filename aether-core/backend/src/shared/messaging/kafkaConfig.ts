@@ -1,0 +1,23 @@
+/** @deprecated Import from messagingConfig.ts */
+export {
+  type EventBusMode,
+  type MessageBrokerType,
+  BROKER_CONSUMER_EVENT_TYPES,
+  BROKER_DLQ_TOPIC,
+  FEDERATED_EXECUTE_RESPONSE_TOPIC,
+  FEDERATED_EXECUTE_TOPIC,
+  FEDERATED_WORKER_GROUP_ID,
+  KAFKA_CONSUMER_EVENT_TYPES,
+  KAFKA_DLQ_TOPIC,
+  PEER_WORKER_GROUP_ID,
+  domainEventTopic,
+  getEventBusMode,
+  getFederatedDeploymentId,
+  getKafkaBrokers,
+  getMessageBrokerType,
+  isExternalBrokerEnabled,
+  isFederatedRpcEnabled,
+  isKafkaEnabled,
+  resolveOutboxRelayPollMs,
+  shouldSkipInProcessDispatch,
+} from './messagingConfig';

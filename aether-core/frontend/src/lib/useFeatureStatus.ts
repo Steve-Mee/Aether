@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { apiFetch, FeatureStatus, TruthStatusDocument } from './api';
+import { adminRepository } from '@/lib/data';
+import type { FeatureStatus } from './api';
 
-let cachedTruth: TruthStatusDocument | null = null;
-let cachePromise: Promise<TruthStatusDocument> | null = null;
+let cachedTruth: Awaited<ReturnType<typeof adminRepository.truthStatus>> | null = null;
+let cachePromise: Promise<Awaited<ReturnType<typeof adminRepository.truthStatus>>> | null = null;
 
 function mapRawStatus(raw: string | undefined): FeatureStatus {
   if (raw === 'live' || raw === 'implemented') return 'live';
@@ -10,10 +11,10 @@ function mapRawStatus(raw: string | undefined): FeatureStatus {
   return 'partial';
 }
 
-async function loadTruthStatus(): Promise<TruthStatusDocument> {
+async function loadTruthStatus() {
   if (cachedTruth) return cachedTruth;
   if (!cachePromise) {
-    cachePromise = apiFetch<TruthStatusDocument>('/api/admin/truth-status').then((doc) => {
+    cachePromise = adminRepository.truthStatus().then((doc) => {
       cachedTruth = doc;
       return doc;
     });

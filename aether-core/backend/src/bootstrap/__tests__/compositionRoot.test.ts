@@ -15,6 +15,16 @@ jest.mock('../../shared/prisma/client', () => ({
     outcomeRecord: { findMany: jest.fn().mockResolvedValue([]), findFirst: jest.fn(), count: jest.fn().mockResolvedValue(0) },
     approval: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0), updateMany: jest.fn() },
     command: { findMany: jest.fn().mockResolvedValue([]), count: jest.fn().mockResolvedValue(0) },
+    brainToolProposal: {
+      create: jest.fn().mockResolvedValue({ id: 'prop_1' }),
+      findFirst: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    tenantSettings: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+      update: jest.fn(),
+    },
     emailMessage: { count: jest.fn().mockResolvedValue(0) },
     order: { findMany: jest.fn().mockResolvedValue([]) },
     forecast: { count: jest.fn().mockResolvedValue(0) },
@@ -74,6 +84,17 @@ describe('compositionRoot', () => {
   it('bootstraps application wiring and required event handlers', () => {
     const root = bootstrapApplication();
     expect(root.executeNaturalLanguageCommand).toBeDefined();
+    expect(root.executeBrainTool).toBeDefined();
+    expect(root.agentRuntime).toBeDefined();
+    expect(root.personalBrainRegistry).toBeDefined();
+    expect(root.globalBrain).toBeDefined();
+    expect(root.globalKnowledgeService).toBeDefined();
+    expect(root.globalKnowledgeAdminService).toBeDefined();
+    expect(root.knowledgeDistillationService).toBeDefined();
+    expect(root.crossTenantSubmitPipeline).toBeDefined();
+    expect(root.knowledgeTransfer).toBeDefined();
+    expect(root.loraRegistry).toBeDefined();
+    expect(root.brainMemoryService).toBeDefined();
     expect(root.updateInventory).toBeDefined();
     expect(root.applyDynamicPrice).toBeDefined();
     expect(root.supplierMonitor).toBeDefined();

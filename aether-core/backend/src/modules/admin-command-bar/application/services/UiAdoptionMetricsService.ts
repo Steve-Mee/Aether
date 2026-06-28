@@ -22,6 +22,8 @@ export interface UiAdoptionMetrics {
   nlActionShare7d: number;
   timeSavedMinutes7d: number;
   autonomousActions7d: number;
+  /** Policy-auto approvals + autonomy_execute in the last 24 hours */
+  lowRiskAutonomous24h: number;
 }
 
 function minutesForIntent(intent: string | null): number {
@@ -31,8 +33,9 @@ function minutesForIntent(intent: string | null): number {
 
 export async function computeUiAdoptionMetrics(tenantId: string): Promise<UiAdoptionMetrics> {
   const since = new Date(Date.now() - PERIOD_DAYS * 86400000);
+  const since24h = new Date(Date.now() - 86400000);
 
-  const [commands, navEvents, autonomyAudits] = await Promise.all([
+  const [commands, navEvents, autonomyAudits, policyAuto24h, autonomyExecute24h] = await Promise.all([
     prisma.command.findMany({
       where: { tenantId, createdAt: { gte: since } },
       select: { intent: true },
@@ -50,6 +53,21 @@ export async function computeUiAdoptionMetrics(tenantId: string): Promise<UiAdop
         tenantId,
         action: { startsWith: 'autonomy_' },
         createdAt: { gte: since },
+      },
+    }),
+    prisma.approval.count({
+      where: {
+        tenantId,
+        status: 'approved',
+        resolvedBy: 'policy-auto',
+        resolvedAt: { gte: since24h },
+      },
+    }),
+    prisma.auditLog.count({
+      where: {
+        tenantId,
+        action: 'autonomy_execute',
+        createdAt: { gte: since24h },
       },
     }),
   ]);
@@ -70,5 +88,6 @@ export async function computeUiAdoptionMetrics(tenantId: string): Promise<UiAdop
     nlActionShare7d,
     timeSavedMinutes7d,
     autonomousActions7d: autonomyAudits,
+    lowRiskAutonomous24h: policyAuto24h + autonomyExecute24h,
   };
 }

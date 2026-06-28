@@ -1,4 +1,5 @@
 import { prisma } from '../prisma/client';
+import { notifyOverviewFromAuditRow } from '../../modules/admin-command-bar/application/services/OverviewFeedNotify';
 
 export async function writeAuditLog(params: {
   tenantId: string;
@@ -7,7 +8,7 @@ export async function writeAuditLog(params: {
   actor?: string;
   details?: Record<string, unknown>;
 }): Promise<void> {
-  await prisma.auditLog.create({
+  const row = await prisma.auditLog.create({
     data: {
       tenantId: params.tenantId,
       module: params.module,
@@ -16,4 +17,5 @@ export async function writeAuditLog(params: {
       details: params.details ? JSON.stringify(params.details) : null,
     },
   });
+  notifyOverviewFromAuditRow(params.tenantId, row);
 }

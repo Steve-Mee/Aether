@@ -33,12 +33,17 @@ export class EmailClassifierService {
       customerName?: string | null;
       recentOrderCount?: number;
       priorEmailCount?: number;
+      ragSnippets?: string[];
     }
   ): Promise<ClassificationResult> {
     const text = this.sanitizeForLlm(`${email.subject || ''} ${email.body || ''}`.trim());
-    const contextBlock = context
-      ? `\nCustomer context: name=${context.customerName ?? 'unknown'}, recentOrders=${context.recentOrderCount ?? 0}, priorEmails=${context.priorEmailCount ?? 0}`
+    const ragBlock =
+      context?.ragSnippets?.length ?
+        `\nPrior merchant interactions:\n${context.ragSnippets.map((s) => `- ${s}`).join('\n')}\n`
       : '';
+    const contextBlock = context
+      ? `\nCustomer context: name=${context.customerName ?? 'unknown'}, recentOrders=${context.recentOrderCount ?? 0}, priorEmails=${context.priorEmailCount ?? 0}${ragBlock}`
+      : ragBlock;
 
     try {
       const prompt = `Classify this e-commerce email. Categories: order_status, tracking_request, simple_question, complaint, return_request, payment_issue, supplier, spam, internal.

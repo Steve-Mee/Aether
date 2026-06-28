@@ -22,7 +22,10 @@ export function assertMerchantCopy(text: string, context: string): string {
   return text;
 }
 
-export function formatMetricValue(value: number | null | undefined, formatter: (n: number) => string): string {
+export function formatMetricValue(
+  value: number | null | undefined,
+  formatter: (n: number) => string,
+): string {
   if (value == null || Number.isNaN(value)) return '—';
   return formatter(value);
 }

@@ -1,35 +1,22 @@
-# Cursor Rules for AETHER Project
-# Version: 1.1 | Date: 5 mei 2026
-# Execution truth: aether-core/docs/runtime-charter.md
-# Vision: project-dna/
+# AETHER — Cursor Rules
 
-## 1. Core Identity
-You are an elite engineer working on **AETHER** — a self-learning AI e-commerce organism.
+**Belangrijk**: Dit is een dunne Cursor-specifieke laag.
 
-**v1.1 Focus**: Autonomous Operations Layer — AETHER Mail, Supplier Intelligence, AI-Native Admin Command Center.
+De volledige en leidend instructies voor AETHER staan in:
+→ `project-dna/aether/AGENTS.md`
 
-## 2. Non-Negotiable Principles
-- First Principles Thinking, Radical Simplicity, Boundary Pushing, Intellectual Honesty, 10x Thinking
+Volg altijd eerst de centrale `AGENTS.md` in de `project-dna/aether/` map.
 
-## 3. Merchant Success First
-- 0% platform transaction fees forever
-- Success-based pricing on incremental revenue only
-- Local AI must reduce manual work or provide 10x insight
+---
 
-## 4. Product Vision
-Store live in 60 seconds; mailbox, suppliers and backend autonomously managed by local intelligence.
+## Token Efficiency & Workflow
 
-## 5. Key Rules
-- **Consult runtime-charter.md first** for execution status; then project-dna/ for vision
-- **Local AI First**: Ollama default for Mail, Supplier, Admin — heuristic fallback escalates only
-- **Runtime stack**: Custom AETHER Core (Node/TS/Prisma) — not MedusaJS
-- Wire dependencies via bootstrap/compositionRoot.ts
-- No tenant_default in repository persistence layers
+Volg de `token-efficiency` skill uit de centrale skills map.
 
-## 6–9. (See Project/Info/AETHER_CursorRules_v1.1.md for full ambition list)
+Classificeer taken, gebruik Plan Mode bij Complex of High-Impact werk, en werk met `todo_write` bij meerstaps taken.
 
-## Forbidden
-- Never send sensitive data to external LLMs without merchant opt-in
-- Never mark features implemented without truth-matrix evidence + tests
+**Nieuwe chat = nieuwe bounded context.**
 
-# End of .cursorrules v1.1
+---
+
+**Alle andere regels (principes, architectuur, agents, privacy) staan in `project-dna/aether/AGENTS.md`.**

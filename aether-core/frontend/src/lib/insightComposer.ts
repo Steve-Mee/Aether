@@ -1,5 +1,6 @@
 import type { DashboardSummary } from './api';
 import { formatCurrency } from './i18n';
+import { moduleLinks } from '@/lib/navigation/moduleLinks';
 
 export type InsightSeverity = 'info' | 'warning' | 'action';
 export type InsightActionType = 'navigate' | 'command' | 'auto_apply';
@@ -27,7 +28,7 @@ export function composeInsights(data: DashboardSummary): ProposedInsight[] {
       title: `${data.pendingApprovals} goedkeuring${data.pendingApprovals > 1 ? 'en' : ''} open`,
       detail: 'Beslis nu om doorlooptijd te verkorten',
       confidence: 0.92,
-      href: '/approvals',
+      href: moduleLinks.approvals,
       actionType: 'navigate',
       requiresApproval: true,
       riskBand: data.pendingApprovals > 3 ? 'medium' : 'low',
@@ -57,7 +58,7 @@ export function composeInsights(data: DashboardSummary): ProposedInsight[] {
         ? `${Math.round(data.emailMetrics.classificationRate * 100)}% geclassificeerd`
         : 'Inbox vereist aandacht',
       confidence: 0.85,
-      href: '/emails',
+      href: moduleLinks.emails,
       actionType: 'navigate',
       requiresApproval: false,
       riskBand: 'low',
@@ -71,7 +72,7 @@ export function composeInsights(data: DashboardSummary): ProposedInsight[] {
       title: `${formatCurrency(data.revenueUplift30d)} geverifieerde uplift`,
       detail: 'Bekijk outcome-rapport',
       confidence: 0.95,
-      href: '/outcomes',
+      href: moduleLinks.outcomes,
       actionType: 'navigate',
       requiresApproval: false,
       riskBand: 'low',
@@ -85,7 +86,7 @@ export function composeInsights(data: DashboardSummary): ProposedInsight[] {
       title: `Autonomie ${Math.round(data.autonomyRate * 100)}%`,
       detail: 'Onder pilotdoel (70%)',
       confidence: 0.7,
-      href: '/autonomous',
+      href: moduleLinks.autonomous,
       actionType: 'navigate',
       requiresApproval: false,
       riskBand: 'medium',

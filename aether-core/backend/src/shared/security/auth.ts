@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { UserRole } from '../../types/express';
+import { verifyAccessToken } from '../auth/jwtService';
 import { prisma } from '../prisma/client';
 import { writeAuditLog } from '../audit/auditService';
 
@@ -83,9 +84,18 @@ export async function resolveApiKeyRole(
   }
 }
 
+function isPublicAuthPath(req: Request): boolean {
+  return req.method === 'POST' && req.path === '/api/auth/login';
+}
+
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   void (async () => {
     if (req.path === '/health') {
+      next();
+      return;
+    }
+
+    if (isPublicAuthPath(req)) {
       next();
       return;
     }
@@ -105,6 +115,25 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
       req.userRole = (req.header('X-Aether-Role') as UserRole) || 'admin';
       req.actorId = req.header('X-Aether-Actor-Id') || 'test-actor';
       next();
+      return;
+    }
+
+    const bearer = req.header('Authorization');
+    if (bearer?.startsWith('Bearer ')) {
+      try {
+        const payload = verifyAccessToken(bearer.slice(7));
+        if (payload) {
+          req.tenantId = payload.tenantId;
+          req.userRole = payload.role;
+          req.actorId = payload.sub;
+          req.userEmail = payload.email;
+          next();
+          return;
+        }
+      } catch {
+        // AETHER_JWT_SECRET unset — fall through to API key auth
+      }
+      res.status(401).json({ error: 'Invalid or expired token' });
       return;
     }
 

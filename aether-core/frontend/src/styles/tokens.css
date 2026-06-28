@@ -1,43 +1,91 @@
 :root {
+  /* Backgrounds & surfaces */
   --color-bg: #09090b;
   --color-surface: #18181b;
   --color-surface-elevated: #27272a;
   --color-border: #3f3f46;
   --color-border-subtle: #27272a;
+  --color-card: #18181b;
+
+  /* Text */
   --color-text: #fafafa;
-  --color-text-muted: #a1a1aa;
-  --color-text-subtle: #71717a;
+  --color-foreground: #fafafa;
+  --color-text-muted: #b4b4bc;
+  --color-text-subtle: #94949e;
+  --color-muted: #27272a;
+
+  /* Accent & intent */
   --color-accent: #7c3aed;
   --color-accent-hover: #6d28d9;
   --color-accent-muted: rgba(124, 58, 237, 0.15);
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
   --color-intent: #a78bfa;
+
+  /* Semantic */
+  --color-success: #10b981;
+  --color-success-muted: rgba(16, 185, 129, 0.15);
+  --color-warning: #f59e0b;
+  --color-warning-muted: rgba(245, 158, 11, 0.15);
+  --color-danger: #ef4444;
+  --color-danger-muted: rgba(239, 68, 68, 0.15);
+  --color-destructive: #ef4444;
+
+  /* Risk bands */
   --color-risk-low: #10b981;
   --color-risk-medium: #f59e0b;
   --color-risk-high: #ef4444;
+
+  /* Radius */
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
+
+  /* Spacing (4px grid) */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
+  --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Typography */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Inter', system-ui, sans-serif;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
   --text-display: 2.5rem;
   --text-headline: 1.5rem;
+  --text-title: 1.125rem;
   --text-body: 0.875rem;
   --text-meta: 0.75rem;
+  --text-caption: 0.6875rem;
   --leading-tight: 1.1;
+  --leading-snug: 1.35;
   --leading-normal: 1.5;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.35);
   --shadow-focus: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
   --shadow-elevated: 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 32px rgba(0, 0, 0, 0.35);
   --shadow-glow-focus: 0 0 0 1px hsl(263 70% 58% / 0.2), 0 0 24px hsl(263 70% 58% / 0.12);
+  --shadow-insight: 0 1px 0 rgba(255, 255, 255, 0.03), 0 4px 24px rgba(0, 0, 0, 0.25);
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: var(--duration-fast) var(--ease-out);
+  --transition-normal: var(--duration-normal) var(--ease-out);
+  --transition-slow: var(--duration-slow) var(--ease-in-out);
+
+  /* Panel surface (HSL components for Tailwind) */
   --surface-panel: 240 6% 10%;
-  --transition-fast: 150ms ease;
 }

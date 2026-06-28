@@ -9,25 +9,33 @@ interface MetricDeltaProps {
   urgent?: boolean;
 }
 
-export default function MetricDelta({ label, value, context, trend = 'neutral', urgent }: MetricDeltaProps) {
+export default function MetricDelta({
+  label,
+  value,
+  context,
+  trend = 'neutral',
+  urgent,
+}: MetricDeltaProps) {
   return (
     <div
-      className={`rounded-[var(--radius-lg)] border p-4 transition-colors ${
-        urgent ? 'border-[var(--color-warning)]/40' : 'border-[var(--color-border-subtle)]'
-      } bg-[var(--color-surface)]`}
+      className={`rounded-lg border p-4 transition-colors ${
+        urgent ? 'border-warning/40' : 'border-border/40'
+      } bg-card`}
     >
-      <p className="text-[var(--text-meta)] text-[var(--color-text-subtle)] uppercase tracking-wide">{label}</p>
+      <p className="text-[var(--text-meta)] text-muted-foreground uppercase tracking-wide">
+        {label}
+      </p>
       <p
         className={`text-2xl font-semibold mt-1 tabular-nums ${
-          urgent ? 'text-[var(--color-warning)]' : 'text-[var(--color-text)]'
+          urgent ? 'text-warning' : 'text-foreground'
         }`}
       >
         {value}
       </p>
       {context && (
-        <p className="text-xs text-[var(--color-text-muted)] mt-2 flex items-center gap-1">
-          {trend === 'up' && <TrendingUp size={12} className="text-[var(--color-success)]" />}
-          {trend === 'down' && <TrendingDown size={12} className="text-[var(--color-danger)]" />}
+        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+          {trend === 'up' && <TrendingUp size={12} className="text-success" />}
+          {trend === 'down' && <TrendingDown size={12} className="text-destructive" />}
           {context}
         </p>
       )}

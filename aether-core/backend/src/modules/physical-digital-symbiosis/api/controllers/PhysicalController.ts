@@ -5,6 +5,9 @@ import { requireOperator, requireViewer } from '../../../../shared/security/rbac
 import { validateBody } from '../../../../shared/security/validate';
 import { deviceAdapter } from '../../infrastructure/adapters/DeviceAdapter';
 import { eventBus } from '../../../../shared/events/eventBus';
+import {
+  isPhysicalPeerEnabled,
+} from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
 
 const locationSchema = z.object({
   name: z.string().min(1),
@@ -68,6 +71,26 @@ export class PhysicalController {
         type: 'decision.executed',
         payload: { event: 'physical.shelf_synced', shelfId, itemsUpdated: result.itemsUpdated },
       });
+
+      if (isPhysicalPeerEnabled()) {
+        const bridge = getCompositionRoot().peerDelegationBridge;
+        if (bridge?.isAvailable()) {
+          try {
+            await bridge.runSpecialist({
+              tenantId: req.tenantId!,
+              agentKey: 'inventory',
+              intent: 'INVENTORY_STATUS',
+              command: `Smart shelf ${shelfId} synced (${result.itemsUpdated} items)`,
+              contextSnippets: [],
+              handlerResult: 'physical.shelf_synced',
+              actorId: req.actorId,
+            });
+          } catch {
+            // Best-effort peer specialist
+          }
+        }
+      }
+
       res.json({ status: 'partial', success: true, ...result });
     },
   ];

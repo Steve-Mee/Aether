@@ -9,4 +9,13 @@ export class LogMerchantNotificationAdapter implements MerchantNotificationPort 
   }): Promise<void> {
     logger.info('merchant_approval_notification', params);
   }
+
+  async notifyHandoffCompleted(params: {
+    tenantId: string;
+    jobId?: string;
+    narrative?: string;
+    success: boolean;
+  }): Promise<void> {
+    logger.info('merchant_handoff_notification', params);
+  }
 }

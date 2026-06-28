@@ -1,4 +1,11 @@
-import { policyEngine } from '../orchestrator/WorkflowEngine';
+import type { RiskClass } from '../../ai/orchestrator/WorkflowEngine';
+import { policyEngine } from '../../ai/orchestrator/WorkflowEngine';
+import { getMerchantSettings } from '../../shared/settings/TenantSettingsService';
+import {
+  assessAutonomy,
+  assessAutonomyForTenant,
+  type AutonomyAssessment,
+} from '../../shared/policy/AutonomyPolicyService';
 import { writeAuditLog } from '../../shared/audit/auditService';
 
 export type DecisionAction = 'execute' | 'escalate' | 'approval_required' | 'skip';
@@ -9,32 +16,69 @@ export interface DecisionContractInput {
   action: string;
   context: Record<string, unknown>;
   actorId?: string;
+  agentKey?: string;
 }
 
 export interface DecisionContractResult {
   action: DecisionAction;
   policy: ReturnType<typeof policyEngine.evaluate>;
+  assessment: AutonomyAssessment;
   auditRequired: boolean;
 }
 
+function mapAssessmentToAction(assessment: AutonomyAssessment, input: DecisionContractInput): DecisionAction {
+  if (assessment.executionMode === 'autonomous' && assessment.eligible) {
+    return 'execute';
+  }
+  if (assessment.executionMode === 'approval_required') {
+    return 'approval_required';
+  }
+  if (input.module === 'aether-mail' && assessment.riskClass === 'medium') {
+    const riskLevel = String(input.context.riskLevel ?? '');
+    const confidence = Number(input.context.confidence ?? 0);
+    return riskLevel === 'low' && confidence >= 0.7 ? 'execute' : 'escalate';
+  }
+  if (assessment.executionMode === 'blocked') {
+    return 'skip';
+  }
+  return 'escalate';
+}
+
 /**
- * Merchant Autonomy Kernel MVP — unified policy → decision → audit contract.
- * Mail and supplier modules delegate here for consistent gates.
+ * Merchant Autonomy Kernel — unified policy via AutonomyPolicyService.
  */
 export class MerchantAutonomyKernel {
-  evaluate(input: DecisionContractInput): DecisionContractResult {
+  async evaluate(input: DecisionContractInput): Promise<DecisionContractResult> {
     const policy = policyEngine.evaluate(input.action, input.context);
+    const assessment = await assessAutonomyForTenant({
+      tenantId: input.tenantId,
+      module: input.module,
+      actionType: input.action,
+      payload: input.context,
+      agentKey: input.agentKey,
+      riskClass: policy.riskClass as RiskClass,
+      getSettings: getMerchantSettings,
+    });
+    const action = mapAssessmentToAction(assessment, input);
+    return { action, policy, assessment, auditRequired: true };
+  }
 
-    let action: DecisionAction = 'execute';
-    if (policy.riskClass === 'high' || policy.requiresApproval) {
-      action = 'approval_required';
-    } else if (policy.riskClass === 'medium' && input.module === 'aether-mail') {
-      const riskLevel = String(input.context.riskLevel ?? '');
-      const confidence = Number(input.context.confidence ?? 0);
-      action = riskLevel === 'low' && confidence >= 0.7 ? 'execute' : 'escalate';
-    }
-
-    return { action, policy, auditRequired: true };
+  /** Sync evaluate when settings are already loaded (tests). */
+  evaluateWithSettings(
+    input: DecisionContractInput,
+    settings: Parameters<typeof assessAutonomy>[0]['settings'],
+  ): DecisionContractResult {
+    const policy = policyEngine.evaluate(input.action, input.context);
+    const assessment = assessAutonomy({
+      settings,
+      module: input.module,
+      actionType: input.action,
+      payload: input.context,
+      agentKey: input.agentKey,
+      riskClass: policy.riskClass as RiskClass,
+    });
+    const action = mapAssessmentToAction(assessment, input);
+    return { action, policy, assessment, auditRequired: true };
   }
 
   async recordDecision(input: DecisionContractInput, result: DecisionContractResult): Promise<void> {
@@ -49,6 +93,11 @@ export class MerchantAutonomyKernel {
         action: input.action,
         decision: result.action,
         policy: result.policy,
+        assessment: {
+          executionMode: result.assessment.executionMode,
+          reason: result.assessment.reason,
+          reasonCode: result.assessment.reasonCode,
+        },
       },
     });
   }

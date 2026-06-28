@@ -1,0 +1,32 @@
+# Automated dependency update PRs for AETHER Core packages.
+# https://docs.github.com/en/code-security/dependabot
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /aether-core/frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        patterns:
+          - '@*/*'
+          - 'eslint*'
+          - 'vitest*'
+          - 'playwright*'
+          - 'prettier'
+
+  - package-ecosystem: npm
+    directory: /aether-core/backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

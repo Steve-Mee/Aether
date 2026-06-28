@@ -1,0 +1,17 @@
+[
+  {
+    "name": "App entry chunks",
+    "path": "dist/assets/index-*.js",
+    "limit": "530 KB"
+  },
+  {
+    "name": "Vendor chunk",
+    "path": "dist/assets/vendor-*.js",
+    "limit": "385 KB"
+  },
+  {
+    "name": "Main stylesheet",
+    "path": "dist/assets/index-*.css",
+    "limit": "65 KB"
+  }
+]

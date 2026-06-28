@@ -42,4 +42,25 @@ Mutating JSON endpoints use Zod schemas. Webhook endpoints (`/api/payments/webho
 
 ## Observability
 
-OpenTelemetry SDK starts via `src/shared/observability/otelBootstrap.ts`. Set `OTEL_EXPORTER_OTLP_ENDPOINT` for Jaeger/OTLP export; console exporter is used when unset.
+### OpenTelemetry (local / Jaeger)
+
+OpenTelemetry SDK starts via `src/shared/observability/otelBootstrap.ts`. Set `OTEL_EXPORTER_OTLP_ENDPOINT` for Jaeger/OTLP export; console exporter is used when unset. Span helpers live in `src/shared/observability/telemetry.ts`.
+
+### Sentry (staging / production)
+
+Server-side error monitoring via `src/shared/observability/sentry.ts`:
+
+```env
+SENTRY_DSN=https://your-dsn@sentry.io/project
+SENTRY_ENV=staging
+APP_VERSION=0.8.1
+# SENTRY_DEV=true   # optional — enable in local development
+```
+
+- Initialized in `src/index.ts` before the Express app starts
+- Express errors captured via `setupExpressErrorHandler` (5xx only; 4xx filtered)
+- Request context: `tenantId`, `actorId`, `correlationId` from `tracingMiddleware`
+- Distributed tracing: continues `sentry-trace` / `baggage` headers from the frontend
+- Custom spans: `command.execute`, `approval.resolve`, `supplier.monitor`
+
+OTEL and Sentry run in parallel — use OTEL for deep local tracing, Sentry for production incident response.

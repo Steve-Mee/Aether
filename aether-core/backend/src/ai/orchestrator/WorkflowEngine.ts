@@ -12,17 +12,32 @@ export interface PolicyDecision {
 
 const TASK_TO_ACTION: Record<string, string> = {
   'mail.classify': 'email.auto_reply',
+  'mail.analyze': 'brain.recall',
   'supplier.sync': 'supplier.monitor',
+  'supplier.delegate': 'brain.recall',
+  'inventory.analyze': 'brain.recall',
+  'negotiation.delegate': 'negotiation.counter',
+  'physical.sync': 'brain.recall',
   'admin.command': 'admin.command',
   'pricing.adjust': 'price.change',
   'negotiation.step': 'negotiation.counter',
+  'brain.recall': 'brain.recall',
+  'brain.remember': 'brain.remember',
+  'insight.submit': 'insight.submit',
+  'knowledge.contribute': 'knowledge.contribute',
+  'knowledge.pull': 'knowledge.pull',
+  'knowledge.distill': 'knowledge.distill',
+  'knowledge.federate': 'knowledge.federate',
+  'knowledge.experiment.record': 'knowledge.experiment.record',
+  'command.brain.prepare': 'brain.recall',
 };
 
 export class PolicyEngine {
   evaluate(action: string, context: Record<string, unknown> = {}): PolicyDecision {
     const mapped = TASK_TO_ACTION[action] ?? action;
     const highRiskActions = ['payment.refund', 'code.apply', 'supplier.bulk_sync'];
-    const mediumRiskActions = ['email.auto_reply', 'price.change', 'negotiation.counter', 'admin.command', 'supplier.monitor'];
+    const mediumRiskActions = ['email.auto_reply', 'price.change', 'negotiation.counter', 'admin.command', 'supplier.monitor', 'insight.submit'];
+    const lowRiskActions = ['brain.recall', 'brain.remember', 'knowledge.pull', 'knowledge.contribute', 'knowledge.distill', 'knowledge.federate', 'knowledge.experiment.record', 'command.brain.prepare'];
 
     if (highRiskActions.includes(mapped)) {
       return { allowed: true, requiresApproval: true, riskClass: 'high', reason: 'High-risk action' };
@@ -33,6 +48,9 @@ export class PolicyEngine {
         return { allowed: true, requiresApproval: true, riskClass: 'medium', reason: 'Amount threshold exceeded' };
       }
       return { allowed: true, requiresApproval: false, riskClass: 'medium', reason: 'Medium-risk auto-allowed' };
+    }
+    if (lowRiskActions.includes(mapped)) {
+      return { allowed: true, requiresApproval: false, riskClass: 'low', reason: 'Low-risk brain action' };
     }
     return { allowed: true, requiresApproval: false, riskClass: 'low', reason: 'Low-risk action' };
   }

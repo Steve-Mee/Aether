@@ -9,7 +9,15 @@ import {
   isBlockedOutcomeSource,
 } from '../shared/outcomes/OutcomeVerificationService';
 import { orchestrator } from '../ai/orchestrator/Orchestrator';
+import { getCompositionRoot } from './compositionRoot';
+import { isSupplierPeerEnabled } from '../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
+import { isNegotiationAutoLoopEnabled } from '../ai/intelligence/multi-agent/supervisorConfig';
 import { merchantNotificationService } from '../shared/notifications/merchantNotificationService';
+import { DefaultContributionGate } from '../ai/intelligence/knowledge-transfer/contribution/DefaultContributionGate';
+import { registerProactiveEventHandlers } from '../ai/intelligence/proactive/proactiveEventHandlers';
+import { registerGoalEventHandlers } from '../ai/intelligence/goals/goalEventHandlers';
+
+const contributionGate = new DefaultContributionGate();
 
 async function auditEventAlreadyHandled(
   tenantId: string,
@@ -132,6 +140,54 @@ export function registerEventHandlers(): void {
         input: { supplierId, trigger: 'price_changed_event', change: event.payload.change },
       });
     }
+
+    if (
+      event.payload.autoApplied === true &&
+      (await contributionGate.canContribute(event.tenantId))
+    ) {
+      const change = event.payload.change as { type?: string } | undefined;
+      const category = change?.type === 'new_product' ? 'inventory' : 'pricing';
+      await orchestrator.execute({
+        tenantId: event.tenantId,
+        task: 'insight.submit',
+        input: {
+          insights: [
+            {
+              category,
+              metric: 'auto_apply_rate',
+              value: 1,
+              sampleSize: 1,
+            },
+          ],
+        },
+      });
+    }
+
+    if (
+      isSupplierPeerEnabled() &&
+      event.payload.autoApplied === true &&
+      event.payload.changePercent != null
+    ) {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (bridge?.isAvailable()) {
+        try {
+          await bridge.chainHandoff({
+            tenantId: event.tenantId,
+            fromAgentKey: 'supplier',
+            toAgentKey: 'pricing',
+            intent: 'PRICING_OPTIMIZE',
+            command: `Supplier ${supplierId} price change ${event.payload.changePercent}%`,
+            context: [],
+          });
+        } catch (err) {
+          logger.warn('supplier_peer_chain_failed', {
+            tenantId: event.tenantId,
+            supplierId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    }
   });
   markHandlerRegistered('supplier.price_changed');
 
@@ -141,6 +197,26 @@ export function registerEventHandlers(): void {
       emailId: event.payload.emailId,
       status: event.payload.status,
     });
+
+    if (
+      event.payload.autoSent === true &&
+      (await contributionGate.canContribute(event.tenantId))
+    ) {
+      await orchestrator.execute({
+        tenantId: event.tenantId,
+        task: 'insight.submit',
+        input: {
+          insights: [
+            {
+              category: 'conversion',
+              metric: 'mail_auto_reply_rate',
+              value: 1,
+              sampleSize: 1,
+            },
+          ],
+        },
+      });
+    }
   });
 
   eventBus.subscribe('supplier.sync_completed', async (event: DomainEventPayload) => {
@@ -161,8 +237,82 @@ export function registerEventHandlers(): void {
     logger.info('negotiation_updated', {
       tenantId: event.tenantId,
       negotiationId: event.payload.negotiationId,
+      decision: event.payload.decision,
+    });
+
+    if (!isNegotiationAutoLoopEnabled()) return;
+
+    const root = getCompositionRoot();
+    const orchestrator = root?.negotiationSessionOrchestrator;
+    const runId = String(event.payload.parentRunId ?? event.payload.runId ?? '');
+    const negotiationId = String(event.payload.negotiationId ?? '');
+    const offer = Number(event.payload.offer ?? event.payload.counterOffer ?? 0);
+
+    if (!orchestrator || !runId || !negotiationId || !Number.isFinite(offer) || offer <= 0) {
+      return;
+    }
+
+    try {
+      await orchestrator.runRound({
+        tenantId: event.tenantId,
+        runId,
+        negotiationId,
+        offer,
+        actorId: String(event.payload.actorId ?? 'negotiation-auto-loop'),
+      });
+    } catch (err) {
+      logger.warn('negotiation_auto_loop_failed', {
+        tenantId: event.tenantId,
+        negotiationId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  });
+  markHandlerRegistered('negotiation.updated');
+
+  eventBus.subscribe('agent.peer.notified', async (event: DomainEventPayload) => {
+    logger.info('agent_peer_notified', {
+      tenantId: event.tenantId,
+      sourceAgentKey: event.payload.sourceAgentKey,
+      targetAgentKey: event.payload.targetAgentKey,
+      intent: event.payload.intent,
+    });
+    if (merchantNotificationService.notifyHandoffCompleted) {
+      await merchantNotificationService.notifyHandoffCompleted({
+        tenantId: event.tenantId,
+        jobId: String(event.payload.correlationId ?? event.payload.parentRunId ?? 'notify'),
+        narrative: String(event.payload.summary ?? 'Agent notify message'),
+        success: true,
+      });
+    }
+  });
+  markHandlerRegistered('agent.peer.notified');
+
+  eventBus.subscribe('agent.peer.completed', async (event: DomainEventPayload) => {
+    logger.info('agent_peer_completed', {
+      tenantId: event.tenantId,
+      jobId: event.payload.jobId,
+      success: event.payload.success,
     });
   });
+  markHandlerRegistered('agent.peer.completed');
+
+  eventBus.subscribe('agent.handoff.completed', async (event: DomainEventPayload) => {
+    logger.info('agent_handoff_completed', {
+      tenantId: event.tenantId,
+      jobId: event.payload.jobId,
+      targetAgentKey: event.payload.targetAgentKey,
+    });
+    if (merchantNotificationService.notifyHandoffCompleted) {
+      await merchantNotificationService.notifyHandoffCompleted({
+        tenantId: event.tenantId,
+        jobId: String(event.payload.jobId ?? ''),
+        narrative: String(event.payload.narrative ?? ''),
+        success: event.payload.success !== false,
+      });
+    }
+  });
+  markHandlerRegistered('agent.handoff.completed');
 
   eventBus.subscribe('outcome.recorded', async (event: DomainEventPayload) => {
     logger.info('outcome_recorded', {
@@ -171,4 +321,8 @@ export function registerEventHandlers(): void {
       metric: event.payload.metric,
     });
   });
+  markHandlerRegistered('outcome.recorded');
+
+  registerProactiveEventHandlers();
+  registerGoalEventHandlers();
 }

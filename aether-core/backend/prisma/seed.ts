@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import path from 'path';
+import { hashPassword } from '../src/shared/auth/passwordService';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -34,13 +35,40 @@ async function main() {
     },
   });
 
-  await prisma.user.upsert({
-    where: { tenantId_email: { tenantId: tenant.id, email: 'admin@aether.local' } },
+  const seedPassword = process.env.AETHER_SEED_USER_PASSWORD ?? 'AetherDev2026!';
+  const passwordHash = await hashPassword(seedPassword);
+
+  const seedUsers = [
+    { email: 'admin@aether.local', role: 'admin' },
+    { email: 'ops@aether.local', role: 'operator' },
+    { email: 'view@aether.local', role: 'viewer' },
+  ] as const;
+
+  for (const u of seedUsers) {
+    await prisma.user.upsert({
+      where: { tenantId_email: { tenantId: tenant.id, email: u.email } },
+      update: { role: u.role, passwordHash },
+      create: {
+        tenantId: tenant.id,
+        email: u.email,
+        role: u.role,
+        passwordHash,
+      },
+    });
+  }
+
+  await prisma.tenantSettings.upsert({
+    where: { tenantId: tenant.id },
     update: {},
     create: {
       tenantId: tenant.id,
-      email: 'admin@aether.local',
-      role: 'admin',
+      notificationPrefs: {
+        autonomousLowRisk: { inApp: true, email: false },
+        highRiskApproval: { inApp: true, email: true },
+        supplierChanges: { inApp: true, email: false },
+        weeklyDigest: { inApp: true, email: true },
+        frequency: 'immediate',
+      },
     },
   });
 
@@ -66,8 +94,37 @@ async function main() {
           stock: 120,
           status: 'active',
         },
+        {
+          tenantId: tenant.id,
+          name: 'Wireless Earbuds Pro',
+          slug: 'wireless-earbuds-pro',
+          description: 'Premium noise-cancelling wireless earbuds',
+          price: 49.99,
+          stock: 85,
+          status: 'active',
+        },
       ],
     });
+  } else {
+    await prisma.product.upsert({
+      where: { tenantId_slug: { tenantId: tenant.id, slug: 'wireless-earbuds-pro' } },
+      update: {},
+      create: {
+        tenantId: tenant.id,
+        name: 'Wireless Earbuds Pro',
+        slug: 'wireless-earbuds-pro',
+        description: 'Premium noise-cancelling wireless earbuds',
+        price: 49.99,
+        stock: 85,
+        status: 'active',
+      },
+    });
+  }
+
+  if (process.env.SEED_SUPPLIER_DEMO === 'true') {
+    const { seedSupplierDemo } = await import('./seed-supplier-demo');
+    await seedSupplierDemo(prisma, tenant.id);
+    console.log('Supplier demo seed applied');
   }
 
   console.log('Seed complete:', { tenantId: tenant.id });

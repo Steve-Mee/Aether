@@ -17,16 +17,25 @@
 **/playwright-report/
 **/blob-report/
 **/playwright/.cache/
+**/*.spec.ts-snapshots/*-actual.png
+**/*.spec.ts-snapshots/*-diff.png
 
 ## Local CI debug logs (not release artifacts)
 test-ci-out*.txt
 **/test-ci-output.txt
+**/_test-explain-out.txt
 
 ## Environment and secrets
 **/.env
 **/.env.*
 !**/.env.example
 docker-compose.override.yml
+
+## Local Lighthouse / bundle analysis artifacts
+**/.lighthouse-*.json
+**/lighthouse-insights.json
+**/*.report.html
+**/stats.html
 
 ## Local databases and Prisma runtime artifacts
 **/*.db
@@ -40,6 +49,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+## Local AI tool overrides (canonical skills live in project-dna/)
+.grok/
+
+## Local intelligence runtime data (LanceDB, LoRA artifacts)
+aether-core/backend/data/
 
 ## OS/editor files
 .DS_Store

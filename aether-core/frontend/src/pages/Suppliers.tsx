@@ -1,140 +1,131 @@
-import { useState } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
 import React from 'react';
-import { apiFetch, SupplierChangeRow } from '../lib/api';
-import { useAsyncData } from '../lib/useAsyncData';
-import FeatureStatusFromTruth from '../components/FeatureStatusFromTruth';
-import AsyncBoundary from '../components/ui/AsyncBoundary';
-import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import EmptyState from '../components/ui/EmptyState';
-import { formatDate } from '../lib/i18n';
-
-interface SupplierRow {
-  id: string;
-  name: string;
-  website: string;
-}
+import { Plus, Truck } from 'lucide-react';
+import {
+  AsyncBoundary,
+  Button,
+  EmptyState,
+  ModuleListPageSkeleton,
+  TextField,
+} from '@/components/ui';
+import SuppliersPageHeader from '@/components/suppliers-page/SuppliersPageHeader';
+import SuppliersOverviewMetrics from '@/components/suppliers-page/SuppliersOverviewMetrics';
+import SuppliersToolbar from '@/components/suppliers-page/SuppliersToolbar';
+import SuppliersListSection from '@/components/suppliers-page/SuppliersListSection';
+import SupplierDetailSheet from '@/components/suppliers-page/SupplierDetailSheet';
+import ModulePageLayout from '@/components/shell/ModulePageLayout';
+import { useSuppliersPage } from '@/features/suppliers';
+import { t } from '@/lib/i18n';
 
 export default function Suppliers() {
-  const [name, setName] = useState('');
-  const [website, setWebsite] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [monitoring, setMonitoring] = useState<string | null>(null);
-
-  const { data: suppliers, error, loading, reload } = useAsyncData(() =>
-    apiFetch<SupplierRow[]>('/api/suppliers')
-  );
-
-  const { data: changes, reload: reloadChanges } = useAsyncData(() =>
-    apiFetch<SupplierChangeRow[]>('/api/suppliers/changes?status=pending')
-  );
-
-  const createSupplier = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !website.trim()) return;
-    setCreating(true);
-    try {
-      await apiFetch('/api/suppliers', {
-        method: 'POST',
-        body: JSON.stringify({ name: name.trim(), website: website.trim() }),
-      });
-      setName('');
-      setWebsite('');
-      reload();
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const monitor = async (id: string) => {
-    setMonitoring(id);
-    try {
-      await apiFetch(`/api/suppliers/${id}/monitor`, { method: 'POST', body: JSON.stringify({}) });
-      reloadChanges();
-    } finally {
-      setMonitoring(null);
-    }
-  };
+  const page = useSuppliersPage();
 
   return (
-    <div>
-      <div className="flex items-center gap-3 mb-8">
-        <h1 className="text-4xl font-semibold tracking-tight">Suppliers</h1>
-        <FeatureStatusFromTruth featureKey="supplier-intelligence" />
+    <ModulePageLayout
+      testId="suppliers-page"
+      header={<SuppliersPageHeader pendingChangeCount={page.pendingChangeCount} />}
+      loading={false}
+      error={null}
+      wrapAsync={false}
+    >
+      <SuppliersOverviewMetrics stats={page.viewModel.stats} />
+
+      <SuppliersToolbar
+        activeTab={page.statusTab}
+        onTabChange={page.setStatusTab}
+        searchQuery={page.searchQuery}
+        onSearchChange={page.setSearchQuery}
+      />
+
+      <div className="flex justify-end mb-4 -mt-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => page.setShowAddForm(!page.showAddForm)}
+          data-testid="suppliers-add-toggle"
+        >
+          <Plus size={14} className="mr-1" />
+          {t('suppliers.add.toggle')}
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <Card padding="lg">
-          <h2 className="font-medium mb-4 flex items-center gap-2">
-            <Plus size={18} className="text-purple-400" />
-            Leverancier toevoegen
-          </h2>
-          <form onSubmit={createSupplier} className="space-y-3">
-            <input
-              type="text"
-              placeholder="Naam"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-[var(--color-bg)] border border-[var(--color-border-subtle)] rounded-lg px-3 py-2 text-sm"
-              aria-label="Leverancier naam"
-            />
-            <input
-              type="url"
-              placeholder="https://..."
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              className="w-full bg-[var(--color-bg)] border border-[var(--color-border-subtle)] rounded-lg px-3 py-2 text-sm"
-              aria-label="Website URL"
-            />
-            <button type="submit" disabled={creating} className="px-4 py-2 rounded-lg bg-purple-600 text-sm font-medium disabled:opacity-50">
-              Toevoegen
-            </button>
-          </form>
-        </Card>
-
-        <Card padding="lg">
-          <h2 className="font-medium mb-4">Pending wijzigingen</h2>
-          {!changes || changes.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-subtle)]">Geen openstaande supplier diffs.</p>
-          ) : (
-            <ul className="space-y-2 max-h-48 overflow-auto">
-              {changes.map((c) => (
-                <li key={c.id} className="text-sm border border-[var(--color-border-subtle)] rounded-lg p-3">
-                  <p className="font-medium">{c.changeType}</p>
-                  <p className="text-[var(--color-text-subtle)] text-xs">{formatDate(c.createdAt)}</p>
-                </li>
-              ))}
-            </ul>
+      {page.showAddForm && (
+        <form
+          onSubmit={page.createSupplier}
+          className="rounded-xl border border-border/40 bg-card/30 p-aether-6 space-y-3 motion-safe:animate-fade-in"
+          data-testid="suppliers-add-form"
+          aria-describedby={page.addFormError ? 'suppliers-add-error' : undefined}
+        >
+          {page.addFormError && (
+            <p id="suppliers-add-error" role="alert" className="text-sm text-destructive">
+              {page.addFormError}
+            </p>
           )}
-        </Card>
-      </div>
+          <TextField
+            value={page.newName}
+            onChange={(e) => page.setNewName(e.target.value)}
+            placeholder={t('suppliers.add.name')}
+            aria-label={t('suppliers.add.name')}
+            aria-invalid={page.addFormError ? true : undefined}
+          />
+          <TextField
+            type="url"
+            value={page.newWebsite}
+            onChange={(e) => page.setNewWebsite(e.target.value)}
+            placeholder={t('suppliers.add.website')}
+            aria-label={t('suppliers.add.website')}
+            aria-invalid={page.addFormError ? true : undefined}
+          />
+          <Button type="submit" variant="primary" size="sm" disabled={page.creating}>
+            {t('suppliers.add.submit')}
+          </Button>
+        </form>
+      )}
 
-      <AsyncBoundary loading={loading} error={error} onRetry={reload}>
-        {!suppliers || suppliers.length === 0 ? (
-          <EmptyState title="Geen leveranciers" description="Voeg een leverancier toe om monitoring te starten." />
+      <AsyncBoundary
+        loading={page.loading}
+        error={page.error}
+        onRetry={page.reload}
+        skeleton={<ModuleListPageSkeleton />}
+      >
+        {page.filteredSuppliers.length === 0 ? (
+          <EmptyState
+            variant="premium"
+            title={
+              page.statusTab === 'recent'
+                ? t('suppliers.empty.recent.title')
+                : page.searchQuery.trim()
+                  ? t('suppliers.empty.search.title')
+                  : t('suppliers.empty.title')
+            }
+            description={
+              page.statusTab === 'recent'
+                ? t('suppliers.empty.recent.description')
+                : page.searchQuery.trim()
+                  ? t('suppliers.empty.search.description')
+                  : t('suppliers.empty.description')
+            }
+            icon={<Truck size={32} />}
+          />
         ) : (
-          <div className="space-y-3">
-            {suppliers.map((s) => (
-              <Card key={s.id} padding="md" className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <p className="font-medium">{s.name}</p>
-                  <p className="text-sm text-[var(--color-text-muted)]">{s.website}</p>
-                </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={monitoring === s.id}
-                  onClick={() => monitor(s.id)}
-                >
-                  <RefreshCw size={14} className={`inline mr-1 ${monitoring === s.id ? 'animate-spin' : ''}`} />
-                  Monitor
-                </Button>
-              </Card>
-            ))}
-          </div>
+          <SuppliersListSection
+            suppliers={page.filteredSuppliers}
+            onOpen={page.openSupplier}
+            highlightedSupplierId={page.highlightedSupplierId}
+          />
         )}
       </AsyncBoundary>
-    </div>
+
+      <SupplierDetailSheet
+        detail={page.detail}
+        loading={page.detailLoading}
+        open={page.selectedId != null}
+        monitoring={page.monitoringId === page.selectedId}
+        onClose={page.closeDetail}
+        onSync={() => page.selectedId && void page.monitor(page.selectedId)}
+        onAutoSyncChange={(enabled) =>
+          page.selectedId && void page.setAutoSync(page.selectedId, enabled)
+        }
+      />
+    </ModulePageLayout>
   );
 }

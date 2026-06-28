@@ -1,42 +1,24 @@
-const API_URL = import.meta.env.VITE_API_URL || '';
-const API_KEY = import.meta.env.VITE_AETHER_API_KEY || 'dev-api-key-change-in-production';
-const TENANT = import.meta.env.VITE_AETHER_TENANT || 'tenant_default';
-
-function authHeaders(): Record<string, string> {
-  return {
-    'Content-Type': 'application/json',
-    'X-Aether-Api-Key': API_KEY,
-    'X-Aether-Tenant-Id': TENANT,
-  };
-}
-
-export async function apiStreamFetch(path: string, signal?: AbortSignal): Promise<Response> {
-  return fetch(`${API_URL}${path}`, {
-    headers: {
-      'X-Aether-Api-Key': API_KEY,
-      'X-Aether-Tenant-Id': TENANT,
-      Accept: 'text/event-stream',
-    },
-    signal,
-  });
-}
-
-export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      ...authHeaders(),
-      ...(options.headers || {}),
-    },
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `API error ${res.status}`);
-  }
-
-  return res.json() as Promise<T>;
-}
+/** @deprecated Import from '@/lib/api' — kept for backward compatibility. */
+export {
+  apiFetch,
+  apiStreamFetch,
+  getApiConfig,
+  setAuthToken,
+  setAuthTenantId,
+  getAuthTenantId,
+  setOnUnauthorized,
+  apiRoutes,
+  type ApiClientOptions,
+} from './api/index';
+export {
+  ApiError,
+  NetworkError,
+  isApiError,
+  isNetworkError,
+  classifyError,
+  toUserMessage,
+  type ErrorKind,
+} from './api/errors';
 
 export type FeatureStatus = 'live' | 'partial' | 'experimental';
 
@@ -79,8 +61,12 @@ export interface DashboardSummary {
   timeSavedMinutes7d?: number;
   nlActionShare7d?: number;
   autonomousActions7d?: number;
+  lowRiskAutonomous24h?: number;
   commands7d?: number;
   manualNavEvents7d?: number;
+  tenantDisplayName?: string;
+  timestamp?: string;
+  proactiveCount?: number;
 }
 
 export interface BillingSummary {
@@ -115,6 +101,27 @@ export interface TenantApprovalPolicy {
   enabled: boolean;
 }
 
+export type {
+  AutonomyLevel,
+  AutoRunWindow,
+  Locale,
+  NotificationFrequency,
+  NotificationChannelPrefs,
+  NotificationPrefs,
+  MerchantSettings,
+} from './settings/merchantSettingsTypes';
+
+export { DEFAULT_MERCHANT_SETTINGS } from './settings/merchantSettingsTypes';
+
+export interface ConnectedService {
+  id: string;
+  name: string;
+  type: 'email' | 'supplier' | 'payment';
+  status: 'connected' | 'disconnected' | 'error' | 'demo';
+  lastSyncAt: string | null;
+  detail?: string;
+}
+
 export interface EmailDetail {
   id: string;
   from: string;
@@ -136,3 +143,9 @@ export interface SupplierChangeRow {
   status: string;
   createdAt: string;
 }
+
+export type {
+  SupplierOverviewApiResponse,
+  SupplierDetail,
+  SupplierListItem,
+} from '@/types/supplier';

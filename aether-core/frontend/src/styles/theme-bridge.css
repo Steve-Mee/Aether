@@ -1,0 +1,34 @@
+/**
+ * Maps AETHER semantic tokens to shadcn HSL variables.
+ * Edit tokens.css for merchant-facing color changes; bridge keeps both stacks in sync.
+ */
+:root {
+  --background: 240 10% 4%;
+  --foreground: 0 0% 98%;
+  --card: 240 6% 10%;
+  --card-foreground: 0 0% 98%;
+  --primary: 263 70% 58%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 4% 16%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 4% 16%;
+  --muted-foreground: 240 5% 76%;
+  --caption-foreground: 240 5% 76%;
+  --primary-readable: 263 45% 78%;
+  --accent: 263 70% 58%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 4% 20%;
+  --input: 240 4% 16%;
+  --ring: 263 70% 58%;
+  --radius: var(--radius-md);
+
+  /* Semantic status colors for Tailwind */
+  --success: 160 84% 39%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 0%;
+  --danger: 0 84% 60%;
+  --danger-foreground: 0 0% 98%;
+}

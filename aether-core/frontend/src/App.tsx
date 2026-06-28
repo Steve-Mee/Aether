@@ -1,66 +1,184 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
-import Layout from './components/Layout';
+
+import { Suspense } from 'react';
+
+import { QueryClientProvider } from '@tanstack/react-query';
+
+import AppShell from './components/AppShell';
+
+import OverviewLayout from './components/layouts/OverviewLayout';
+
+import DeepModuleLayout from './components/layouts/DeepModuleLayout';
+
+import SettingsLayout from './components/layouts/SettingsLayout';
+
+import RouteFallback from './components/navigation/RouteFallback';
+
+import ErrorBoundary from './components/ErrorBoundary';
+import { AppErrorShell } from './components/AppErrorShell';
+import { useNavigate } from 'react-router-dom';
+
 import NavigationTelemetryBridge from './components/NavigationTelemetryBridge';
+import ObservabilityBridge from './components/ObservabilityBridge';
+
+import NavigationBridge from './components/NavigationBridge';
+
+import QueryInvalidationBridge from './lib/query/QueryInvalidationBridge';
+
 import { CommandProvider } from './lib/CommandContext';
+
 import { DashboardProvider } from './lib/DashboardContext';
-import Skeleton from './components/ui/Skeleton';
+
+import { NotificationProvider } from './lib/notifications/NotificationContext';
+
+import { MerchantSettingsProvider } from './lib/settings/MerchantSettingsContext';
+
+import { LocaleProvider } from './lib/settings/LocaleProvider';
+
+import { RouteContextProvider } from './lib/RouteContext';
+
+import { AuthProvider } from './lib/auth/AuthProvider';
+
+import { GuestOnlyRoute } from './lib/auth/GuestOnlyRoute';
+
+import { ProtectedRoute } from './lib/auth/ProtectedRoute';
+
+import { LOGIN_PATH } from './lib/auth/adapters/stubAuthAdapter';
+
+import { queryClient } from './lib/query/client';
+
+import { env } from './lib/config';
+
+import {
+  getLazyPage,
+  getRedirectRoutes,
+  getRoutesByLayout,
+  notFoundPage,
+  type AppRouteDefinition,
+  type RouteLayout,
+} from './lib/navigation/appRoutes';
+
+import LiveDemoOrchestrator from './lib/liveDemo/LiveDemoOrchestrator';
+import { LiveAnnouncerProvider } from './components/a11y/LiveAnnouncer';
+
+import { Toaster } from '@/components/ui';
+
 import React from 'react';
 
-const CommandCenterPage = lazy(() => import('./pages/CommandCenterPage'));
-const ActionTimeline = lazy(() => import('./pages/ActionTimeline'));
-const Workstream = lazy(() => import('./pages/Workstream'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Products = lazy(() => import('./pages/Products'));
-const Orders = lazy(() => import('./pages/Orders'));
-const Emails = lazy(() => import('./pages/Emails'));
-const Suppliers = lazy(() => import('./pages/Suppliers'));
-const Autonomous = lazy(() => import('./pages/Autonomous'));
-const Approvals = lazy(() => import('./pages/Approvals'));
-const Insights = lazy(() => import('./pages/Insights'));
-const Negotiations = lazy(() => import('./pages/Negotiations'));
-const Outcomes = lazy(() => import('./pages/Outcomes'));
-const Settings = lazy(() => import('./pages/Settings'));
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 
-function PageLoader() {
+const ReactQueryDevtools = React.lazy(() =>
+  import('@tanstack/react-query-devtools').then((m) => ({
+    default: m.ReactQueryDevtools,
+  })),
+);
+
+function RoutePageWithBoundary({ Page }: { Page: React.ComponentType<object> }) {
+  const navigate = useNavigate();
   return (
-    <div className="space-y-4 p-4">
-      <Skeleton className="h-10 w-64" />
-      <Skeleton className="h-48 w-full" />
-    </div>
+    <ErrorBoundary name="module" onGoHome={() => navigate('/command-center')}>
+      <Page />
+    </ErrorBoundary>
+  );
+}
+
+function renderLayoutRoutes(layout: RouteLayout) {
+  return getRoutesByLayout(layout).map((route: AppRouteDefinition) => {
+    const Page = getLazyPage(route.path);
+
+    if (!Page) return null;
+
+    return (
+      <Route key={route.path} path={route.path} element={<RoutePageWithBoundary Page={Page} />} />
+    );
+  });
+}
+
+function AppRoutes() {
+  const redirects = getRedirectRoutes();
+
+  const NotFound = notFoundPage;
+
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
+        <Route element={<GuestOnlyRoute />}>
+          <Route
+            path={LOGIN_PATH}
+            element={
+              <ErrorBoundary name="login">
+                <LoginPage />
+              </ErrorBoundary>
+            }
+          />
+        </Route>
+
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route element={<OverviewLayout />}>{renderLayoutRoutes('overview')}</Route>
+
+            <Route element={<DeepModuleLayout />}>{renderLayoutRoutes('deep')}</Route>
+
+            <Route element={<SettingsLayout />}>{renderLayoutRoutes('settings')}</Route>
+
+            {redirects.map((route) => (
+              <Route
+                key={route.path}
+                path={route.path}
+                element={<Navigate to={route.redirectTo!} replace />}
+              />
+            ))}
+
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Route>
+      </Routes>
+    </Suspense>
   );
 }
 
 function App() {
   return (
     <Router>
-      <NavigationTelemetryBridge />
-      <CommandProvider>
-        <DashboardProvider>
-        <Layout>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<CommandCenterPage />} />
-              <Route path="/workstream" element={<Workstream />} />
-              <Route path="/timeline" element={<ActionTimeline />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/cockpit" element={<Navigate to="/" replace />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/emails" element={<Emails />} />
-              <Route path="/suppliers" element={<Suppliers />} />
-              <Route path="/autonomous" element={<Autonomous />} />
-              <Route path="/approvals" element={<Approvals />} />
-              <Route path="/insights" element={<Insights />} />
-              <Route path="/negotiations" element={<Negotiations />} />
-              <Route path="/history" element={<Navigate to="/timeline" replace />} />
-              <Route path="/outcomes" element={<Outcomes />} />
-              <Route path="/settings" element={<Settings />} />
-            </Routes>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <RouteContextProvider>
+            <NavigationTelemetryBridge />
+
+            <ObservabilityBridge />
+
+            <NavigationBridge />
+
+            <QueryInvalidationBridge />
+
+            <MerchantSettingsProvider>
+              <LocaleProvider>
+                <NotificationProvider>
+                  <LiveAnnouncerProvider>
+                    <LiveDemoOrchestrator />
+
+                    <CommandProvider>
+                      <DashboardProvider>
+                        <AppErrorShell>
+                          <AppRoutes />
+                        </AppErrorShell>
+
+                        <Toaster />
+                      </DashboardProvider>
+                    </CommandProvider>
+                  </LiveAnnouncerProvider>
+                </NotificationProvider>
+              </LocaleProvider>
+            </MerchantSettingsProvider>
+          </RouteContextProvider>
+        </AuthProvider>
+
+        {env.isDev && (
+          <Suspense fallback={null}>
+            <ReactQueryDevtools initialIsOpen={false} />
           </Suspense>
-        </Layout>
-        </DashboardProvider>
-      </CommandProvider>
+        )}
+      </QueryClientProvider>
     </Router>
   );
 }

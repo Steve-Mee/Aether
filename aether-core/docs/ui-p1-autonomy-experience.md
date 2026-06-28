@@ -28,7 +28,7 @@ Each item renders as `OutcomeStreamItem` with:
 
 ## P1.2 Explainability-First UX
 
-**Component:** `components/ExplainDrawer.tsx`
+**Component:** `components/explainability/AgentExplainabilitySheet.tsx`
 
 Consumes `GET /api/admin/explain?entityType=approval|email&entityId=`
 

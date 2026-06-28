@@ -48,9 +48,28 @@ If any document conflicts with runtime evidence, **runtime wins**.
 | AETHER Mail | Ollama path for classification; heuristic = escalation only | Partial — Ollama optional |
 | Admin Command | Ollama parser with regex fallback | Partial |
 | Supplier Intelligence | Scraping + rules; LLM optional | Implemented (non-LLM) |
+
+**Suppliers UI (`/suppliers`):** Run `npx prisma migrate deploy` in `backend/` (adds `status`, `autoSyncEnabled`, `supplierType`). Optional demo data: `SEED_SUPPLIER_DEMO=true npx prisma db seed`. Overview API: `GET /api/suppliers/overview`. Frontend demo overlay: `VITE_SUPPLIERS_DEMO=true` only for empty API or forced staging.
 | Agentic Commerce | LLM behind `AGENTIC_LLM_ENABLED` | Partial |
 
 **Hard default:** `OLLAMA_BASE_URL` must be reachable in docker-compose stack. CI validates contract via health check.
+
+---
+
+## Observability (Sentry)
+
+**Runtime:** Frontend and backend error monitoring via Sentry. OpenTelemetry runs in parallel for local/Jaeger tracing — not replaced.
+
+| Layer | Entry point | Env (staging/production) |
+|-------|-------------|--------------------------|
+| Frontend | `frontend/src/lib/observability/errorReporter.ts` | `VITE_SENTRY_DSN`, `VITE_SENTRY_ENV`, `VITE_APP_VERSION` |
+| Backend | `backend/src/shared/observability/sentry.ts` | `SENTRY_DSN`, `SENTRY_ENV`, `APP_VERSION` |
+
+- Disabled in development unless `VITE_SENTRY_DEV=true` / `SENTRY_DEV=true`
+- Business events: `frontend/src/lib/observability/businessEvents.ts` (16 event types)
+- Distributed tracing: `sentry-trace` + `baggage` headers from frontend `apiFetch` to backend `tracingMiddleware`
+- CI sourcemap upload: GitHub secrets `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `VITE_SENTRY_DSN`
+- Verification runbook: [`observability-runbook.md`](./observability-runbook.md)
 
 ---
 

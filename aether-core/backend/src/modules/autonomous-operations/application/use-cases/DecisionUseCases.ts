@@ -2,6 +2,9 @@ import { requireTenantId } from '../../../../shared/tenant/tenantContext';
 import { writeAuditLog } from '../../../../shared/audit/auditService';
 import { eventBus } from '../../../../shared/events/eventBus';
 import { DecisionRepository } from '../../domain/repositories/DecisionRepository';
+import type { PeerDelegationBridge } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
+import { isAutonomyPeerEnabled } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
+import { AUTONOMY_AGENT_KEY } from '../../../../ai/intelligence/multi-agent/agents/AutonomyAgent';
 
 export class ListDecisionsUseCase {
   constructor(private repository: DecisionRepository) {}
@@ -22,7 +25,10 @@ export class GetDecisionUseCase {
 }
 
 export class CreateDecisionUseCase {
-  constructor(private repository: DecisionRepository) {}
+  constructor(
+    private repository: DecisionRepository,
+    private peerBridge?: PeerDelegationBridge
+  ) {}
 
   async execute(
     data: { type: string; result: string; rationale?: string },
@@ -48,6 +54,23 @@ export class CreateDecisionUseCase {
       type: 'decision.executed',
       payload: { decisionId: decision.id, type: data.type },
     });
+
+    if (isAutonomyPeerEnabled() && this.peerBridge?.isAvailable()) {
+      try {
+        await this.peerBridge.runSpecialist({
+          tenantId: tid,
+          agentKey: AUTONOMY_AGENT_KEY,
+          intent: 'AUTONOMOUS_ROUTE',
+          command: `Autonomous decision ${data.type}: ${data.result}`,
+          contextSnippets: [],
+          handlerResult: data.rationale ?? data.result,
+          actorId: ctx.actorId,
+        });
+      } catch {
+        // Best-effort autonomy peer
+      }
+    }
+
     return decision;
   }
 }

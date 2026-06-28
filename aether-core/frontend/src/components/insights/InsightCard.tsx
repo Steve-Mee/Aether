@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
 import React from 'react';
 import type { ProposedInsight } from '../../lib/insightComposer';
-import Card from '../ui/Card';
-import ConfidenceBadge from '../ui/ConfidenceBadge';
-import Button from '../ui/Button';
+import { Card } from '@/components/ui';
+import { ConfidenceBadge } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { t } from '../../lib/i18n';
 
 interface InsightCardProps {
@@ -14,9 +14,9 @@ interface InsightCardProps {
 }
 
 const severityBorder: Record<ProposedInsight['severity'], string> = {
-  action: 'border-[var(--color-danger)]/30',
-  warning: 'border-[var(--color-warning)]/30',
-  info: 'border-[var(--color-border-subtle)]',
+  action: 'border-destructive/30',
+  warning: 'border-warning/30',
+  info: 'border-border/40',
 };
 
 export default function InsightCard({ insight, onExecute, onSnooze, loading }: InsightCardProps) {
@@ -28,11 +28,14 @@ export default function InsightCard({ insight, onExecute, onSnooze, loading }: I
         : t('cockpit.view');
 
   return (
-    <Card padding="sm" className={`${severityBorder[insight.severity]} hover:border-[var(--color-accent)]/40 transition-colors`}>
+    <Card
+      padding="sm"
+      className={`${severityBorder[insight.severity]} hover:border-primary/40 transition-colors`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-[var(--color-text)]">{insight.title}</p>
-          <p className="text-xs text-[var(--color-text-muted)] mt-1">{insight.detail}</p>
+          <p className="text-sm font-medium text-foreground">{insight.title}</p>
+          <p className="text-xs text-muted-foreground mt-1">{insight.detail}</p>
         </div>
         <ConfidenceBadge confidence={insight.confidence} />
       </div>
@@ -46,7 +49,7 @@ export default function InsightCard({ insight, onExecute, onSnooze, loading }: I
           </Button>
         )}
         {insight.href && (
-          <Link to={insight.href} className="text-xs text-[var(--color-intent)] hover:underline">
+          <Link to={insight.href} className="text-xs text-primary/80 hover:underline">
             {t('cockpit.view')}
           </Link>
         )}

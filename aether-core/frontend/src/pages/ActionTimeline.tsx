@@ -1,117 +1,122 @@
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import React from 'react';
-import { apiFetch } from '../lib/api';
-import { useAsyncData } from '../lib/useAsyncData';
-import { useCommand } from '../lib/CommandContext';
-import { formatDate, t } from '../lib/i18n';
-import AsyncBoundary from '../components/ui/AsyncBoundary';
-import Card from '../components/ui/Card';
-import { ConfidenceChip } from '../components/ui/RiskBadge';
-import EmptyStatePremium from '../components/ui/EmptyStatePremium';
-import { Sparkles } from 'lucide-react';
-import type { CommandResult } from '../lib/CommandContext';
+import React, { useMemo, useState } from 'react';
+import { History } from 'lucide-react';
+import ActivityPageHeader from '@/components/activity-page/ActivityPageHeader';
+import ActivityPeriodToolbar from '@/components/activity-page/ActivityPeriodToolbar';
+import ActivityFilterBar from '@/components/activity-page/ActivityFilterBar';
+import ActivityList from '@/components/activity-page/ActivityList';
+import ActivityDetailSheet from '@/components/activity-page/ActivityDetailSheet';
+import AgentExplainabilitySheet from '@/components/explainability/AgentExplainabilitySheet';
+import ModulePageLayout from '@/components/shell/ModulePageLayout';
+import { useActivityPage } from '@/hooks/useActivityPage';
+import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
+import { ActivityPageSkeleton, AsyncBoundary, EmptyState } from '@/components/ui';
+import { t } from '@/lib/i18n';
+import type { ActivityFilters, ActivityItem } from '@/types/activity';
+import type { ExplainEntityType } from '@/types/explainability';
 
-interface ServerCommand {
-  id: string;
-  command: string;
-  result: string | null;
-  intent: string | null;
-  confidence: number | null;
-  createdAt: string;
-}
-
-interface TimelineEntry {
-  id: string;
-  source: 'session' | 'server';
-  label: string;
-  detail: string;
-  at: string;
-  confidence?: number;
+function hasActiveFilters(filters: ActivityFilters): boolean {
+  return (
+    filters.category !== 'all' ||
+    filters.risk !== 'all' ||
+    filters.executor !== 'all' ||
+    filters.status !== 'all' ||
+    filters.agentKey !== 'all' ||
+    filters.module !== 'all' ||
+    filters.executionMode !== 'all' ||
+    filters.searchQuery.trim().length > 0
+  );
 }
 
 export default function ActionTimeline() {
-  const { history, openPalette } = useCommand();
-  const { data: serverCommands, error, loading, reload } = useAsyncData(() =>
-    apiFetch<{ commands: ServerCommand[] }>('/api/admin/commands').then((r) => r.commands)
+  const page = useActivityPage();
+  const { settings } = useMerchantSettings();
+  const [explainItem, setExplainItem] = useState<ActivityItem | null>(null);
+  const showInlineExplain = settings.explainabilityPrefs.detailLevel !== 'off';
+  const filteredEmpty = useMemo(
+    () => page.filtered.length === 0 && hasActiveFilters(page.filters),
+    [page.filtered.length, page.filters],
   );
 
-  const entries = useMemo(() => {
-    const list: TimelineEntry[] = [];
-
-    for (const h of history as CommandResult[]) {
-      list.push({
-        id: `local-${h.timestamp ?? h.result}`,
-        source: 'session',
-        label: h.originalCommand ?? h.parsedIntent,
-        detail: h.result,
-        at: h.timestamp ?? new Date().toISOString(),
-        confidence: h.confidence,
-      });
-    }
-
-    for (const c of serverCommands ?? []) {
-      list.push({
-        id: `server-${c.id}`,
-        source: 'server',
-        label: c.intent ? `${c.intent}: ${c.command}` : c.command,
-        detail: c.result ?? '—',
-        at: c.createdAt,
-        confidence: c.confidence ?? undefined,
-      });
-    }
-
-    return list.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-  }, [history, serverCommands]);
-
   return (
-    <div className="max-w-3xl">
-      <h1 className="text-4xl font-semibold tracking-tight mb-2 text-[var(--color-text)]">{t('nav.timeline')}</h1>
-      <p className="text-[var(--color-text-muted)] mb-8">
-        Gecombineerde command- en actiegeschiedenis — intent-first overzicht.
-      </p>
+    <ModulePageLayout
+      testId="activity-page"
+      maxWidth="4xl"
+      header={
+        <ActivityPageHeader
+          autonomousCount={page.stats.autonomous}
+          approvedCount={page.stats.approved}
+          feedSource={page.merged.source}
+        />
+      }
+      loading={false}
+      error={null}
+      wrapAsync={false}
+    >
+      <ActivityPeriodToolbar
+        period={page.period}
+        onPeriodChange={page.setPeriod}
+        customRange={page.customRange}
+        onCustomRangeChange={page.setCustomRange}
+      />
 
-      <AsyncBoundary loading={loading} error={error} onRetry={reload}>
-        {entries.length === 0 ? (
-          <EmptyStatePremium
-            title="Nog geen acties"
-            description="Start met een natuurlijk taal commando."
-            actionLabel={t('command.palette.title')}
-            onAction={openPalette}
-            icon={<Sparkles size={32} />}
-          />
+      <ActivityFilterBar
+        filters={page.filters}
+        onSearchChange={(q) => page.updateFilter('searchQuery', q)}
+        onCategoryChange={(c) => page.updateFilter('category', c)}
+        onRiskChange={(r) => page.updateFilter('risk', r)}
+        onExecutorChange={(e) => page.updateFilter('executor', e)}
+        onStatusChange={(s) => page.updateFilter('status', s)}
+        onAgentChange={(a) => page.updateFilter('agentKey', a)}
+        onModuleChange={(m) => page.updateFilter('module', m)}
+        onExecutionModeChange={(m) => page.updateFilter('executionMode', m)}
+      />
+
+      <AsyncBoundary
+        loading={page.loading}
+        error={page.error}
+        onRetry={page.reload}
+        skeleton={<ActivityPageSkeleton />}
+      >
+        {page.filtered.length === 0 ? (
+          <div data-testid="activity-list">
+            <EmptyState
+              variant="premium"
+              title={filteredEmpty ? t('activity.empty.filtered.title') : t('activity.empty.title')}
+              description={
+                filteredEmpty
+                  ? t('activity.empty.filtered.description')
+                  : t('activity.empty.description')
+              }
+              actionLabel={filteredEmpty ? t('activity.empty.clearFilters') : undefined}
+              onAction={filteredEmpty ? page.clearFilters : undefined}
+              icon={<History size={32} />}
+            />
+          </div>
         ) : (
-          <ul className="space-y-3">
-            {entries.map((entry) => (
-              <li key={entry.id}>
-                <Card padding="md">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs uppercase tracking-wide text-[var(--color-text-subtle)]">
-                      {entry.source === 'session' ? 'Sessie' : 'Server'}
-                    </span>
-                    <span className="text-xs text-[var(--color-text-subtle)] ml-auto">
-                      {formatDate(entry.at)}
-                    </span>
-                  </div>
-                  <p className="text-sm font-medium text-[var(--color-text)] mt-2">{entry.label}</p>
-                  <p className="text-sm text-[var(--color-text-muted)] mt-1">{entry.detail}</p>
-                  {entry.confidence != null && (
-                    <div className="mt-2">
-                      <ConfidenceChip confidence={entry.confidence} />
-                    </div>
-                  )}
-                </Card>
-              </li>
-            ))}
-          </ul>
+          <ActivityList
+            groups={page.groups}
+            onSelect={(id) => page.setSelectedId(id)}
+            showInlineExplain={showInlineExplain}
+            onExplain={setExplainItem}
+          />
         )}
       </AsyncBoundary>
 
-      <p className="text-sm text-[var(--color-text-subtle)] mt-6">
-        <Link to="/workstream" className="text-[var(--color-intent)] hover:underline">
-          {t('workstream.title')}
-        </Link>
-      </p>
-    </div>
+      <ActivityDetailSheet
+        item={page.selected}
+        open={page.selectedId != null}
+        onClose={() => page.setSelectedId(null)}
+      />
+
+      {explainItem && (
+        <AgentExplainabilitySheet
+          entityType={explainItem.details?.explainabilitySourceType as ExplainEntityType}
+          entityId={String(explainItem.details?.explainabilitySourceId)}
+          title={explainItem.description}
+          open={Boolean(explainItem)}
+          onClose={() => setExplainItem(null)}
+        />
+      )}
+    </ModulePageLayout>
   );
 }

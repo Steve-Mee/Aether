@@ -18,6 +18,7 @@ export async function executeOrchestratorTask(
           emailId: ctx.input.emailId,
           category: ctx.input.category,
           status: email?.status,
+          autoSent: ctx.input.autoSent === true,
           executed: Boolean(email),
         };
       }
@@ -60,6 +61,96 @@ export async function executeOrchestratorTask(
       };
     }
 
+    case 'mail.analyze': {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (!bridge?.isAvailable()) {
+        return { executed: false, reason: 'peer bridge unavailable' };
+      }
+      const command = String(ctx.input.command ?? ctx.input.subject ?? 'email summary');
+      const result = await bridge.runSpecialist({
+        tenantId: ctx.tenantId,
+        agentKey: 'mail',
+        intent: 'EMAIL_SUMMARY',
+        command,
+        contextSnippets: [],
+        handlerResult: 'mail.analyze task',
+        actorId: ctx.actorId,
+      });
+      return { narrative: result.narrative, executed: true };
+    }
+
+    case 'supplier.delegate': {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (!bridge?.isAvailable()) {
+        return { executed: false, reason: 'peer bridge unavailable' };
+      }
+      const command = String(ctx.input.command ?? 'supplier price review');
+      const result = await bridge.chainHandoff({
+        tenantId: ctx.tenantId,
+        fromAgentKey: 'supplier',
+        toAgentKey: 'pricing',
+        intent: 'PRICING_OPTIMIZE',
+        command,
+        context: [],
+        actorId: ctx.actorId,
+      });
+      return { narrative: result.narrative, executed: true };
+    }
+
+    case 'inventory.analyze': {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (!bridge?.isAvailable()) {
+        return { executed: false, reason: 'peer bridge unavailable' };
+      }
+      const command = String(ctx.input.command ?? 'inventory status review');
+      const result = await bridge.runSpecialist({
+        tenantId: ctx.tenantId,
+        agentKey: 'inventory',
+        intent: 'INVENTORY_STATUS',
+        command,
+        contextSnippets: [],
+        handlerResult: 'inventory.analyze task',
+        actorId: ctx.actorId,
+      });
+      return { narrative: result.narrative, executed: true };
+    }
+
+    case 'negotiation.delegate': {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (!bridge?.isAvailable()) {
+        return { executed: false, reason: 'peer bridge unavailable' };
+      }
+      const command = String(ctx.input.command ?? 'negotiation margin review');
+      const result = await bridge.chainHandoff({
+        tenantId: ctx.tenantId,
+        fromAgentKey: 'pricing',
+        toAgentKey: 'supplier',
+        intent: 'PRICING_OPTIMIZE',
+        command,
+        context: [],
+        actorId: ctx.actorId,
+      });
+      return { narrative: result.narrative, executed: true };
+    }
+
+    case 'physical.sync': {
+      const bridge = getCompositionRoot().peerDelegationBridge;
+      if (!bridge?.isAvailable()) {
+        return { executed: false, reason: 'peer bridge unavailable' };
+      }
+      const shelfId = String(ctx.input.shelfId ?? 'unknown');
+      const result = await bridge.runSpecialist({
+        tenantId: ctx.tenantId,
+        agentKey: 'inventory',
+        intent: 'INVENTORY_STATUS',
+        command: `Physical shelf sync ${shelfId}`,
+        contextSnippets: [],
+        handlerResult: 'physical.sync task',
+        actorId: ctx.actorId,
+      });
+      return { narrative: result.narrative, executed: true };
+    }
+
     case 'admin.command': {
       if (ctx.input.intent) {
         return {
@@ -78,6 +169,114 @@ export async function executeOrchestratorTask(
         actorId: ctx.actorId,
       });
       return { ...result, executed: true };
+    }
+
+    case 'pricing.adjust': {
+      const productId = ctx.input.productId as string | undefined;
+      const percentage = ctx.input.percentage as number | undefined;
+      if (!productId || percentage == null) {
+        return { ...ctx.input, executed: false, reason: 'missing productId or percentage' };
+      }
+      const updated = await getCompositionRoot().adminData.updateProductPrices(
+        ctx.tenantId,
+        percentage
+      );
+      return { productId, percentage, updated, executed: true };
+    }
+
+    case 'brain.recall': {
+      const query = String(ctx.input.query ?? '');
+      if (!query) return { ...ctx.input, executed: false, reason: 'missing query' };
+      const agentKey = String(ctx.input.agentKey ?? 'admin');
+      const recall = await getCompositionRoot().personalBrainRegistry
+        .get(ctx.tenantId, agentKey)
+        .recall(query);
+      return { snippets: recall.snippets, matches: recall.matches, executed: true };
+    }
+
+    case 'brain.remember': {
+      const agentKey = String(ctx.input.agentKey ?? 'admin');
+      const brain = getCompositionRoot().personalBrainRegistry.get(ctx.tenantId, agentKey);
+      await brain.remember({
+        command: String(ctx.input.command ?? ''),
+        intent: String(ctx.input.intent ?? 'UNKNOWN'),
+        result: String(ctx.input.result ?? ''),
+      });
+      return { remembered: true, executed: true };
+    }
+
+    case 'insight.submit': {
+      const insights = ctx.input.insights as Array<{
+        category: string;
+        metric: string;
+        value: number;
+        sampleSize?: number;
+      }> | undefined;
+      if (!insights?.length) {
+        return { ...ctx.input, executed: false, reason: 'missing insights' };
+      }
+      const result = await getCompositionRoot().knowledgeContributionService.submitInsights(
+        ctx.tenantId,
+        insights,
+        'orchestrator'
+      );
+      return { ...result, executed: true };
+    }
+
+    case 'knowledge.contribute': {
+      const root = getCompositionRoot();
+      const result = await root.knowledgeContributionService.contributeFromRecentLogs(ctx.tenantId);
+      return { ...result, executed: true };
+    }
+
+    case 'knowledge.pull': {
+      const root = getCompositionRoot();
+      const updates = await root.knowledgeTransfer.getKnowledgeUpdates(ctx.tenantId);
+      const syncResult = await root.globalKnowledgeService.syncForTenant(ctx.tenantId);
+      return { ...updates, syncResult, executed: true };
+    }
+
+    case 'knowledge.distill': {
+      const root = getCompositionRoot();
+      const result = await root.knowledgeDistillationService.distillFromTenant(ctx.tenantId);
+      return { ...result, executed: true };
+    }
+
+    case 'knowledge.federate': {
+      const root = getCompositionRoot();
+      if (process.env.INTELLIGENCE_SECAGG_ENABLED === 'true') {
+        const upserted = await root.secAggRoundService.finalizeReadyRounds();
+        return { upserted, mode: 'secagg', executed: true };
+      }
+      const upserted = await root.crossTenantSubmitPipeline.refreshFromTenantInsights();
+      return { upserted, mode: 'plaintext', executed: true };
+    }
+
+    case 'knowledge.experiment.record': {
+      const root = getCompositionRoot();
+      const metric = String(ctx.input.metric ?? 'goal_reached');
+      const value = Number(ctx.input.value ?? 0);
+      await root.globalKnowledgeService.getExperimentService().recordOutcome(
+        ctx.tenantId,
+        metric,
+        value
+      );
+      return { recorded: true, metric, value, executed: true };
+    }
+
+    case 'command.brain.prepare': {
+      const command = String(ctx.input.command ?? '');
+      if (!command) return { ...ctx.input, executed: false, reason: 'missing command' };
+      const root = getCompositionRoot();
+      if (!root.commandBrainService) {
+        return { contextSnippets: [], recallMatches: [], executed: true, mode: 'no_brain_service' };
+      }
+      const prepared = await root.commandBrainService.prepareCommand({
+        tenantId: ctx.tenantId,
+        command,
+        actorId: ctx.actorId,
+      });
+      return { ...prepared, executed: true };
     }
 
     case 'negotiation.step': {

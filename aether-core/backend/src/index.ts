@@ -3,15 +3,42 @@ import { createApp, VERSION } from './app';
 import { disconnectPrisma } from './shared/prisma/client';
 import { logger } from './shared/logging/logger';
 import { initOtelSdk, shutdownOtelSdk } from './shared/observability/otelBootstrap';
+import { initSentry, shutdownSentry } from './shared/observability/sentry';
 import { imapPollingService } from './modules/aether-mail/infrastructure/imap/ImapPollingService';
 import { monitorSupplierJob } from './modules/supplier-intelligence/infrastructure/jobs/MonitorSupplierJob';
+import { monitorLowStockJob } from './modules/inventory-pricing/infrastructure/jobs/MonitorLowStockJob';
+import { proactiveBrainJob } from './ai/intelligence/proactive/ProactiveBrainJob';
+import { goalProgressJob } from './ai/intelligence/goals/jobs/GoalProgressJob';
+import { overviewFeedBackfillJob } from './modules/admin-command-bar/application/services/jobs/OverviewFeedBackfillJob';
+import { notificationDigestJob } from './modules/admin-command-bar/application/services/jobs/NotificationDigestJob';
+import { notificationBackfillJob } from './modules/admin-command-bar/application/services/jobs/NotificationBackfillJob';
+import { goalSuggestionJob } from './ai/intelligence/goals/jobs/GoalSuggestionJob';
+import { goalPatternDistillJob } from './ai/intelligence/goals/federated/jobs/GoalPatternDistillJob';
+import { proactiveEnrichmentJob } from './ai/intelligence/proactive/jobs/ProactiveEnrichmentJob';
+import { explainabilityNarrativeJob } from './ai/intelligence/explainability/jobs/ExplainabilityNarrativeJob';
+import { explainabilityPatternDistillJob } from './ai/intelligence/explainability/jobs/ExplainabilityPatternDistillJob';
+import {
+  knowledgeContributionJob,
+  knowledgeDistillJob,
+  knowledgeFederateJob,
+} from './ai/intelligence/knowledge-transfer/jobs/KnowledgeContributionJob';
 import { federatedHiveJob } from './modules/zero-knowledge-hive-mind/infrastructure/jobs/FederatedHiveJobScheduler';
 import { getOperatingMetrics } from './shared/truth/operatingMetricsService';
-import { processEventOutbox } from './bootstrap/compositionRoot';
+import { processEventOutbox, getCompositionRoot } from './bootstrap/compositionRoot';
+import { startOutboxRelayInterval } from './shared/messaging/OutboxRelayService';
+import { resolveOutboxRelayPollMs, isExternalBrokerEnabled } from './shared/messaging/messagingConfig';
+import {
+  pollPendingPeerJobs,
+  resolvePeerJobPollMs,
+} from './ai/intelligence/multi-agent/peer/jobs/peerJobKafkaConfig';
+import { getAgentPeerJobWorker } from './ai/intelligence/multi-agent/peer/jobs/AgentPeerJobWorker';
+import { PrismaAgentPeerJobAdapter } from './ai/intelligence/multi-agent/peer/jobs/PrismaAgentPeerJobAdapter';
+import { createAgentPatternContributionJob } from './ai/intelligence/global-knowledge/agent-patterns/AgentPatternContributionJob';
 
 const PORT = process.env.PORT || 9000;
 const DEFAULT_TENANT = process.env.AETHER_DEFAULT_TENANT ?? 'tenant_default';
 
+initSentry();
 initOtelSdk();
 
 async function assertOllamaReachable(): Promise<void> {
@@ -72,17 +99,56 @@ async function startServer(): Promise<void> {
     void processEventOutbox().then((count) => {
       if (count > 0) logger.info('event_outbox_replayed', { count });
     });
+    if (isExternalBrokerEnabled()) {
+      startOutboxRelayInterval(resolveOutboxRelayPollMs(), 'api');
+    }
+    const peerWorker = getAgentPeerJobWorker();
+    if (peerWorker) {
+      const jobPort = new PrismaAgentPeerJobAdapter();
+      setInterval(() => {
+        void pollPendingPeerJobs(jobPort, (id, tenantId) =>
+          peerWorker.processJob(id, tenantId)
+        );
+      }, resolvePeerJobPollMs());
+    }
     void imapPollingService.start();
     monitorSupplierJob.start();
+    monitorLowStockJob.start();
+    proactiveBrainJob.start();
+    goalProgressJob.start();
+    void overviewFeedBackfillJob.runOnce();
+    void notificationBackfillJob.runAll();
+    notificationDigestJob.start();
+    goalSuggestionJob.start();
+    goalPatternDistillJob.start();
+    proactiveEnrichmentJob.start();
+    explainabilityNarrativeJob.start();
+    explainabilityPatternDistillJob.start();
+    knowledgeContributionJob.start();
+    knowledgeDistillJob.start();
+    knowledgeFederateJob.start();
+    getCompositionRoot().memoryConsolidationJob.start();
+    getCompositionRoot().runMemoryGcJob?.start();
+    const agentPatternJob = createAgentPatternContributionJob(
+      getCompositionRoot().agentPatternSync
+    );
+    agentPatternJob.start();
     void maybeStartEcosystemJobs();
   });
 
   process.on('SIGTERM', async () => {
     imapPollingService.stop();
     monitorSupplierJob.stop();
+    monitorLowStockJob.stop();
+    knowledgeContributionJob.stop();
+    knowledgeDistillJob.stop();
+    knowledgeFederateJob.stop();
+    getCompositionRoot().memoryConsolidationJob.stop();
+    getCompositionRoot().runMemoryGcJob?.stop();
     federatedHiveJob.stop();
     server.close(async () => {
       await shutdownOtelSdk();
+      await shutdownSentry();
       await disconnectPrisma();
       process.exit(0);
     });

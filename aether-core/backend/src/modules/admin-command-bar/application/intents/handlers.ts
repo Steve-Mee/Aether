@@ -2,12 +2,42 @@ import type { IntentHandler } from './types';
 
 export const priceUpdateHandler: IntentHandler = {
   intent: 'PRICE_UPDATE',
-  async execute(_nl, parameters, ctx, deps) {
-    const pct = (parameters?.percentage as number) ?? 0;
+  async execute(nl, parameters, ctx, deps) {
+    const pct = (parameters?.percentage as number) ?? 5;
+    const productQuery = (parameters?.product as string) ?? undefined;
+
+    if (productQuery) {
+      const matches = await deps.adminData.searchProductsByName(ctx.tenantId, productQuery, 10);
+      if (matches.length > 0) {
+        const previousPrices = matches.map((p) => ({ id: p.id, price: p.price }));
+        const updated = await deps.adminData.updateProductPricesByIds(
+          ctx.tenantId,
+          matches.map((p) => p.id),
+          pct
+        );
+        const names = matches.map((p) => p.name).join(', ');
+        return {
+          result: `Updated prices on ${updated} product(s) (${names}) by ${pct}%`,
+          operationalMeta: {
+            source: 'admin.price_update',
+            updatedCount: updated,
+            productFilter: productQuery,
+            priceRollback: { previousPrices, percentage: pct },
+          },
+        };
+      }
+    }
+
+    const products = await deps.adminData.listProductsForBrain(ctx.tenantId, 50);
+    const previousPrices = products.map((p) => ({ id: p.id, price: p.price }));
     const updated = await deps.adminData.updateProductPrices(ctx.tenantId, pct);
     return {
       result: `Updated prices on ${updated} products by ${pct}%`,
-      operationalMeta: { source: 'admin.price_update', updatedCount: updated },
+      operationalMeta: {
+        source: 'admin.price_update',
+        updatedCount: updated,
+        priceRollback: { previousPrices: previousPrices.slice(0, updated), percentage: pct },
+      },
     };
   },
 };

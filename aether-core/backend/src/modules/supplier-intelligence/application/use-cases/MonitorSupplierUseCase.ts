@@ -9,6 +9,12 @@ import { orchestrator } from '../../../../ai/orchestrator/Orchestrator';
 import { SupplierDecisionEngine } from '../services/SupplierDecisionEngine';
 import type { SupplierChangePort } from '../ports/SupplierChangePort';
 import { merchantAutonomyKernel } from '../../../../ai/autonomy/DecisionContract';
+import type { PersonalBrainRegistry } from '../../../../ai/intelligence/personal-brain/PersonalBrainRegistry';
+import type { PeerDelegationBridge } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
+import { isSupplierPeerEnabled } from '../../../../ai/intelligence/multi-agent/peer/PeerDelegationBridge';
+import type { ProactiveSuggestionService } from '../../../../ai/intelligence/proactive/ProactiveSuggestionService';
+import { PROACTIVE_SUPPLIER_DROP_PCT } from '../../../../ai/intelligence/proactive/proactiveConfig';
+import { createCorrelationId } from '../../../../ai/intelligence/multi-agent/peer/AgentPeerMessage';
 
 export class MonitorSupplierUseCase {
   constructor(
@@ -16,7 +22,10 @@ export class MonitorSupplierUseCase {
     private scraper: WebScraperService,
     private detector: PriceChangeDetectorService,
     private decisionEngine: SupplierDecisionEngine,
-    private supplierChanges: SupplierChangePort
+    private supplierChanges: SupplierChangePort,
+    private personalBrains?: PersonalBrainRegistry,
+    private peerBridge?: PeerDelegationBridge,
+    private proactiveService?: ProactiveSuggestionService
   ) {}
 
   async execute(supplierId: string, ctx: { tenantId: string; actorId?: string }): Promise<any> {
@@ -34,6 +43,13 @@ export class MonitorSupplierUseCase {
     const scrapedProducts = await this.scraper.scrape(supplier.website, { tenantId: ctx.tenantId });
     const existingProducts = await this.supplierRepository.findProductsBySupplier(supplierId);
     const changes = this.detector.detectChanges(existingProducts, scrapedProducts);
+
+    let supplierRecall: string[] = [];
+    if (this.personalBrains && changes.length > 0) {
+      const brain = this.personalBrains.get(ctx.tenantId, 'supplier');
+      const recall = await brain.recall(`${supplier.name} ${changes[0].type}`);
+      supplierRecall = recall.snippets;
+    }
 
     for (const product of scrapedProducts) {
       const withSupplier = new SupplierProduct(
@@ -58,7 +74,7 @@ export class MonitorSupplierUseCase {
         changeType: change.type === 'new_product' ? 'new_product' : 'price_change',
         changePercent: changePct,
       });
-      const autonomy = merchantAutonomyKernel.evaluate({
+      const autonomy = await merchantAutonomyKernel.evaluate({
         tenantId: ctx.tenantId,
         module: 'supplier-intelligence',
         action: `supplier.${decision.action}`,
@@ -93,6 +109,21 @@ export class MonitorSupplierUseCase {
         status: needsApproval ? 'pending' : 'auto_applied',
       });
 
+      if (
+        change.type === 'price_change' &&
+        changePct >= PROACTIVE_SUPPLIER_DROP_PCT &&
+        this.proactiveService
+      ) {
+        void this.proactiveService
+          .evaluateAndIngestEvent(ctx.tenantId, 'supplier.price_changed', {
+            supplierId,
+            change,
+            changePercent: changePct,
+            autoApplied: !needsApproval,
+          })
+          .catch(() => undefined);
+      }
+
       if (needsApproval) {
         await writeAuditLog({
           tenantId: ctx.tenantId,
@@ -105,14 +136,80 @@ export class MonitorSupplierUseCase {
           tenantId: ctx.tenantId,
           module: 'supplier-intelligence',
           actionType: change.type,
-          payload: { supplierId, ...change, decision: decision.action },
+          payload: {
+            supplierId,
+            ...change,
+            decision: decision.action,
+            brainContext: supplierRecall,
+          },
           requestedBy: ctx.actorId,
         });
       } else {
         await eventBus.publish({
           tenantId: ctx.tenantId,
           type: 'supplier.price_changed',
-          payload: { supplierId, change, decision: decision.action },
+          payload: {
+            supplierId,
+            change,
+            changePercent: changePct,
+            decision: decision.action,
+            autoApplied: true,
+          },
+        });
+
+        if (
+          isSupplierPeerEnabled() &&
+          this.peerBridge?.isAvailable() &&
+          change.type === 'price_change'
+        ) {
+          try {
+            const correlationId = createCorrelationId();
+            await this.peerBridge.chainHandoff({
+              tenantId: ctx.tenantId,
+              fromAgentKey: 'supplier',
+              toAgentKey: 'pricing',
+              intent: 'PRICING_OPTIMIZE',
+              command: `${supplier.name} price change ${changePct}%`,
+              context: supplierRecall,
+              actorId: ctx.actorId,
+              correlationId,
+              contextPayload: {
+                messageType: 'intel',
+                summary: `Supplier ${supplier.name} price change ${changePct}%`,
+                payload: {
+                  supplierId,
+                  changePct: Math.round(changePct * 10) / 10,
+                  suggestedPricingActions: [
+                    {
+                      action: 'review_price_decrease_opportunity',
+                      reason: `${supplier.name} cost change ${changePct}%`,
+                    },
+                  ],
+                },
+                correlationId,
+              },
+            });
+          } catch {
+            // Peer chain is best-effort
+          }
+        }
+
+        if (this.personalBrains) {
+          const brain = this.personalBrains.get(ctx.tenantId, 'supplier');
+          await brain.remember({
+            command: `${supplier.name} ${change.type} ${changePct}%`,
+            intent: `supplier.${decision.action}`,
+            result: 'auto_applied',
+          });
+        }
+      }
+
+      if (this.personalBrains && needsApproval) {
+        const brain = this.personalBrains.get(ctx.tenantId, 'supplier');
+        await brain.remember({
+          command: `${supplier.name} ${change.type} ${changePct}%`,
+          intent: `supplier.${decision.action}`,
+          result: 'approval_required',
         });
       }
     }

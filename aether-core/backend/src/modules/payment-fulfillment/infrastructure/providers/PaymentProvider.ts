@@ -41,16 +41,39 @@ export class StripePaymentProvider implements PaymentProvider {
     }
 
     try {
-      const Stripe = (await import('stripe')).default;
-      const stripeOptions: ConstructorParameters<typeof Stripe>[1] = {
-        apiVersion: '2025-02-24.acacia',
-      };
-      if (process.env.STRIPE_API_HOST) {
-        stripeOptions.host = process.env.STRIPE_API_HOST;
-        stripeOptions.port = Number(process.env.STRIPE_API_PORT ?? 12111);
-        stripeOptions.protocol = (process.env.STRIPE_API_PROTOCOL as 'http' | 'https') ?? 'http';
+      const useStripeMock = Boolean(process.env.STRIPE_API_HOST);
+      if (useStripeMock) {
+        const host = process.env.STRIPE_API_HOST!;
+        const port = process.env.STRIPE_API_PORT ?? '12111';
+        const protocol = process.env.STRIPE_API_PROTOCOL ?? 'http';
+        const body = new URLSearchParams({
+          amount: String(Math.round(amount * 100)),
+          currency: 'eur',
+          'metadata[orderId]': orderId,
+          'payment_method_types[]': 'card',
+        });
+        const res = await fetch(`${protocol}://${host}:${port}/v1/payment_intents`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${secretKey}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body,
+        });
+        if (!res.ok) {
+          return { success: false, status: 'failed', provider: this.name };
+        }
+        const intent = (await res.json()) as { id: string; status: string };
+        return {
+          success: intent.status === 'succeeded' || intent.status === 'requires_payment_method',
+          transactionId: intent.id,
+          status: intent.status === 'succeeded' ? 'paid' : 'pending',
+          provider: this.name,
+        };
       }
-      const stripe = new Stripe(secretKey, stripeOptions);
+
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(secretKey, { apiVersion: '2025-02-24.acacia' });
       const intent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100),
         currency: 'eur',

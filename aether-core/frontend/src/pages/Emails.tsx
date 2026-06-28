@@ -1,27 +1,20 @@
-import { useState } from 'react';
 import { Mail, HelpCircle } from 'lucide-react';
 import React from 'react';
-import { apiFetch, EmailDetail } from '../lib/api';
-import { useAsyncData } from '../lib/useAsyncData';
-import FeatureStatusFromTruth from '../components/FeatureStatusFromTruth';
-import AsyncBoundary from '../components/ui/AsyncBoundary';
-import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import EmptyState from '../components/ui/EmptyState';
-import RiskBadge from '../components/ui/RiskBadge';
-import ExplainDrawer from '../components/ExplainDrawer';
+import {
+  AsyncBoundary,
+  Button,
+  Card,
+  EmptyState,
+  ModuleListPageSkeleton,
+  Skeleton,
+  RiskBadge,
+} from '@/components/ui';
+import ModulePageLayout from '@/components/shell/ModulePageLayout';
+import AgentExplainabilitySheet from '@/components/explainability/AgentExplainabilitySheet';
+import { cn, interactiveSurface } from '@/lib/utils';
 import { formatDate, t } from '../lib/i18n';
 import type { RiskBand } from '../lib/intentNavigation';
-
-interface EmailRow {
-  id: string;
-  from: string;
-  subject: string | null;
-  status: string;
-  riskLevel: string | null;
-  category: string | null;
-  confidence: number | null;
-}
+import { useEmailsPage } from '@/hooks/useEmailsPage';
 
 function mapRisk(level: string | null): RiskBand {
   if (level === 'high') return 'high';
@@ -29,118 +22,144 @@ function mapRisk(level: string | null): RiskBand {
   return 'medium';
 }
 
-export default function Emails() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [explainOpen, setExplainOpen] = useState(false);
-
-  const { data: emails, error, loading, reload } = useAsyncData(() =>
-    apiFetch<EmailRow[]>('/api/emails')
+function EmailDetailSkeleton() {
+  return (
+    <div className="p-6 space-y-4" aria-busy="true">
+      <Skeleton className="h-6 w-3/4" variant="text" />
+      <Skeleton className="h-4 w-1/2" variant="text" />
+      <Skeleton className="h-24 w-full" />
+    </div>
   );
+}
 
-  const { data: detail, loading: detailLoading } = useAsyncData(async () => {
-    if (!selectedId) return null;
-    return apiFetch<EmailDetail>(`/api/emails/${selectedId}`);
-  }, [selectedId]);
+export default function Emails() {
+  const page = useEmailsPage();
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 min-h-[60vh]">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-3 mb-8">
-          <h1 className="text-4xl font-semibold tracking-tight">AETHER Mail</h1>
-          <FeatureStatusFromTruth featureKey="aether-mail" />
-        </div>
-
-        <AsyncBoundary loading={loading} error={error} onRetry={reload}>
-          {!emails || emails.length === 0 ? (
+    <ModulePageLayout
+      title={t('emails.title')}
+      subtitle={t('emails.subtitle')}
+      featureKey="aether-mail"
+      testId="emails-page"
+      loading={page.loading}
+      error={page.error}
+      onRetry={page.reload}
+      skeleton={<ModuleListPageSkeleton />}
+    >
+      <div className="flex flex-col lg:flex-row gap-6 min-h-[60vh]">
+        <div className="flex-1 min-w-0">
+          {!page.emails || page.emails.length === 0 ? (
             <EmptyState
-              title="Geen mails"
-              description="Mails verschijnen na verwerking via IMAP of POST /api/emails/process."
+              variant="premium"
+              title={t('emails.empty.title')}
+              description={t('emails.empty.description')}
               icon={<Mail size={32} />}
             />
           ) : (
             <div className="space-y-2">
-              {emails.map((email) => (
+              {page.emails.map((email) => (
                 <button
                   key={email.id}
                   type="button"
-                  onClick={() => setSelectedId(email.id)}
-                  className={`w-full text-left p-4 rounded-[var(--radius-xl)] border transition-colors focus-visible:shadow-[var(--shadow-focus)] ${
-                    selectedId === email.id
-                      ? 'border-purple-500/50 bg-[var(--color-surface)]'
-                      : 'border-[var(--color-border-subtle)] bg-[var(--color-surface)]/50 hover:border-[var(--color-border)]'
-                  }`}
+                  onClick={() => page.setSelectedId(email.id)}
+                  className={cn(
+                    interactiveSurface(
+                      'w-full text-left p-4 rounded-xl border bg-card/50 hover:border-border/60',
+                    ),
+                    page.selectedId === email.id ? 'border-primary/30 bg-card' : 'border-border/40',
+                  )}
                 >
                   <div className="flex justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="font-medium truncate">{email.subject ?? '(geen onderwerp)'}</p>
-                      <p className="text-sm text-[var(--color-text-muted)] truncate">{email.from}</p>
+                      <p className="text-body font-medium truncate">
+                        {email.subject ?? t('emails.noSubject')}
+                      </p>
+                      <p className="text-meta text-muted-foreground truncate">{email.from}</p>
                     </div>
                     <div className="text-right shrink-0">
                       <RiskBadge band={mapRisk(email.riskLevel)} />
-                      <p className="text-xs text-[var(--color-text-subtle)] mt-1">{email.status}</p>
+                      <p className="text-caption text-muted-foreground mt-1">{email.status}</p>
                     </div>
                   </div>
                 </button>
               ))}
             </div>
           )}
-        </AsyncBoundary>
-      </div>
+        </div>
 
-      <aside
-        aria-label="Mail detail"
-        className="w-full lg:w-96 shrink-0 border border-[var(--color-border-subtle)] rounded-[var(--radius-xl)] bg-[var(--color-bg)] overflow-hidden"
-      >
-        {!selectedId ? (
-          <p className="p-8 text-[var(--color-text-subtle)] text-sm">Selecteer een mail voor thread & AI-draft.</p>
-        ) : detailLoading ? (
-          <p className="p-8 text-[var(--color-text-subtle)]">{t('async.loading')}</p>
-        ) : detail ? (
-          <div className="p-6 space-y-4">
-            <div>
-              <p className="text-lg font-medium">{detail.subject ?? '(geen onderwerp)'}</p>
-              <p className="text-sm text-[var(--color-text-muted)]">{detail.from}</p>
-              <p className="text-xs text-[var(--color-text-subtle)] mt-2">{formatDate(detail.createdAt)}</p>
-            </div>
+        <aside
+          aria-label={t('emails.detailLabel')}
+          className="w-full lg:w-96 shrink-0 border border-border/40 rounded-xl bg-card/30 overflow-hidden"
+        >
+          {!page.selectedId ? (
+            <p className="p-8 text-meta text-muted-foreground">{t('emails.selectPrompt')}</p>
+          ) : (
+            <AsyncBoundary
+              loading={page.detailLoading}
+              error={page.detailError}
+              onRetry={page.reloadDetail}
+              skeleton={<EmailDetailSkeleton />}
+            >
+              {page.detail && (
+                <div className="p-6 space-y-4">
+                  <div>
+                    <p className="text-title font-medium">
+                      {page.detail.subject ?? t('emails.noSubject')}
+                    </p>
+                    <p className="text-meta text-muted-foreground">{page.detail.from}</p>
+                    <p className="text-caption text-muted-foreground mt-2">
+                      {formatDate(page.detail.createdAt)}
+                    </p>
+                  </div>
 
-            <div className="flex flex-wrap gap-2">
-              <RiskBadge band={mapRisk(detail.riskLevel)} />
-              {detail.category && (
-                <span className="text-xs px-2 py-1 rounded bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]">{detail.category}</span>
+                  <div className="flex flex-wrap gap-2">
+                    <RiskBadge band={mapRisk(page.detail.riskLevel)} />
+                    {page.detail.category && (
+                      <span className="text-caption px-2 py-1 rounded-lg bg-muted/30 text-muted-foreground">
+                        {page.detail.category}
+                      </span>
+                    )}
+                  </div>
+
+                  {page.detail.body && (
+                    <Card
+                      padding="sm"
+                      className="text-body text-muted-foreground whitespace-pre-wrap max-h-40 overflow-auto"
+                    >
+                      {page.detail.body}
+                    </Card>
+                  )}
+
+                  {page.detail.draftReply && (
+                    <div>
+                      <p className="text-meta uppercase tracking-wide text-muted-foreground mb-2">
+                        {t('emails.draftLabel')}
+                      </p>
+                      <Card padding="sm" className="text-body text-success/90 whitespace-pre-wrap">
+                        {page.detail.draftReply}
+                      </Card>
+                    </div>
+                  )}
+
+                  <Button variant="ghost" size="sm" onClick={() => page.setExplainOpen(true)}>
+                    <HelpCircle size={14} className="inline mr-1" />
+                    {t('approval.explain')}
+                  </Button>
+                </div>
               )}
-            </div>
+            </AsyncBoundary>
+          )}
+        </aside>
 
-            {detail.body && (
-              <Card padding="sm" className="text-sm text-[var(--color-text-muted)] whitespace-pre-wrap max-h-40 overflow-auto">
-                {detail.body}
-              </Card>
-            )}
-
-            {detail.draftReply && (
-              <div>
-                <p className="text-xs text-[var(--color-text-subtle)] uppercase tracking-wide mb-2">AI concept</p>
-                <Card padding="sm" className="text-sm text-emerald-300/90 whitespace-pre-wrap">
-                  {detail.draftReply}
-                </Card>
-              </div>
-            )}
-
-            <Button variant="ghost" size="sm" onClick={() => setExplainOpen(true)}>
-              <HelpCircle size={14} className="inline mr-1" />
-              {t('approval.explain')}
-            </Button>
-          </div>
-        ) : null}
-      </aside>
-
-      {selectedId && (
-        <ExplainDrawer
-          entityType="email"
-          entityId={selectedId}
-          open={explainOpen}
-          onClose={() => setExplainOpen(false)}
-        />
-      )}
-    </div>
+        {page.selectedId && (
+          <AgentExplainabilitySheet
+            entityType="email"
+            entityId={page.selectedId}
+            open={page.explainOpen}
+            onClose={() => page.setExplainOpen(false)}
+          />
+        )}
+      </div>
+    </ModulePageLayout>
   );
 }

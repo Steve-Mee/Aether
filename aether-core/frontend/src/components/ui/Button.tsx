@@ -1,44 +1,56 @@
-import { type ButtonHTMLAttributes, type ReactNode } from 'react';
-import React from 'react';
+import * as React from 'react';
+import { Slot } from '@radix-ui/react-slot';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'success' | 'danger';
-type Size = 'sm' | 'md' | 'lg';
+/**
+ * Primary action control. Use `primary` for main CTAs, `secondary` for alternatives,
+ * `ghost` for tertiary actions, `danger` for destructive ops, `premium` for subtle glass CTAs.
+ *
+ * @example
+ * <Button variant="primary" size="md">Save</Button>
+ */
+const buttonVariants = cva(
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 motion-safe:active:scale-[0.985]',
+  {
+    variants: {
+      variant: {
+        primary: 'bg-primary text-primary-foreground shadow-none hover:bg-primary/90',
+        secondary: 'bg-secondary text-secondary-foreground border border-border hover:bg-muted',
+        ghost: 'hover:bg-secondary text-muted-foreground hover:text-foreground',
+        danger: 'bg-destructive text-destructive-foreground hover:opacity-90 shadow-none',
+        premium:
+          'bg-foreground/5 text-foreground border border-border/60 hover:bg-foreground/[0.08]',
+        success: 'bg-success text-success-foreground hover:opacity-90 shadow-none',
+        outline: 'border border-border/60 bg-transparent hover:bg-secondary/80',
+      },
+      size: {
+        sm: 'h-9 rounded-lg px-3 text-xs',
+        md: 'h-10 px-4 py-2',
+        lg: 'h-11 rounded-xl px-6',
+        icon: 'h-10 w-10',
+      },
+    },
+    defaultVariants: {
+      variant: 'primary',
+      size: 'md',
+    },
+  },
+);
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
-  size?: Size;
-  children: ReactNode;
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
 }
 
-const variants: Record<Variant, string> = {
-  primary: 'bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white',
-  secondary:
-    'bg-[var(--color-surface-elevated)] hover:bg-[var(--color-border)] text-[var(--color-text)] border border-[var(--color-border-subtle)]',
-  ghost: 'bg-transparent hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]',
-  success: 'bg-[var(--color-success)] hover:opacity-90 text-white',
-  danger: 'bg-[var(--color-danger)] hover:opacity-90 text-white',
-};
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : 'button';
+    return (
+      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+    );
+  },
+);
+Button.displayName = 'Button';
 
-const sizes: Record<Size, string> = {
-  sm: 'px-3 py-1.5 text-xs rounded-[var(--radius-md)]',
-  md: 'px-4 py-2 text-sm rounded-[var(--radius-lg)]',
-  lg: 'px-6 py-3 text-sm rounded-[var(--radius-xl)]',
-};
-
-export default function Button({
-  variant = 'primary',
-  size = 'md',
-  className = '',
-  children,
-  ...props
-}: ButtonProps) {
-  return (
-    <button
-      type="button"
-      className={`font-medium transition-all active:scale-[0.985] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)] ${variants[variant]} ${sizes[size]} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-}
+export { Button, buttonVariants };

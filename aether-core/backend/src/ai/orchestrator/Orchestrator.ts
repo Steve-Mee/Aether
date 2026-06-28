@@ -7,10 +7,24 @@ import { executeOrchestratorTask } from './TaskExecutor';
 
 export type AgentTask =
   | 'mail.classify'
+  | 'mail.analyze'
   | 'supplier.sync'
+  | 'supplier.delegate'
+  | 'inventory.analyze'
+  | 'negotiation.delegate'
+  | 'physical.sync'
   | 'admin.command'
   | 'pricing.adjust'
-  | 'negotiation.step';
+  | 'negotiation.step'
+  | 'brain.recall'
+  | 'brain.remember'
+  | 'insight.submit'
+  | 'knowledge.contribute'
+  | 'knowledge.pull'
+  | 'knowledge.distill'
+  | 'knowledge.federate'
+  | 'knowledge.experiment.record'
+  | 'command.brain.prepare';
 
 export interface OrchestratorContext {
   tenantId: string;

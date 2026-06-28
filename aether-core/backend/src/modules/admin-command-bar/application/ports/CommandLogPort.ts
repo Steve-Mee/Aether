@@ -5,6 +5,8 @@ export interface CommandLogEntry {
   result: string;
   confidence: number;
   actor?: string;
+  brainMemoryId?: string;
+  operationalMeta?: Record<string, unknown>;
 }
 
 export interface CommandLogRecord {
@@ -16,7 +18,13 @@ export interface CommandLogRecord {
   createdAt: Date;
 }
 
+export interface CommandLogSaveOptions {
+  undoable?: boolean;
+  undoExpiresAt?: Date;
+}
+
 export interface CommandLogPort {
-  save(entry: CommandLogEntry): Promise<void>;
+  save(entry: CommandLogEntry, options?: CommandLogSaveOptions): Promise<CommandLogRecord>;
   findRecent(tenantId: string): Promise<CommandLogRecord[]>;
+  findById(id: string, tenantId: string): Promise<CommandLogRecord | null>;
 }

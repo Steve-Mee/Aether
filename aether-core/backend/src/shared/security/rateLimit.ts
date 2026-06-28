@@ -10,15 +10,12 @@ const WINDOW_MS = 60_000;
 const MAX_REQUESTS = parseInt(process.env.RATE_LIMIT_MAX ?? '120', 10);
 
 async function redisIncrement(key: string): Promise<number | null> {
-  const url = process.env.REDIS_URL;
-  if (!url) return null;
   try {
-    const { createClient } = await import('redis');
-    const client = createClient({ url });
-    if (!client.isOpen) await client.connect();
+    const { getRedisClient } = await import('../redis/createRedisClient');
+    const client = await getRedisClient();
+    if (!client) return null;
     const count = await client.incr(key);
     if (count === 1) await client.expire(key, Math.ceil(WINDOW_MS / 1000));
-    await client.quit();
     return count;
   } catch {
     return null;
