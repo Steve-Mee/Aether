@@ -42,7 +42,7 @@
     "@opentelemetry/sdk-node": "^0.57.0",
     "@opentelemetry/sdk-trace-base": "^1.30.0",
     "@opentelemetry/semantic-conventions": "^1.28.0",
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^7.8.0",
     "@sentry/node": "^10.57.0",
     "@types/pdfkit": "^0.17.6",
     "argon2": "^0.44.0",
