@@ -38,8 +38,7 @@ export default function AgentContributionsPanel({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
       >
-        {t('command.brain.agentContributions')} ({contributions.length})
-        {open ? ' ▾' : ' ▸'}
+        {t('command.brain.agentContributions')} ({contributions.length}){open ? ' ▾' : ' ▸'}
       </button>
       {open && (
         <ul className="mt-2 space-y-2">
@@ -70,6 +69,8 @@ export function agentsWorkingParallelLabel(keys: string[]): string {
   if (keys.length === 1) {
     return `${agentDisplayLabel(keys[0]!)} ${t('command.brain.agentWorkingSuffix')}`;
   }
-  const names = keys.map((k) => agentDisplayLabel(k)).join(` ${t('command.brain.andConjunction')} `);
+  const names = keys
+    .map((k) => agentDisplayLabel(k))
+    .join(` ${t('command.brain.andConjunction')} `);
   return t('command.brain.agentsWorkingParallel').replace('{agents}', names);
 }

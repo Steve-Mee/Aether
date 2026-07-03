@@ -44,14 +44,17 @@ export function searchParamsToFilters(
         : defaults.actionType,
     period: period === '24h' || period === '30d' ? period : defaults.period,
     searchQuery: params.get('search') ?? defaults.searchQuery,
-    risk: params.get('risk') === 'high' || params.get('risk') === 'low' ? params.get('risk')! : defaults.risk,
+    risk:
+      params.get('risk') === 'high' ? 'high' : params.get('risk') === 'low' ? 'low' : defaults.risk,
     module: params.get('module') ?? defaults.module,
     executionMode:
-      params.get('executionMode') === 'autonomous' ||
-      params.get('executionMode') === 'approval_required' ||
-      params.get('executionMode') === 'inform_only'
-        ? params.get('executionMode')!
-        : defaults.executionMode,
+      params.get('executionMode') === 'autonomous'
+        ? 'autonomous'
+        : params.get('executionMode') === 'approval_required'
+          ? 'approval_required'
+          : params.get('executionMode') === 'inform_only'
+            ? 'inform_only'
+            : defaults.executionMode,
   };
 }
 

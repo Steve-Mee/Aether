@@ -26,9 +26,7 @@ export default function ActivityList({
     >
       {groups.map((group) => (
         <li key={group.key}>
-          <div
-            className="sticky top-0 z-[1] mb-3 flex items-center justify-between gap-3 bg-background/80 backdrop-blur-sm py-2 border-b border-border/20"
-          >
+          <div className="sticky top-0 z-[1] mb-3 flex items-center justify-between gap-3 bg-background/80 backdrop-blur-sm py-2 border-b border-border/20">
             <h2 className="text-title font-medium text-foreground">{group.label}</h2>
             <span className="text-caption text-muted-foreground tabular-nums">
               {t('activity.group.count').replace('{count}', String(group.items.length))}

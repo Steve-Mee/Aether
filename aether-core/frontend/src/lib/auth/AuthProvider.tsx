@@ -160,6 +160,11 @@ export function useCurrentUser(): User | null {
   return useAuth().currentUser;
 }
 
+/** Safe outside AuthProvider (e.g. tests, optional dashboard stream). */
+export function useOptionalCurrentUser(): User | null {
+  return useContext(AuthContext)?.currentUser ?? null;
+}
+
 export function useCurrentTenant(): string | null {
   return useAuth().currentTenant;
 }

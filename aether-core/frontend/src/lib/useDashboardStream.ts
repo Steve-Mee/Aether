@@ -7,7 +7,7 @@ import { apiStreamFetch, type DashboardSummary } from './api';
 import { queryKeys } from './query/keys';
 import { dispatchNotification, dispatchNotificationState } from './aetherLiveBus';
 import type { NotificationPushEvent, NotificationStateChangedEvent } from '@/types/notification';
-import { useCurrentUser } from '@/lib/auth/AuthProvider';
+import { useOptionalCurrentUser } from '@/lib/auth/AuthProvider';
 
 const FALLBACK_POLL_MS = 60_000;
 
@@ -29,7 +29,7 @@ export function useDashboardStream(): {
   reload: () => void;
 } {
   const queryClient = useQueryClient();
-  const currentUser = useCurrentUser();
+  const currentUser = useOptionalCurrentUser();
   const [data, setData] = useState<DashboardSummary | null>(
     () => queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard()) ?? null,
   );
@@ -126,7 +126,8 @@ export function useDashboardStream(): {
                 void queryClient.invalidateQueries({ queryKey: ['goals'] });
                 void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
                 const current =
-                  queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard()) ?? ({} as DashboardSummary);
+                  queryClient.getQueryData<DashboardSummary>(queryKeys.dashboard()) ??
+                  ({} as DashboardSummary);
                 const next = {
                   ...current,
                   proactiveCount: json.proactiveCount ?? current.proactiveCount ?? 0,
@@ -141,13 +142,16 @@ export function useDashboardStream(): {
                 }
                 dispatchNotification({
                   ...event.notification,
-                  read: false,
                   source: event.notification.source ?? 'system',
                 });
                 void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
                 continue;
               }
-              if (json.type === 'notification_state_changed' && json.actorId && json.notificationId) {
+              if (
+                json.type === 'notification_state_changed' &&
+                json.actorId &&
+                json.notificationId
+              ) {
                 dispatchNotificationState(json as unknown as NotificationStateChangedEvent);
                 void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.inbox() });
                 continue;

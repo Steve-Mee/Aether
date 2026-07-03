@@ -86,14 +86,26 @@ function mockExplainTimeline(entityType: string, entityId: string): ExplainTimel
         {
           id: 'dataSources',
           title: 'Gebruikte data',
-          items: [{ label: '12 SKU\'s met lage voorraad' }],
+          items: [{ label: "12 SKU's met lage voorraad" }],
         },
       ],
       flowGraph: {
         nodes: [
           { id: 'start', type: 'start', label: 'AETHER', position: { x: 0, y: 0 } },
-          { id: 'inventory', type: 'agent', label: 'Voorraad-agent', agentKey: 'inventory', position: { x: 160, y: 0 } },
-          { id: 'pricing', type: 'agent', label: 'Prijs-agent', agentKey: 'pricing', position: { x: 320, y: 0 } },
+          {
+            id: 'inventory',
+            type: 'agent',
+            label: 'Voorraad-agent',
+            agentKey: 'inventory',
+            position: { x: 160, y: 0 },
+          },
+          {
+            id: 'pricing',
+            type: 'agent',
+            label: 'Prijs-agent',
+            agentKey: 'pricing',
+            position: { x: 320, y: 0 },
+          },
           { id: 'end', type: 'end', label: 'Resultaat', position: { x: 480, y: 0 } },
         ],
         edges: [

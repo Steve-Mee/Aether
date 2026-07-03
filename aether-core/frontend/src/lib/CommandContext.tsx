@@ -94,7 +94,25 @@ export function CommandProvider({ children }: { children: ReactNode }) {
     });
   }, [serverHistory]);
 
-  const { executeMutation, undoMutation, loading, streamSteps, streamPlan, streamPlansByAgent, streaming, activeAgentKey, activeAgentKeys, streamHandoffChain, streamSharedMemory, streamExecutionMode, streamChainFrom, streamLiveExplain, executingProactiveId, executeProactiveWithStream, cancelStream } = useCommandMutations({
+  const {
+    executeMutation,
+    undoMutation,
+    loading,
+    streamSteps,
+    streamPlan,
+    streamPlansByAgent,
+    streaming,
+    activeAgentKey,
+    activeAgentKeys,
+    streamHandoffChain,
+    streamSharedMemory,
+    streamExecutionMode,
+    streamChainFrom,
+    streamLiveExplain,
+    executingProactiveId,
+    executeProactiveWithStream,
+    cancelStream,
+  } = useCommandMutations({
     onExecuteSuccess: (data) => {
       setLastResult(data);
       setHistory((prev) => [data, ...prev].slice(0, 20));

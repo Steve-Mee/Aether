@@ -17,10 +17,7 @@ const dotStyles: Record<StatusDotVariant, string> = {
 export default function StatusDot({ variant, className, label }: StatusDotProps) {
   return (
     <span className={cn('inline-flex items-center gap-1.5', className)}>
-      <span
-        className={cn('h-1.5 w-1.5 rounded-full shrink-0', dotStyles[variant])}
-        aria-hidden
-      />
+      <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', dotStyles[variant])} aria-hidden />
       {label ? (
         <span
           className={cn(

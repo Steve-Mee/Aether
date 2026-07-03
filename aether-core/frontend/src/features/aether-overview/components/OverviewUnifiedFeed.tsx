@@ -43,7 +43,9 @@ interface OverviewUnifiedFeedProps {
   resolvingApprovalId?: string | null;
 }
 
-function proactiveFromPayload(payload: Record<string, unknown>): ProactiveSuggestionCardData | null {
+function proactiveFromPayload(
+  payload: Record<string, unknown>,
+): ProactiveSuggestionCardData | null {
   const id = String(payload.id ?? '');
   if (!id) return null;
   return {

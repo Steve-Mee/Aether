@@ -47,7 +47,8 @@ function mapApiToProactive(
 
 export function useProactiveSuggestions() {
   const { settings } = useMerchantSettings();
-  const { executeProactiveStream, streaming, executingProactiveId, streamLiveExplain } = useCommand();
+  const { executeProactiveStream, streaming, executingProactiveId, streamLiveExplain } =
+    useCommand();
   const queryClient = useQueryClient();
 
   const liveQuery = useQuery({

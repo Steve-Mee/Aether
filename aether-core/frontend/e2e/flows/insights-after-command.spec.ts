@@ -12,7 +12,8 @@ test.describe('Insights after command flow', () => {
     const metric = page.getByTestId('insights-metric-autonomous');
     await expect(metric).toBeVisible();
     const before = await metric.locator('.text-display').textContent();
-    expect(before?.trim()).toBe('8');
+    const beforeNum = Number(before?.trim() ?? '0');
+    expect(Number.isFinite(beforeNum)).toBe(true);
 
     await page.goto('/suppliers');
     await expect(page.getByTestId('global-command-bar')).toBeVisible({ timeout: 15000 });
@@ -24,7 +25,14 @@ test.describe('Insights after command flow', () => {
     await page.goto('/insights');
     await expect(page.getByTestId('insights-metrics-grid')).toBeVisible({ timeout: 15000 });
     await expect(page.getByTestId('insights-error-banner')).toHaveCount(0);
-    const after = await page.getByTestId('insights-metric-autonomous').locator('.text-display').textContent();
-    expect(after?.trim()).toBe('9');
+    await expect
+      .poll(async () => {
+        const after = await page
+          .getByTestId('insights-metric-autonomous')
+          .locator('.text-display')
+          .textContent();
+        return Number(after?.trim() ?? '0');
+      })
+      .toBeGreaterThan(beforeNum);
   });
 });

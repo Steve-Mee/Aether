@@ -1,13 +1,6 @@
 import { useId, useState } from 'react';
 import React from 'react';
-import {
-  Button,
-  Card,
-  RangeInput,
-  SegmentedControl,
-  SettingRow,
-  Switch,
-} from '@/components/ui';
+import { Button, Card, RangeInput, SegmentedControl, SettingRow, Switch } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import type { ProactiveVisibility } from '@/lib/settings/merchantSettingsTypes';
@@ -53,7 +46,7 @@ export default function ProactiveBehaviorSection() {
 
       <div className="space-y-5">
         <SettingRow
-          id={enabledId}
+          htmlFor={enabledId}
           label={t('settings.proactive.enabled')}
           description={t('settings.proactive.enabledHint')}
         >
@@ -64,39 +57,46 @@ export default function ProactiveBehaviorSection() {
           />
         </SettingRow>
 
-        <SettingRow label={t('settings.proactive.visibility')} description={t('settings.proactive.visibilityHint')}>
+        <SettingRow
+          label={t('settings.proactive.visibility')}
+          description={t('settings.proactive.visibilityHint')}
+        >
           <SegmentedControl
             value={draft.visibility}
-            options={visibilityOptions}
+            options={visibilityOptions.map((opt) => ({
+              ...opt,
+              disabled: !draft.enabled,
+            }))}
             onChange={(value) =>
               setDraft((d) => ({ ...d, visibility: value as ProactiveVisibility }))
             }
-            disabled={!draft.enabled}
+            aria-label={t('settings.proactive.visibility')}
           />
         </SettingRow>
 
         {draft.enabled && draft.visibility !== 'off' && (
           <SettingRow
-            id={autoExecId}
+            htmlFor={autoExecId}
             label={t('settings.proactive.allowAutoExecute')}
             description={t('settings.proactive.allowAutoExecuteHint')}
           >
             <Switch
               id={autoExecId}
               checked={draft.allowAutoExecute}
-              onCheckedChange={(checked) =>
-                setDraft((d) => ({ ...d, allowAutoExecute: checked }))
-              }
+              onCheckedChange={(checked) => setDraft((d) => ({ ...d, allowAutoExecute: checked }))}
             />
           </SettingRow>
         )}
 
-        <SettingRow label={t('settings.proactive.maxActive')} description={t('settings.proactive.maxActiveHint')}>
+        <SettingRow
+          label={t('settings.proactive.maxActive')}
+          description={t('settings.proactive.maxActiveHint')}
+        >
           <RangeInput
             min={1}
             max={10}
             value={draft.maxActive}
-            onChange={(v) => setDraft((d) => ({ ...d, maxActive: v }))}
+            onChange={(e) => setDraft((d) => ({ ...d, maxActive: Number(e.target.value) }))}
             disabled={!draft.enabled}
           />
         </SettingRow>

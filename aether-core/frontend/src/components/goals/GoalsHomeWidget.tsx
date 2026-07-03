@@ -56,10 +56,7 @@ export default function GoalsHomeWidget() {
                   <p className="text-sm font-medium truncate">{goal.title}</p>
                   <GoalStatusBadge status={goal.status} progressPct={progress} />
                 </div>
-                <GoalProgressBar
-                  value={progress}
-                  variant={behind ? 'behind' : 'default'}
-                />
+                <GoalProgressBar value={progress} variant={behind ? 'behind' : 'default'} />
                 <p className="text-[10px] text-muted-foreground">{daysLeft}d</p>
               </CardContent>
             </Card>

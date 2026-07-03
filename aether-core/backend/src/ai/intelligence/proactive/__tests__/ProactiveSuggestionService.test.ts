@@ -1,17 +1,24 @@
 import { ProactiveSuggestionService } from '../ProactiveSuggestionService';
 import type { ProactiveFinding } from '../ProactiveTriggerDefinition';
+import { DEFAULT_MERCHANT_SETTINGS } from '../../../../shared/settings/merchantSettingsTypes';
 
 jest.mock('../../../../shared/settings/TenantSettingsService', () => ({
   getMerchantSettings: jest.fn().mockResolvedValue({
+    ...require('../../../../shared/settings/merchantSettingsTypes').DEFAULT_MERCHANT_SETTINGS,
     proactivePrefs: {
+      ...require('../../../../shared/settings/merchantSettingsTypes').DEFAULT_PROACTIVE_PREFS,
       enabled: true,
       visibility: 'all',
-      maxActive: 5,
-      allowAutoExecute: false,
-      snoozeDefaultHours: 24,
-      categories: { prijs: true, leverancier: true, voorraad: true, algemeen: true },
     },
   }),
+}));
+
+jest.mock('../../explainability/ExplainabilityPersister', () => ({
+  explainabilityPersister: {
+    listSourceIdsWithSnapshots: jest.fn().mockResolvedValue(new Set()),
+    getSnapshot: jest.fn().mockResolvedValue(null),
+    save: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 jest.mock('../proactiveConfig', () => ({
@@ -100,6 +107,7 @@ describe('ProactiveSuggestionService', () => {
         evidence: finding.evidence,
         priority: finding.priority,
         expiresAt: null,
+        goalId: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       },

@@ -213,7 +213,12 @@ export interface CommandResult {
     recallMatches?: Array<{ id: string; score: number }>;
     actionProposal?: string;
     recallCount?: number;
-    toolTrace?: Array<{ tool: string; input: Record<string, unknown>; output: string; status?: string }>;
+    toolTrace?: Array<{
+      tool: string;
+      input: Record<string, unknown>;
+      output: string;
+      status?: string;
+    }>;
     pendingActions?: Array<{
       proposalId: string;
       tool: string;
@@ -247,7 +252,12 @@ export interface CommandResult {
     memoryNotice?: string;
     reflectionNotice?: string;
     reflectionStored?: string;
-    memoryRecalled?: Array<{ summary: string; age: string; layer: 'short' | 'long'; kind?: string }>;
+    memoryRecalled?: Array<{
+      summary: string;
+      age: string;
+      layer: 'short' | 'long';
+      kind?: string;
+    }>;
     specialist?: SpecialistMeta;
     agents?: SpecialistMeta[];
     executionMode?: 'single' | 'sequential' | 'parallel';

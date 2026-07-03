@@ -22,8 +22,7 @@ export async function shouldPolicyAutoExecuteProposal(input: {
     return { eligible: false, reason: 'Supplier sync requires inbox approval', reasonCode: 'supplier_sync' };
   }
 
-  const riskClass =
-    proposal.risk === 'medium' ? 'medium' : proposal.risk === 'high' ? 'high' : 'low';
+  const riskClass = proposal.risk === 'medium' ? 'medium' : 'low';
 
   const assessment = assessAutonomy({
     settings,

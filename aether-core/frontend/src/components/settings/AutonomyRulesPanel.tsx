@@ -153,7 +153,9 @@ export default function AutonomyRulesPanel({
                 />
                 <div>
                   <p className="font-medium text-foreground">{rule.name}</p>
-                  <span className="text-xs text-muted-foreground">{outcomeBadge(rule.outcome)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {outcomeBadge(rule.outcome)}
+                  </span>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -162,10 +164,21 @@ export default function AutonomyRulesPanel({
                     {t('settings.autonomy.rules.testRule')}
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={() => setExpandedId(expandedId === rule.id ? null : rule.id)}>
-                  {expandedId === rule.id ? t('settings.autonomy.brainAdvanced.hide') : t('settings.autonomy.rules.edit')}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setExpandedId(expandedId === rule.id ? null : rule.id)}
+                >
+                  {expandedId === rule.id
+                    ? t('settings.autonomy.brainAdvanced.hide')
+                    : t('settings.autonomy.rules.edit')}
                 </Button>
-                <Button variant="ghost" size="sm" disabled={disabled} onClick={() => removeRule(rule.id)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={disabled}
+                  onClick={() => removeRule(rule.id)}
+                >
                   {t('settings.autonomy.rules.remove')}
                 </Button>
               </div>
@@ -189,7 +202,9 @@ export default function AutonomyRulesPanel({
                     onChange={(e) => patchRule(rule.id, { outcome: e.target.value as RuleOutcome })}
                   >
                     <option value="allow_auto">{t('settings.autonomy.rules.outcomeAuto')}</option>
-                    <option value="require_approval">{t('settings.autonomy.rules.outcomeApproval')}</option>
+                    <option value="require_approval">
+                      {t('settings.autonomy.rules.outcomeApproval')}
+                    </option>
                     <option value="block">{t('settings.autonomy.rules.outcomeBlock')}</option>
                   </select>
                 </SettingRow>
@@ -206,8 +221,12 @@ export default function AutonomyRulesPanel({
                         })
                       }
                     >
-                      <option value="marginImpactEuro">{t('settings.autonomy.rules.fieldMargin')}</option>
-                      <option value="priceChangePct">{t('settings.autonomy.rules.fieldPricePct')}</option>
+                      <option value="marginImpactEuro">
+                        {t('settings.autonomy.rules.fieldMargin')}
+                      </option>
+                      <option value="priceChangePct">
+                        {t('settings.autonomy.rules.fieldPricePct')}
+                      </option>
                       <option value="category">{t('settings.autonomy.rules.fieldCategory')}</option>
                       <option value="riskClass">{t('settings.autonomy.rules.fieldRisk')}</option>
                       <option value="agentKey">{t('settings.autonomy.rules.fieldAgent')}</option>

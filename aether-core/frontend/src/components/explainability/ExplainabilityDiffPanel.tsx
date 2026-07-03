@@ -9,7 +9,10 @@ interface ExplainabilityDiffPanelProps {
 
 export default function ExplainabilityDiffPanel({ diff, onClose }: ExplainabilityDiffPanelProps) {
   return (
-    <div className="rounded-lg border border-border/50 bg-muted/15 p-3 space-y-3" data-testid="explain-diff-panel">
+    <div
+      className="rounded-lg border border-border/50 bg-muted/15 p-3 space-y-3"
+      data-testid="explain-diff-panel"
+    >
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t('explain.diff.title')}
@@ -33,21 +36,27 @@ export default function ExplainabilityDiffPanel({ diff, onClose }: Explainabilit
 
       {diff.agents.added.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase text-muted-foreground mb-1">{t('explain.diff.agentsAdded')}</p>
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">
+            {t('explain.diff.agentsAdded')}
+          </p>
           <p className="text-sm">{diff.agents.added.join(', ')}</p>
         </div>
       )}
 
       {diff.agents.removed.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase text-muted-foreground mb-1">{t('explain.diff.agentsRemoved')}</p>
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">
+            {t('explain.diff.agentsRemoved')}
+          </p>
           <p className="text-sm">{diff.agents.removed.join(', ')}</p>
         </div>
       )}
 
       {diff.dataSourcesAdded.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase text-muted-foreground mb-1">{t('explain.diff.dataAdded')}</p>
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">
+            {t('explain.diff.dataAdded')}
+          </p>
           <ul className="text-xs space-y-1">
             {diff.dataSourcesAdded.map((l) => (
               <li key={l}>+ {l}</li>
@@ -58,7 +67,9 @@ export default function ExplainabilityDiffPanel({ diff, onClose }: Explainabilit
 
       {diff.reasoningAdded.length > 0 && (
         <div>
-          <p className="text-[10px] uppercase text-muted-foreground mb-1">{t('explain.diff.reasoningAdded')}</p>
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">
+            {t('explain.diff.reasoningAdded')}
+          </p>
           <ul className="text-xs space-y-1">
             {diff.reasoningAdded.slice(0, 5).map((l) => (
               <li key={l}>+ {l}</li>
@@ -69,15 +80,19 @@ export default function ExplainabilityDiffPanel({ diff, onClose }: Explainabilit
 
       {diff.flowGraph && (
         <div>
-          <p className="text-[10px] uppercase text-muted-foreground mb-1">{t('explain.diff.flow')}</p>
+          <p className="text-[10px] uppercase text-muted-foreground mb-1">
+            {t('explain.diff.flow')}
+          </p>
           {diff.flowGraph.addedNodes.length > 0 && (
             <p className="text-xs text-muted-foreground">
-              {t('explain.diff.flowAdded')}: {diff.flowGraph.addedNodes.map((n) => n.label).join(', ')}
+              {t('explain.diff.flowAdded')}:{' '}
+              {diff.flowGraph.addedNodes.map((n) => n.label).join(', ')}
             </p>
           )}
           {diff.flowGraph.removedNodes.length > 0 && (
             <p className="text-xs text-muted-foreground mt-1">
-              {t('explain.diff.flowRemoved')}: {diff.flowGraph.removedNodes.map((n) => n.label).join(', ')}
+              {t('explain.diff.flowRemoved')}:{' '}
+              {diff.flowGraph.removedNodes.map((n) => n.label).join(', ')}
             </p>
           )}
         </div>

@@ -2,18 +2,22 @@ import { shouldPolicyAutoExecuteProposal } from '../BrainPolicyAutoExecutePolicy
 import { DEFAULT_MERCHANT_SETTINGS, type MerchantSettings } from '../../../../shared/settings/merchantSettingsTypes';
 import type { ToolProposal } from '../../personal-brain/tools/types';
 
-jest.mock('../../../../shared/policy/assessApprovalAutoEligible', () => ({
-  assessApprovalAutoEligible: jest.fn(),
-}));
-
-import { assessApprovalAutoEligible } from '../../../../shared/policy/assessApprovalAutoEligible';
-
 const baseSettings: MerchantSettings = {
   ...DEFAULT_MERCHANT_SETTINGS,
   policyEnabled: true,
   autoApproveLowRisk: true,
   autoRunWindow: 'always',
   brainAdaptiveAutoExecuteEnabled: false,
+  autonomyPrefs: {
+    ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs,
+    actionCategories: {
+      ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs.actionCategories,
+      pricing: {
+        ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs.actionCategories.pricing,
+        allowLowRiskAutoExecute: true,
+      },
+    },
+  },
 };
 
 function proposal(overrides: Partial<ToolProposal> = {}): ToolProposal {
@@ -43,11 +47,6 @@ describe('BrainPolicyAutoExecutePolicy', () => {
   });
 
   it('auto-eligible updatePrice when policy passes', async () => {
-    (assessApprovalAutoEligible as jest.Mock).mockResolvedValue({
-      eligible: true,
-      reason: 'within threshold',
-      riskClass: 'medium',
-    });
     const result = await shouldPolicyAutoExecuteProposal({
       tenantId: 't1',
       settings: baseSettings,

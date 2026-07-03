@@ -33,7 +33,9 @@ export function useBilateralPackagesQuery(contractId: string | null, enabled = t
   return useQuery({
     queryKey: keys.packages(contractId ?? ''),
     queryFn: () =>
-      apiFetch<{ packages: BilateralPackageDto[] }>(apiRoutes.bilateral.contractPackages(contractId!)),
+      apiFetch<{ packages: BilateralPackageDto[] }>(
+        apiRoutes.bilateral.contractPackages(contractId!),
+      ),
     enabled: enabled && Boolean(contractId),
   });
 }
@@ -54,7 +56,9 @@ export function useAcceptBilateralContractMutation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (contractId: string) =>
-      apiFetch<BilateralContractDto>(apiRoutes.bilateral.contractAccept(contractId), { method: 'POST' }),
+      apiFetch<BilateralContractDto>(apiRoutes.bilateral.contractAccept(contractId), {
+        method: 'POST',
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.contracts }),
   });
 }

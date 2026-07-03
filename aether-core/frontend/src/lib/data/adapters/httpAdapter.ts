@@ -13,7 +13,13 @@ import type {
   ResolveApprovalResponse,
 } from '@/types/approval';
 import type { ActivityFeedResponse } from '@/types/activity';
-import type { CommandHistoryItem, CommandResult, ExecuteBrainToolResponse, UndoCommandResponse, AgentRunResponse } from '@/types/command';
+import type {
+  CommandHistoryItem,
+  CommandResult,
+  ExecuteBrainToolResponse,
+  UndoCommandResponse,
+  AgentRunResponse,
+} from '@/types/command';
 import type { AutonomyMetricsResponse, OutcomeReport } from '@/types/insight';
 import type { AppNotification } from '@/types/notification';
 import type {
@@ -138,7 +144,11 @@ export const httpDataAdapter: DataAdapter = {
     return res.notifications ?? [];
   },
 
-  fetchNotificationsPage: async (params: { limit?: number; cursor?: string; groupKey?: string }) => {
+  fetchNotificationsPage: async (params: {
+    limit?: number;
+    cursor?: string;
+    groupKey?: string;
+  }) => {
     return apiFetch<import('@/types/notification').NotificationInboxResponse>(
       apiRoutes.admin.notifications(params.limit ?? 25, params.cursor, params.groupKey),
     );
@@ -213,12 +223,12 @@ export const httpDataAdapter: DataAdapter = {
 
   fetchProactiveSuggestions: () =>
     apiFetch<import('@/types/suggestions').ApiProactiveSuggestionsResponse>(
-      apiRoutes.admin.proactiveSuggestions
+      apiRoutes.admin.proactiveSuggestions,
     ),
 
   dismissProactiveSuggestion: (id) =>
     apiFetch(apiRoutes.admin.proactiveSuggestionDismiss(id), { method: 'POST' }).then(
-      () => undefined
+      () => undefined,
     ),
 
   snoozeProactiveSuggestion: (id, hours) =>
@@ -229,7 +239,7 @@ export const httpDataAdapter: DataAdapter = {
 
   executeProactiveSuggestion: (id) =>
     apiFetch(apiRoutes.admin.proactiveSuggestionExecute(id), { method: 'POST' }).then(
-      () => undefined
+      () => undefined,
     ),
 
   trackUiEvent: (event) =>
@@ -241,8 +251,7 @@ export const httpDataAdapter: DataAdapter = {
   fetchGoals: (includeCompleted) =>
     apiFetch<import('@/types/goals').GoalsListResponse>(apiRoutes.admin.goals(includeCompleted)),
 
-  fetchGoal: (id) =>
-    apiFetch<import('@/types/goals').GoalDetailResponse>(apiRoutes.admin.goal(id)),
+  fetchGoal: (id) => apiFetch<import('@/types/goals').GoalDetailResponse>(apiRoutes.admin.goal(id)),
 
   createGoal: (payload) =>
     apiFetch<{ goal: import('@/types/goals').MerchantGoal }>(apiRoutes.admin.goals(), {
@@ -259,12 +268,11 @@ export const httpDataAdapter: DataAdapter = {
   deleteGoal: (id) =>
     apiFetch(apiRoutes.admin.goal(id), { method: 'DELETE' }).then(() => undefined),
 
-  refreshGoal: (id) =>
-    apiFetch(apiRoutes.admin.goalRefresh(id), { method: 'POST' }),
+  refreshGoal: (id) => apiFetch(apiRoutes.admin.goalRefresh(id), { method: 'POST' }),
 
   fetchGoalLinkedSuggestions: (id) =>
     apiFetch<import('@/types/goals').GoalLinkedSuggestionsResponse>(
-      apiRoutes.admin.goalSuggestions(id)
+      apiRoutes.admin.goalSuggestions(id),
     ),
 
   fetchAiGoalSuggestions: () =>
@@ -279,9 +287,7 @@ export const httpDataAdapter: DataAdapter = {
   fetchGoalConflicts: () =>
     apiFetch<import('@/types/goals').GoalConflictsResponse>(apiRoutes.admin.goalConflicts),
 
-  buildGoalPlan: () =>
-    apiFetch<{ plan: unknown }>(apiRoutes.admin.goalPlan, { method: 'POST' }),
+  buildGoalPlan: () => apiFetch<{ plan: unknown }>(apiRoutes.admin.goalPlan, { method: 'POST' }),
 
-  fetchActiveGoalPlan: () =>
-    apiFetch<{ plan: unknown | null }>(apiRoutes.admin.goalPlanActive),
+  fetchActiveGoalPlan: () => apiFetch<{ plan: unknown | null }>(apiRoutes.admin.goalPlanActive),
 };

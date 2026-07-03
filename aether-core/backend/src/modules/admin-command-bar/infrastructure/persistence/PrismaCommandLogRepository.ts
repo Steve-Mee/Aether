@@ -56,7 +56,7 @@ export class PrismaCommandLogRepository {
       module: 'admin-command-bar',
       risk: 'low',
       status: saved.result ? 'autonomous' : 'info',
-      executor: entry.actor ?? 'merchant',
+      executor: entry.actor === 'aether' ? 'aether' : 'merchant',
     });
     return saved;
   }

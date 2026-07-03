@@ -23,8 +23,7 @@ const badgeVariants = cva(
         riskMedium: 'border-warning/40 bg-warning/25 text-warning',
         riskHigh: 'border-danger/40 bg-danger/25 text-danger',
         live: 'border-success/50 bg-success/30 text-success uppercase tracking-widest px-3 py-1',
-        partial:
-          'border-warning/40 bg-warning/25 text-warning uppercase tracking-widest px-3 py-1',
+        partial: 'border-warning/40 bg-warning/25 text-warning uppercase tracking-widest px-3 py-1',
         experimental:
           'border-primary/45 bg-primary/20 text-primary-readable uppercase tracking-widest px-3 py-1',
       },

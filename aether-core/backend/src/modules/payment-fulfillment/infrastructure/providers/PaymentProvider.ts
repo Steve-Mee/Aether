@@ -40,48 +40,58 @@ export class StripePaymentProvider implements PaymentProvider {
       return { success: false, status: 'failed', provider: this.name };
     }
 
-    try {
-      const useStripeMock = Boolean(process.env.STRIPE_API_HOST);
-      if (useStripeMock) {
-        const host = process.env.STRIPE_API_HOST!;
-        const port = process.env.STRIPE_API_PORT ?? '12111';
-        const protocol = process.env.STRIPE_API_PROTOCOL ?? 'http';
-        const body = new URLSearchParams({
-          amount: String(Math.round(amount * 100)),
-          currency: 'eur',
-          'metadata[orderId]': orderId,
-          'payment_method_types[]': 'card',
-        });
+    const amountCents = Math.round(amount * 100);
+    const mockHost = process.env.STRIPE_API_HOST;
+
+    if (mockHost) {
+      const host = mockHost === 'localhost' ? '127.0.0.1' : mockHost;
+      const port = process.env.STRIPE_API_PORT ?? '12111';
+      const protocol = process.env.STRIPE_API_PROTOCOL ?? 'http';
+      try {
         const res = await fetch(`${protocol}://${host}:${port}/v1/payment_intents`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${secretKey}`,
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body,
+          body: new URLSearchParams({
+            amount: String(amountCents),
+            currency: 'eur',
+          }),
         });
-        if (!res.ok) {
+        const intent = (await res.json()) as { id?: string; status?: string };
+        if (!res.ok || !intent.id?.startsWith('pi_')) {
           return { success: false, status: 'failed', provider: this.name };
         }
-        const intent = (await res.json()) as { id: string; status: string };
         return {
-          success: intent.status === 'succeeded' || intent.status === 'requires_payment_method',
+          success: true,
           transactionId: intent.id,
           status: intent.status === 'succeeded' ? 'paid' : 'pending',
           provider: this.name,
         };
+      } catch {
+        return { success: false, status: 'failed', provider: this.name };
       }
+    }
 
+    try {
       const Stripe = (await import('stripe')).default;
       const stripe = new Stripe(secretKey, { apiVersion: '2025-02-24.acacia' });
       const intent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100),
+        amount: amountCents,
         currency: 'eur',
         metadata: { orderId },
         automatic_payment_methods: { enabled: true },
       });
+      const okStatuses = new Set([
+        'succeeded',
+        'requires_payment_method',
+        'requires_confirmation',
+        'requires_action',
+        'processing',
+      ]);
       return {
-        success: intent.status === 'succeeded' || intent.status === 'requires_payment_method',
+        success: okStatuses.has(intent.status),
         transactionId: intent.id,
         status: intent.status === 'succeeded' ? 'paid' : 'pending',
         provider: this.name,

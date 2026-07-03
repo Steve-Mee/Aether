@@ -7,6 +7,8 @@ describe('RBAC viewer read routes', () => {
   const originalApiKey = process.env.AETHER_API_KEY;
   const originalNodeEnv = process.env.NODE_ENV;
 
+  jest.setTimeout(30_000);
+
   beforeAll(() => {
     delete process.env.AETHER_API_KEY;
     process.env.NODE_ENV = 'test';

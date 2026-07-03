@@ -1,7 +1,7 @@
-import { prisma } from '../../../shared/prisma/client';
-import { logger } from '../../../shared/logging/logger';
-import { getCompositionRoot } from '../../../bootstrap/compositionRoot';
-import { withServerSpan } from '../../../shared/observability/sentry';
+import { prisma } from '../../../../shared/prisma/client';
+import { logger } from '../../../../shared/logging/logger';
+import { getCompositionRoot } from '../../../../bootstrap/compositionRoot';
+import { withServerSpan } from '../../../../shared/observability/sentry';
 import { isGoalsEnabled, resolveGoalProgressIntervalMs, resolvePursuitCheckIntervalMs } from '../goalConfig';
 
 export class GoalProgressJob {

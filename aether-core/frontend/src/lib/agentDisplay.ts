@@ -80,7 +80,9 @@ export function formatAgentKeysLabel(agentKeys: string): string {
 }
 
 export function agentWorkingLabel(agentKey: string, workingSuffix: string): string {
-  const label = agentKey.includes(',') ? formatAgentKeysLabel(agentKey) : agentDisplayLabel(agentKey);
+  const label = agentKey.includes(',')
+    ? formatAgentKeysLabel(agentKey)
+    : agentDisplayLabel(agentKey);
   return `${label} ${workingSuffix}`;
 }
 

@@ -39,7 +39,7 @@ describe('BrainAgentLoop', () => {
     searchProductsByName: jest.fn().mockResolvedValue([
       { id: 'p1', name: 'Wireless Earbuds Pro', price: 49.99, stock: 85, slug: 'wireless-earbuds-pro' },
     ]),
-  };
+  } as unknown as AdminDataPort;
 
   it('runs tool loop and returns final narrative', async () => {
     const tools = new PersonalBrainToolRegistry({

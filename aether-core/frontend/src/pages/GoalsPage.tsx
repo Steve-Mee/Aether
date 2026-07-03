@@ -63,11 +63,20 @@ export default function GoalsPage() {
           <div className="flex gap-2">
             <Button
               variant="secondary"
-              onClick={() => void getDataAdapter().buildGoalPlan().then(() => refetch())}
+              onClick={() =>
+                void getDataAdapter()
+                  .buildGoalPlan()
+                  .then(() => refetch())
+              }
             >
               {t('goals.page.runPlan')}
             </Button>
-            <Button onClick={() => { setEditing(null); setDialogOpen(true); }}>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setDialogOpen(true);
+              }}
+            >
               <Plus size={16} className="mr-2" />
               {t('goals.page.new')}
             </Button>
@@ -129,9 +138,7 @@ export default function GoalsPage() {
               variant="premium"
               title={t('goals.page.emptyTitle')}
               description={t('goals.page.emptyHint')}
-              action={
-                <Button onClick={() => setDialogOpen(true)}>{t('goals.page.new')}</Button>
-              }
+              action={<Button onClick={() => setDialogOpen(true)}>{t('goals.page.new')}</Button>}
             />
           ) : (
             <>
@@ -145,8 +152,12 @@ export default function GoalsPage() {
                       setEditing(g);
                       setDialogOpen(true);
                     }}
-                    onPause={(g) => void update.mutateAsync({ id: g.id, payload: { status: 'paused' } })}
-                    onResume={(g) => void update.mutateAsync({ id: g.id, payload: { status: 'active' } })}
+                    onPause={(g) =>
+                      void update.mutateAsync({ id: g.id, payload: { status: 'paused' } })
+                    }
+                    onResume={(g) =>
+                      void update.mutateAsync({ id: g.id, payload: { status: 'active' } })
+                    }
                     onDelete={(g) => void remove.mutateAsync(g.id)}
                     onRefresh={(g) => void refresh.mutateAsync(g.id)}
                   />

@@ -5,36 +5,10 @@ import { SimpleHashEmbeddingAdapter } from '../../vector-store/SimpleHashEmbeddi
 import { InMemoryVectorStoreAdapter } from '../../vector-store/adapters/InMemoryVectorStoreAdapter';
 import { GlobalKnowledgeService } from '../GlobalKnowledgeService';
 import { StaticGlobalKnowledgeCatalog } from '../StaticGlobalKnowledgeCatalog';
-import type { MerchantSettings } from '../../../../shared/settings/merchantSettingsTypes';
+import { DEFAULT_MERCHANT_SETTINGS, type MerchantSettings } from '../../../../shared/settings/merchantSettingsTypes';
 
 const balancedSettings: MerchantSettings = {
-  autonomyLevel: 'medium',
-  autoApproveLowRisk: true,
-  autoApproveMediumRiskMail: false,
-  maxAutoPriceChangePct: 5,
-  maxMarginImpactEuro: 500,
-  policyEnabled: true,
-  autoRunWindow: 'always',
-  autoRunWindowStart: '18:00',
-  autoRunWindowEnd: '08:00',
-  notificationPrefs: {
-    autonomousLowRisk: { inApp: true, email: false },
-    highRiskApproval: { inApp: true, email: true },
-    supplierChanges: { inApp: true, email: false },
-    weeklyDigest: { inApp: true, email: true },
-    frequency: 'immediate',
-  },
-  locale: 'nl',
-  dataExportEnabled: true,
-  brainVectorBackend: null,
-  brainKnowledgeTransferEnabled: null,
-  brainKnowledgeUpdateProfile: 'balanced',
-  brainFederatedContributionEnabled: false,
-  brainKnowledgeGovernanceMode: 'full_loop',
-  brainLoRAPath: null,
-  brainActionMode: 'confirm_on_uncertain',
-  brainAdaptiveLearningEnabled: false,
-  brainAdaptiveAutoExecuteEnabled: false,
+  ...DEFAULT_MERCHANT_SETTINGS,
 };
 
 function createTestRegistry(): PersonalBrainRegistry {

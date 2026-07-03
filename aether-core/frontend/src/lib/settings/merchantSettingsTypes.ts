@@ -221,7 +221,10 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
   brainExplainabilityFederateEnabled: false,
   brainFederatedExecutionContribute: false,
   brainBilateralExchangeEnabled: false,
-  proactivePrefs: { ...DEFAULT_PROACTIVE_PREFS, categories: { ...DEFAULT_PROACTIVE_PREFS.categories } },
+  proactivePrefs: {
+    ...DEFAULT_PROACTIVE_PREFS,
+    categories: { ...DEFAULT_PROACTIVE_PREFS.categories },
+  },
   explainabilityPrefs: { ...DEFAULT_EXPLAINABILITY_PREFS },
   goalPrefs: { ...DEFAULT_GOAL_PREFS },
   overviewPrefs: {
@@ -230,7 +233,10 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
     sections: { ...DEFAULT_OVERVIEW_SECTION_PREFS },
     collapsed: {},
   },
-  autonomyPrefs: { ...DEFAULT_AUTONOMY_PREFS, actionCategories: { ...DEFAULT_AUTONOMY_PREFS.actionCategories } },
+  autonomyPrefs: {
+    ...DEFAULT_AUTONOMY_PREFS,
+    actionCategories: { ...DEFAULT_AUTONOMY_PREFS.actionCategories },
+  },
 };
 
 export function parseTimeToMinutes(value: string | null | undefined): number | null {

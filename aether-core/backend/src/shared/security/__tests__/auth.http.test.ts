@@ -16,6 +16,8 @@ describeIfDb('DB-backed ApiKey HTTP auth', () => {
   const originalApiKey = process.env.AETHER_API_KEY;
   const originalNodeEnv = process.env.NODE_ENV;
 
+  jest.setTimeout(30_000);
+
   beforeAll(async () => {
     delete process.env.AETHER_API_KEY;
     process.env.NODE_ENV = 'test';

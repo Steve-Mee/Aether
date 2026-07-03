@@ -1,7 +1,6 @@
 import type { LlmInferencePort } from '../../../shared/ai/LlmInferencePort';
 import { defaultOllamaInference } from '../../../shared/ai/OllamaInferenceAdapter';
 import type { ToolProposal } from '../personal-brain/tools/types';
-import type { ToolProposal } from '../personal-brain/tools/types';
 import type { RunWorkingMemoryPort } from './memory/RunWorkingMemoryPort';
 import { isRunMemoryEnabled } from './memory/runMemoryConfig';
 import { resolvePrimaryAgentByPriority } from './AgentCollaborationPolicy';

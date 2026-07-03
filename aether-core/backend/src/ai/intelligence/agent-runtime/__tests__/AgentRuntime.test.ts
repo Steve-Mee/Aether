@@ -20,6 +20,7 @@ describe('AgentRuntime', () => {
         parameters: {},
         confidence: 0.9,
       }),
+      tryDetectCompound: jest.fn().mockResolvedValue(null),
     } as unknown as CommandParserService;
 
     const runtime = new AgentRuntime(layer.personalBrainRegistry, mockParser);
@@ -51,6 +52,7 @@ describe('AgentRuntime', () => {
         parameters: { percentage: 5 },
         confidence: 0.9,
       }),
+      tryDetectCompound: jest.fn().mockResolvedValue(null),
     } as unknown as CommandParserService;
 
     const runtime = new AgentRuntime(layer.personalBrainRegistry, mockParser);
@@ -78,6 +80,7 @@ describe('AgentRuntime', () => {
         confidence: 0.9,
         parameters: {},
       }),
+      tryDetectCompound: jest.fn().mockResolvedValue(null),
     } as unknown as CommandParserService;
 
     const runtime = new AgentRuntime(layer.personalBrainRegistry, mockParser);

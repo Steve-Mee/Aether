@@ -83,7 +83,7 @@ export const apiRoutes = {
       `/api/admin/goals${includeCompleted ? '?includeCompleted=true' : ''}`,
     goal: (id: string) => `/api/admin/goals/${encodeURIComponent(id)}`,
     goalRefresh: (id: string) => `/api/admin/goals/${encodeURIComponent(id)}/refresh`,
-  goalSuggestions: (id: string) => `/api/admin/goals/${encodeURIComponent(id)}/suggestions`,
+    goalSuggestions: (id: string) => `/api/admin/goals/${encodeURIComponent(id)}/suggestions`,
     aiGoalSuggestions: '/api/admin/goals/suggestions',
     aiGoalSuggestionAccept: (id: string) =>
       `/api/admin/goals/suggestions/${encodeURIComponent(id)}/accept`,
@@ -114,7 +114,8 @@ export const apiRoutes = {
     brainGlobalPatches: '/api/admin/brain/global-patches',
     brainMemorySummary: '/api/admin/brain/memory/summary',
     brainMemoryEntries: '/api/admin/brain/memory/entries',
-    brainMemoryDeleteEntry: (id: string) => `/api/admin/brain/memory/entries/${encodeURIComponent(id)}`,
+    brainMemoryDeleteEntry: (id: string) =>
+      `/api/admin/brain/memory/entries/${encodeURIComponent(id)}`,
     brainMemoryClearShortTerm: '/api/admin/brain/memory/clear-short-term',
     brainMemoryConsolidate: '/api/admin/brain/memory/consolidate',
     brainReflectionTimeline: '/api/admin/brain/reflections/timeline',

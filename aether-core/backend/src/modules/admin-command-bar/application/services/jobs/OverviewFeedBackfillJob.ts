@@ -1,17 +1,17 @@
-import { prisma } from '../../../../shared/prisma/client';
-import type { ProactiveSuggestionDto } from '../../../../ai/intelligence/proactive/ProactiveSuggestionService';
+import { prisma } from '../../../../../shared/prisma/client';
+import type { ProactiveSuggestionDto } from '../../../../../ai/intelligence/proactive/ProactiveSuggestionService';
 import {
   activityToItem,
   approvalToItem,
   buildOverviewFeed,
   goalToItem,
   type OverviewFeedQuery,
-} from './OverviewFeedService';
-import { buildActivityFeed, mapAuditRowToActivityItem, resolveActivitySince } from './ActivityFeedService';
-import { upsertFeedEvent } from './OverviewFeedWriter';
+} from '../OverviewFeedService';
+import { buildActivityFeed, mapAuditRowToActivityItem, resolveActivitySince } from '../ActivityFeedService';
+import { upsertFeedEvent } from '../OverviewFeedWriter';
 import { notifyOverviewHandoff } from '../OverviewFeedNotify';
-import { isOverviewFeedBackfillEnabled } from './overviewFeedConfig';
-import { logger } from '../../../../shared/logging/logger';
+import { isOverviewFeedBackfillEnabled } from '../overviewFeedConfig';
+import { logger } from '../../../../../shared/logging/logger';
 
 const DEFAULT_TENANT = process.env.AETHER_DEFAULT_TENANT ?? 'tenant_default';
 
@@ -116,7 +116,7 @@ export class OverviewFeedBackfillJob {
 
     const tenants = await prisma.tenantSettings.findMany({ select: { tenantId: true } });
     const ids =
-      tenants.length > 0 ? tenants.map((t) => t.tenantId) : [DEFAULT_TENANT];
+      tenants.length > 0 ? tenants.map((t: { tenantId: string }) => t.tenantId) : [DEFAULT_TENANT];
 
     for (const tenantId of ids) {
       try {

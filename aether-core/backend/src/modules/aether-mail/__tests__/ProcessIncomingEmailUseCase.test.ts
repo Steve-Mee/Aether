@@ -1,3 +1,9 @@
+jest.mock('../../../shared/settings/TenantSettingsService', () => ({
+  getMerchantSettings: jest.fn().mockResolvedValue(
+    require('../../../shared/settings/merchantSettingsTypes').DEFAULT_MERCHANT_SETTINGS,
+  ),
+}));
+
 jest.mock('../../../shared/prisma/client', () => ({
   prisma: {
     customer: { findFirst: jest.fn().mockResolvedValue(null) },

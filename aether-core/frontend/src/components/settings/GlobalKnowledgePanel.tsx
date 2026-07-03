@@ -36,9 +36,9 @@ export default function GlobalKnowledgePanel() {
         const [statusRes, patchesRes, syncRes] = await Promise.all([
           apiFetch<GlobalKnowledgeStatus>(apiRoutes.admin.brainGlobalKnowledgeStatus),
           apiFetch<{ patches: GlobalPatch[] }>(apiRoutes.admin.brainGlobalPatchesActive),
-          apiFetch<{ history: Array<{ syncedAt: string; appliedCount: number; catalogVersion: string }> }>(
-            apiRoutes.admin.brainGlobalKnowledgeSyncHistory
-          ),
+          apiFetch<{
+            history: Array<{ syncedAt: string; appliedCount: number; catalogVersion: string }>;
+          }>(apiRoutes.admin.brainGlobalKnowledgeSyncHistory),
         ]);
         if (!cancelled) {
           setStatus(statusRes);
@@ -85,7 +85,8 @@ export default function GlobalKnowledgePanel() {
           </SettingRow>
           {status.lastSyncAt && (
             <p className="text-xs text-muted-foreground">
-              {t('settings.globalKnowledge.lastSync')}: {new Date(status.lastSyncAt).toLocaleString()}
+              {t('settings.globalKnowledge.lastSync')}:{' '}
+              {new Date(status.lastSyncAt).toLocaleString()}
             </p>
           )}
         </div>
@@ -98,10 +99,7 @@ export default function GlobalKnowledgePanel() {
           </h3>
           <ul className="space-y-2 text-sm">
             {patches.slice(0, 10).map((p) => (
-              <li
-                key={p.id}
-                className="flex justify-between gap-2 border-b border-border/30 pb-2"
-              >
+              <li key={p.id} className="flex justify-between gap-2 border-b border-border/30 pb-2">
                 <span className="text-foreground">{p.title}</span>
                 <span className="text-xs text-muted-foreground shrink-0">
                   {p.status} · {p.kind}

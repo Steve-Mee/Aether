@@ -1,4 +1,4 @@
-import { DEFAULT_PROACTIVE_PREFS } from '../../../../../shared/settings/merchantSettingsTypes';
+import { DEFAULT_PROACTIVE_PREFS, DEFAULT_MERCHANT_SETTINGS, type MerchantSettings } from '../../../../../shared/settings/merchantSettingsTypes';
 import { shouldProactiveAutoExecute } from '../ProactiveAutoExecutePolicy';
 
 jest.mock('../../proactiveConfig', () => ({
@@ -30,18 +30,27 @@ const baseRecord = {
   detectionRunId: null,
   orchestrationSource: null,
   expiresAt: null,
+  goalId: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
 
-const openSettings = {
+const openSettings: MerchantSettings = {
+  ...DEFAULT_MERCHANT_SETTINGS,
   proactivePrefs: { ...DEFAULT_PROACTIVE_PREFS, allowAutoExecute: true },
   policyEnabled: true,
   autoApproveLowRisk: true,
-  autoRunWindow: 'always' as const,
-  autoRunWindowStart: '00:00',
-  autoRunWindowEnd: '23:59',
-  autonomyLevel: 'medium' as const,
+  autoRunWindow: 'always',
+  autonomyPrefs: {
+    ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs,
+    actionCategories: {
+      ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs.actionCategories,
+      inventory: {
+        ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs.actionCategories.inventory,
+        allowLowRiskAutoExecute: true,
+      },
+    },
+  },
 };
 
 describe('shouldProactiveAutoExecute', () => {
@@ -51,7 +60,7 @@ describe('shouldProactiveAutoExecute', () => {
 
   it('allows eligible low-risk autonomous suggestion', () => {
     const result = shouldProactiveAutoExecute({
-      settings: openSettings as never,
+      settings: openSettings,
       record: baseRecord,
       learningPref: null,
       cooldownMs: 4 * 60 * 60 * 1000,
@@ -64,7 +73,7 @@ describe('shouldProactiveAutoExecute', () => {
       settings: {
         ...openSettings,
         proactivePrefs: { ...DEFAULT_PROACTIVE_PREFS, allowAutoExecute: false },
-      } as never,
+      } as MerchantSettings,
       record: baseRecord,
       learningPref: null,
       cooldownMs: 4 * 60 * 60 * 1000,
@@ -74,7 +83,7 @@ describe('shouldProactiveAutoExecute', () => {
 
   it('blocks high-risk suggestions', () => {
     const result = shouldProactiveAutoExecute({
-      settings: openSettings as never,
+      settings: openSettings,
       record: { ...baseRecord, riskLevel: 'high', executionMode: 'approval_required' },
       learningPref: null,
       cooldownMs: 4 * 60 * 60 * 1000,
@@ -84,7 +93,7 @@ describe('shouldProactiveAutoExecute', () => {
 
   it('blocks when learning prefers suppress', () => {
     const result = shouldProactiveAutoExecute({
-      settings: openSettings as never,
+      settings: openSettings,
       record: baseRecord,
       learningPref: 'prefer_suppress',
       cooldownMs: 4 * 60 * 60 * 1000,
@@ -94,7 +103,7 @@ describe('shouldProactiveAutoExecute', () => {
 
   it('blocks during cooldown', () => {
     const result = shouldProactiveAutoExecute({
-      settings: openSettings as never,
+      settings: openSettings,
       record: baseRecord,
       learningPref: null,
       lastAutoExecuteAt: new Date(),

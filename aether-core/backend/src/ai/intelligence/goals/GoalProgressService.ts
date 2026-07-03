@@ -6,8 +6,8 @@ import type { GoalOutcomeAttributionService } from './GoalOutcomeAttributionServ
 import type { GoalProgressSource, MerchantGoalRecord } from './types';
 import { computeExpectedProgressPct, computeProgressPct } from './goalValidation';
 import { eventBus } from '../../../shared/events/eventBus';
-import { notifyOverviewGoalSnapshot, notifyOverviewGoalMilestone, notifyOverviewGoalCompleted } from '../../../../modules/admin-command-bar/application/services/OverviewFeedNotify';
-import { crossedGoalMilestone } from '../../../../modules/admin-command-bar/application/services/notifications/notificationTypes';
+import { notifyOverviewGoalSnapshot, notifyOverviewGoalMilestone, notifyOverviewGoalCompleted } from '../../../modules/admin-command-bar/application/services/OverviewFeedNotify';
+import { crossedGoalMilestone } from '../../../modules/admin-command-bar/application/services/notifications/notificationTypes';
 
 export interface GoalProgressResult {
   goal: MerchantGoalRecord;

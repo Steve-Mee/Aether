@@ -14,6 +14,7 @@ import {
   MarginMetrics,
   CategoryRevenueMetrics,
   InventoryCostSummary,
+  OrderTrendSummary,
 } from '../../application/ports/AdminDataPort';
 import { requireTenantId } from '../../../../shared/tenant/tenantContext';
 
@@ -404,7 +405,7 @@ export class PrismaAdminDataAdapter implements AdminDataPort {
     let negativeCount = 0;
     for (const [status, count] of Object.entries(trends.statusBreakdown)) {
       if (negativeStatuses.includes(status.toLowerCase())) {
-        negativeCount += count;
+        negativeCount += Number(count);
       }
     }
     const cancelledOrRefundedRatio =

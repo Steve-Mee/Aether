@@ -13,6 +13,7 @@ describeIfDb('Commerce integration (tenant-scoped)', () => {
     'X-Aether-Api-Key': process.env.AETHER_API_KEY ?? 'ci-test-key',
     'X-Aether-Tenant-Id': tenantId,
     'X-Aether-Actor-Id': 'commerce-e2e',
+    'X-Aether-Role': 'operator',
   };
 
   beforeAll(async () => {

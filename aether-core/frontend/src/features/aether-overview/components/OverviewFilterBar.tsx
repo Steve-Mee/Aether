@@ -25,13 +25,7 @@ interface OverviewFilterBarProps {
   onClearFilters?: () => void;
 }
 
-const ACTION_TYPES: OverviewActionType[] = [
-  'all',
-  'proactive',
-  'autonomous',
-  'goal',
-  'approval',
-];
+const ACTION_TYPES: OverviewActionType[] = ['all', 'proactive', 'autonomous', 'goal', 'approval'];
 const PERIODS: OverviewPeriod[] = ['24h', '7d', '30d'];
 const RISKS: OverviewRiskFilter[] = ['all', 'low', 'high'];
 const MODULES = ['all', 'admin-command-bar', 'aether-mail', 'payment-fulfillment'];
@@ -177,7 +171,11 @@ export default function OverviewFilterBar({
           active={filters.risk}
           onChange={onRiskChange}
           getLabel={(r) =>
-            r === 'all' ? t('overview.filter.riskAll') : r === 'high' ? t('activity.filter.riskHigh') : t('activity.filter.riskLow')
+            r === 'all'
+              ? t('overview.filter.riskAll')
+              : r === 'high'
+                ? t('activity.filter.riskHigh')
+                : t('activity.filter.riskLow')
           }
           testIdPrefix="overview-filter-risk"
         />

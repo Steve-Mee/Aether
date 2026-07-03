@@ -89,9 +89,7 @@ export default function GoalCard({
 
           <GoalProgressBar
             value={progress}
-            variant={
-              goal.status === 'completed' ? 'completed' : behind ? 'behind' : 'default'
-            }
+            variant={goal.status === 'completed' ? 'completed' : behind ? 'behind' : 'default'}
             showMilestones
           />
 
@@ -146,7 +144,12 @@ export default function GoalCard({
               </Button>
             ) : null}
             {onDelete ? (
-              <Button size="sm" variant="ghost" className="text-destructive" onClick={() => onDelete(goal)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive"
+                onClick={() => onDelete(goal)}
+              >
                 <Trash2 size={14} className="mr-1" />
                 {t('goals.action.delete')}
               </Button>

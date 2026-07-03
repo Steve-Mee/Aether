@@ -123,9 +123,10 @@ export function prefetchNavRoute(queryClient: QueryClient, path: string): void {
     });
     void queryClient.prefetchQuery({
       queryKey: queryKeys.agentMetrics(7),
-      queryFn: () => import('@/lib/api').then(({ apiFetch, apiRoutes }) =>
-        apiFetch(apiRoutes.admin.agentMetrics(7)),
-      ),
+      queryFn: () =>
+        import('@/lib/api').then(({ apiFetch, apiRoutes }) =>
+          apiFetch(apiRoutes.admin.agentMetrics(7)),
+        ),
       staleTime,
     });
     return;

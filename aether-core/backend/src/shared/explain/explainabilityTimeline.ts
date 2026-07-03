@@ -2,21 +2,22 @@ import type {
   ExplainabilityBuildContext,
   ExplainabilityDetailLevel,
   ExplainabilityPayload,
+  ExplainabilityPersistLevel,
   ExplainabilityResponse,
   ExplainabilitySection,
   ExplainabilitySourceType,
   FlowGraph,
   SimilarActionRef,
-} from '../ai/intelligence/explainability/types';
-import { ExplainabilityBuilder } from '../ai/intelligence/explainability/ExplainabilityBuilder';
-import { explainabilityPersister } from '../ai/intelligence/explainability/ExplainabilityPersister';
-import { ExplainabilityCollector } from '../ai/intelligence/explainability/ExplainabilityCollector';
-import { explainabilitySimilarityService } from '../ai/intelligence/explainability/ExplainabilitySimilarityService';
-import { isExplainabilityLlmSummaryEnabled } from '../ai/intelligence/explainability/explainabilityConfig';
+} from '../../ai/intelligence/explainability/types';
+import { ExplainabilityBuilder } from '../../ai/intelligence/explainability/ExplainabilityBuilder';
+import { explainabilityPersister } from '../../ai/intelligence/explainability/ExplainabilityPersister';
+import { ExplainabilityCollector } from '../../ai/intelligence/explainability/ExplainabilityCollector';
+import { explainabilitySimilarityService } from '../../ai/intelligence/explainability/ExplainabilitySimilarityService';
+import { isExplainabilityLlmSummaryEnabled } from '../../ai/intelligence/explainability/explainabilityConfig';
 import {
   GlobalBrainContributor,
   RetrievalContributor,
-} from '../ai/intelligence/explainability/contributors';
+} from '../../ai/intelligence/explainability/contributors';
 import { getMerchantSettings } from '../settings/TenantSettingsService';
 import { requireTenantId } from '../tenant/tenantContext';
 import { prisma } from '../prisma/client';
@@ -496,7 +497,7 @@ export async function persistProactiveAutoExplainability(params: {
     tenantId: params.tenantId,
     sourceType: 'proactive_auto',
     sourceId: params.suggestionId,
-    persistLevel: suggestionSnapshot?.detailLevel ?? 'simple',
+    persistLevel: (suggestionSnapshot?.detailLevel ?? 'simple') as ExplainabilityPersistLevel,
     payload,
     agentKeys: payload.agents.map((a) => a.agentKey),
     triggerId: params.triggerId,

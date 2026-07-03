@@ -34,12 +34,7 @@ describe('ActivityRowCard inline explain', () => {
     };
 
     render(
-      <ActivityRowCard
-        item={item}
-        onSelect={vi.fn()}
-        showInlineExplain
-        onExplain={onExplain}
-      />,
+      <ActivityRowCard item={item} onSelect={vi.fn()} showInlineExplain onExplain={onExplain} />,
     );
 
     const btn = screen.getByTestId('activity-row-explain-row-1');
@@ -50,12 +45,7 @@ describe('ActivityRowCard inline explain', () => {
 
   it('hides explain button without explainability metadata', () => {
     render(
-      <ActivityRowCard
-        item={baseItem}
-        onSelect={vi.fn()}
-        showInlineExplain
-        onExplain={vi.fn()}
-      />,
+      <ActivityRowCard item={baseItem} onSelect={vi.fn()} showInlineExplain onExplain={vi.fn()} />,
     );
 
     expect(screen.queryByTestId('activity-row-explain-row-1')).not.toBeInTheDocument();

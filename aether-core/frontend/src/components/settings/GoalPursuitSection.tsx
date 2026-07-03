@@ -1,13 +1,6 @@
 import { useId, useState } from 'react';
 import React from 'react';
-import {
-  Button,
-  Card,
-  RangeInput,
-  SegmentedControl,
-  SettingRow,
-  Switch,
-} from '@/components/ui';
+import { Button, Card, RangeInput, SegmentedControl, SettingRow, Switch } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import type { GoalPursuitMode } from '@/lib/settings/merchantSettingsTypes';
@@ -48,7 +41,7 @@ export default function GoalPursuitSection() {
 
       <div className="space-y-5">
         <SettingRow
-          id={enabledId}
+          htmlFor={enabledId}
           label={t('settings.goals.enabled')}
           description={t('settings.goals.enabledHint')}
         >
@@ -59,25 +52,26 @@ export default function GoalPursuitSection() {
           />
         </SettingRow>
 
-        <RangeInput
-          label={t('settings.goals.maxActive')}
-          value={draft.maxActive}
-          onChange={(maxActive) => setDraft((d) => ({ ...d, maxActive }))}
-          min={1}
-          max={20}
-        />
+        <SettingRow label={t('settings.goals.maxActive')}>
+          <RangeInput
+            value={draft.maxActive}
+            onChange={(e) => setDraft((d) => ({ ...d, maxActive: Number(e.target.value) }))}
+            min={1}
+            max={20}
+          />
+        </SettingRow>
 
-        <SegmentedControl
-          label={t('settings.goals.defaultPursuit')}
-          value={draft.defaultPursuitMode}
-          onChange={(v) =>
-            setDraft((d) => ({ ...d, defaultPursuitMode: v as GoalPursuitMode }))
-          }
-          options={pursuitOptions}
-        />
+        <SettingRow label={t('settings.goals.defaultPursuit')}>
+          <SegmentedControl
+            value={draft.defaultPursuitMode}
+            onChange={(v) => setDraft((d) => ({ ...d, defaultPursuitMode: v as GoalPursuitMode }))}
+            options={pursuitOptions}
+            aria-label={t('settings.goals.defaultPursuit')}
+          />
+        </SettingRow>
 
         <SettingRow
-          id={autoExecId}
+          htmlFor={autoExecId}
           label={t('settings.goals.allowGoalAutoExecute')}
           description={t('settings.goals.allowGoalAutoExecuteHint')}
         >
@@ -91,7 +85,7 @@ export default function GoalPursuitSection() {
         </SettingRow>
 
         <SettingRow
-          id={showWidgetId}
+          htmlFor={showWidgetId}
           label={t('settings.goals.showOnCommandCenter')}
           description={t('settings.goals.showOnCommandCenterHint')}
         >
@@ -122,9 +116,7 @@ export default function GoalPursuitSection() {
         >
           <Switch
             checked={draft.showGlobalHints}
-            onCheckedChange={(showGlobalHints) =>
-              setDraft((d) => ({ ...d, showGlobalHints }))
-            }
+            onCheckedChange={(showGlobalHints) => setDraft((d) => ({ ...d, showGlobalHints }))}
           />
         </SettingRow>
 

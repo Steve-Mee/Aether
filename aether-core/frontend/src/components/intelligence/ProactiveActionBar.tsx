@@ -87,22 +87,20 @@ export default function ProactiveActionBar({
           {t('explain.why')}
         </Button>
       )}
-      {showAutoExecute &&
-        executionMode === 'autonomous' &&
-        onAutoExecute && (
-          <Button
-            type="button"
-            size="sm"
-            className="h-7 rounded-lg px-2.5 text-[11px]"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAutoExecute();
-            }}
-            aria-label={`${t('proactive.action.autoExecute')}: ${title}`}
-          >
-            {t('proactive.action.autoExecute')}
-          </Button>
-        )}
+      {showAutoExecute && executionMode === 'autonomous' && onAutoExecute && (
+        <Button
+          type="button"
+          size="sm"
+          className="h-7 rounded-lg px-2.5 text-[11px]"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAutoExecute();
+          }}
+          aria-label={`${t('proactive.action.autoExecute')}: ${title}`}
+        >
+          {t('proactive.action.autoExecute')}
+        </Button>
+      )}
       <Button
         type="button"
         size="sm"

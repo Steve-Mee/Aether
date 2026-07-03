@@ -27,14 +27,10 @@ export default function AgentGroupedTimeline({
   executionMode,
 }: AgentGroupedTimelineProps) {
   const grouped = useMemo(() => groupStepsByAgent(steps), [steps]);
-  const agentKeys = useMemo(
-    () => [...grouped.keys()].filter((k) => k !== '_default'),
-    [grouped],
-  );
+  const agentKeys = useMemo(() => [...grouped.keys()].filter((k) => k !== '_default'), [grouped]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  const showGrouped =
-    executionMode !== 'single' && executionMode != null && agentKeys.length > 0;
+  const showGrouped = executionMode !== 'single' && executionMode != null && agentKeys.length > 0;
 
   if (!showGrouped) {
     const flat = grouped.get('_default') ?? steps;
@@ -52,10 +48,7 @@ export default function AgentGroupedTimeline({
         const statusIcon = allDone ? '✓' : '●';
 
         return (
-          <div
-            key={agentKey}
-            className="rounded-lg border border-border/30 bg-muted/5 px-3 py-2"
-          >
+          <div key={agentKey} className="rounded-lg border border-border/30 bg-muted/5 px-3 py-2">
             <button
               type="button"
               className="flex w-full items-center gap-2 text-left text-xs font-medium text-muted-foreground hover:text-foreground"

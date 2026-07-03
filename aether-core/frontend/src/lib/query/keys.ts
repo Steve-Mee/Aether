@@ -15,7 +15,8 @@ export const queryKeys = {
   activity: (params?: { days?: number; since?: string; limit?: number; agentKey?: string }) =>
     ['activity', params ?? {}] as const,
   agents: () => ['agents', 'roster'] as const,
-  agentActivity: (agentKey: string, days?: number) => ['agents', agentKey, 'activity', days ?? 7] as const,
+  agentActivity: (agentKey: string, days?: number) =>
+    ['agents', agentKey, 'activity', days ?? 7] as const,
   truthStatus: () => ['truth-status'] as const,
   emails: {
     all: () => ['emails'] as const,

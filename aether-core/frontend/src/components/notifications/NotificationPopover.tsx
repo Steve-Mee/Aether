@@ -24,7 +24,9 @@ function isToday(createdAt: string): boolean {
   );
 }
 
-function groupByRecency(items: AetherNotification[]): { key: string; label: string; items: AetherNotification[] }[] {
+function groupByRecency(
+  items: AetherNotification[],
+): { key: string; label: string; items: AetherNotification[] }[] {
   const today: AetherNotification[] = [];
   const earlier: AetherNotification[] = [];
   for (const n of items) {
@@ -32,8 +34,10 @@ function groupByRecency(items: AetherNotification[]): { key: string; label: stri
     else earlier.push(n);
   }
   const groups: { key: string; label: string; items: AetherNotification[] }[] = [];
-  if (today.length) groups.push({ key: 'today', label: t('notifications.group.today'), items: today });
-  if (earlier.length) groups.push({ key: 'earlier', label: t('notifications.group.earlier'), items: earlier });
+  if (today.length)
+    groups.push({ key: 'today', label: t('notifications.group.today'), items: today });
+  if (earlier.length)
+    groups.push({ key: 'earlier', label: t('notifications.group.earlier'), items: earlier });
   return groups;
 }
 

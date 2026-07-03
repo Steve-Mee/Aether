@@ -160,10 +160,13 @@ const messages: Record<Locale, Record<string, string>> = {
     'explain.diff.flow': 'Agent-flow',
     'explain.diff.flowAdded': 'Nieuwe agents in flow',
     'explain.diff.flowRemoved': 'Agents niet meer in flow',
-    'settings.explainability.showCrossTenantSimilarActions': 'Vergelijk met andere merchants (anoniem)',
-    'settings.explainability.showCrossTenantSimilarActionsHint': 'Toont geanonimiseerde patronen; geen data van andere tenants.',
+    'settings.explainability.showCrossTenantSimilarActions':
+      'Vergelijk met andere merchants (anoniem)',
+    'settings.explainability.showCrossTenantSimilarActionsHint':
+      'Toont geanonimiseerde patronen; geen data van andere tenants.',
     'settings.explainability.federatePatterns': 'Draag explainability-patronen bij',
-    'settings.explainability.federatePatternsHint': 'Deel geanonimiseerde actiepatronen voor cross-tenant hints.',
+    'settings.explainability.federatePatternsHint':
+      'Deel geanonimiseerde actiepatronen voor cross-tenant hints.',
     'explain.summary.ai': 'AI-samenvatting',
     'explain.summary.system': 'Systeemsamenvatting',
     'explain.summary.enriching': 'Samenvatting wordt verrijkt…',
@@ -172,7 +175,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'explain.export.pdf': 'Exporteer (PDF)',
     'explain.export.audit': 'Audit export',
     'settings.explainability.useLlmSummary': 'Natuurlijke taal samenvatting (AI)',
-    'settings.explainability.useLlmSummaryHint': 'Optioneel; gebruikt lokale AI wanneer ingeschakeld.',
+    'settings.explainability.useLlmSummaryHint':
+      'Optioneel; gebruikt lokale AI wanneer ingeschakeld.',
     'settings.explainability.showLiveExplain': 'Live uitleg tijdens commando',
     'settings.explainability.showSimilarActions': 'Vergelijk met eerdere acties',
     'settings.explainability.title': 'Uitlegbaarheid',
@@ -242,14 +246,16 @@ const messages: Record<Locale, Record<string, string>> = {
     'settings.goals.subtitle':
       'Definieer langere-termijn doelen en hoe agressief AETHER mag handelen om ze te halen.',
     'settings.goals.enabled': 'Doelen inschakelen',
-    'settings.goals.enabledHint': 'Agents en proactieve suggesties houden rekening met actieve doelen.',
+    'settings.goals.enabledHint':
+      'Agents en proactieve suggesties houden rekening met actieve doelen.',
     'settings.goals.maxActive': 'Maximaal actieve doelen',
     'settings.goals.defaultPursuit': 'Standaard pursuit-modus',
     'settings.goals.allowGoalAutoExecute': 'Goal-linked auto-execute',
     'settings.goals.allowGoalAutoExecuteHint':
       'Alleen low-risk acties gekoppeld aan doelen mogen automatisch worden uitgevoerd.',
     'settings.goals.showOnCommandCenter': 'Toon op Command Center',
-    'settings.goals.showOnCommandCenterHint': 'Compact overzicht van actieve doelen op de homepagina.',
+    'settings.goals.showOnCommandCenterHint':
+      'Compact overzicht van actieve doelen op de homepagina.',
     'goals.page.title': 'Doelen',
     'goals.page.subtitle': 'Meetbare doelen die AETHER over meerdere sessies nastreeft.',
     'goals.page.new': 'Nieuw doel',
@@ -299,7 +305,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'goals.form.parent': 'Bovenliggend doel',
     'goals.form.noParent': 'Geen (top-level)',
     'settings.goals.federatedContribute': 'Federated goal-patronen delen',
-    'settings.goals.federatedContributeHint': 'Anonieme completion/recovery rates delen met het netwerk.',
+    'settings.goals.federatedContributeHint':
+      'Anonieme completion/recovery rates delen met het netwerk.',
     'settings.goals.showGlobalHints': 'Toon peer-hints',
     'settings.goals.showGlobalHintsHint': 'Benchmarks van vergelijkbare merchants bij suggesties.',
     'goals.action.edit': 'Bewerken',
@@ -619,14 +626,16 @@ const messages: Record<Locale, Record<string, string>> = {
     'overview.filter.period7d': '7 dagen',
     'overview.filter.period30d': '30 dagen',
     'overview.section.attention': 'Aandacht nodig',
-    'overview.section.attention.subtitle': 'Openstaande goedkeuringen die wachten op jouw beslissing.',
+    'overview.section.attention.subtitle':
+      'Openstaande goedkeuringen die wachten op jouw beslissing.',
     'overview.section.attention.viewAll': 'Alle goedkeuringen',
     'overview.section.proactive': 'Open suggesties',
     'overview.section.proactive.viewAll': 'Command Center',
     'overview.section.goals': 'Actieve doelen',
     'overview.section.goals.viewAll': 'Alle doelen',
     'overview.section.activity': 'Recente agent-acties',
-    'overview.section.activity.subtitle': 'Chronologisch overzicht van wat AETHER en agents hebben gedaan.',
+    'overview.section.activity.subtitle':
+      'Chronologisch overzicht van wat AETHER en agents hebben gedaan.',
     'overview.section.activity.viewAll': 'Volledige activiteitlog',
     'overview.empty.proactive': 'Geen open suggesties — AETHER draait op de achtergrond.',
     'overview.empty.goals': 'Geen actieve doelen. Stel een doel in om voortgang te volgen.',
@@ -850,13 +859,16 @@ const messages: Record<Locale, Record<string, string>> = {
     'settings.autonomy.preset.subtitle':
       'Kies snel tussen conservatief, gebalanceerd of agressief. High-risk acties gaan altijd via goedkeuringen.',
     'settings.autonomy.preset.label': 'Profiel',
-    'settings.autonomy.preset.labelHint': 'Past autonomie, categorieën, proactief gedrag en doelen in één keer aan.',
+    'settings.autonomy.preset.labelHint':
+      'Past autonomie, categorieën, proactief gedrag en doelen in één keer aan.',
     'settings.autonomy.preset.conservative': 'Conservatief',
     'settings.autonomy.preset.balanced': 'Gebalanceerd',
     'settings.autonomy.preset.aggressive': 'Agressief',
-    'settings.autonomy.preset.customActive': 'Aangepast profiel — je hebt individuele instellingen gewijzigd.',
+    'settings.autonomy.preset.customActive':
+      'Aangepast profiel — je hebt individuele instellingen gewijzigd.',
     'settings.autonomy.preset.preview': 'Dit profiel stelt onder andere in:',
-    'settings.autonomy.preset.currentMargin': 'Marge-drempel blijft {max} (pas aan in grenzen hieronder).',
+    'settings.autonomy.preset.currentMargin':
+      'Marge-drempel blijft {max} (pas aan in grenzen hieronder).',
     'settings.autonomy.guardrails.title': 'Grenzen & venster',
     'settings.autonomy.guardrails.subtitle':
       'Maximale impact en tijdsvenster waarbinnen autonome acties mogen plaatsvinden.',
@@ -898,7 +910,8 @@ const messages: Record<Locale, Record<string, string>> = {
       'Hogere prioriteit = AETHER handelt autonomer namens deze agent bij conflicten.',
     'settings.autonomy.agents.enabled': 'Agent actief',
     'settings.autonomy.agents.priority': 'Prioriteit',
-    'settings.autonomy.agents.priorityHint': '1 = laag, 10 = hoog — tie-break bij conflicterende voorstellen.',
+    'settings.autonomy.agents.priorityHint':
+      '1 = laag, 10 = hoog — tie-break bij conflicterende voorstellen.',
     'settings.autonomy.agents.tri.inherit': 'Erfen',
     'settings.autonomy.agents.tri.on': 'Aan',
     'settings.autonomy.agents.tri.off': 'Uit',
@@ -928,7 +941,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'settings.autonomy.rules.subtitle':
       'Maximaal 10 IF/THEN-regels. High-risk guardrails kunnen nooit worden overrulen.',
     'settings.autonomy.rules.addRule': 'Regel toevoegen',
-    'settings.autonomy.rules.empty': 'Nog geen custom regels — voeg een template toe of maak een nieuwe regel.',
+    'settings.autonomy.rules.empty':
+      'Nog geen custom regels — voeg een template toe of maak een nieuwe regel.',
     'settings.autonomy.rules.testRule': 'Test in simulator',
     'settings.autonomy.rules.edit': 'Bewerken',
     'settings.autonomy.rules.remove': 'Verwijderen',
@@ -986,7 +1000,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'settings.notifications.weekly': 'Wekelijkse samenvatting',
     'settings.notifications.weeklyHint': 'Overzicht van autonome acties en besparingen.',
     'settings.notifications.proactive': 'Proactieve suggesties',
-    'settings.notifications.proactiveHint': 'Melding bij nieuwe AETHER-voorstellen in Command Center',
+    'settings.notifications.proactiveHint':
+      'Melding bij nieuwe AETHER-voorstellen in Command Center',
     'settings.notifications.goalProgress': 'Doelvoortgang & milestones',
     'settings.notifications.goalProgressHint': 'Melding bij milestones en voltooide doelen.',
     'settings.autonomyNotifications.title': 'Meldingen bij autonome acties',
@@ -1082,7 +1097,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'command.brain.thinking': 'Brein analyseert…',
     'command.brain.contextUsed': 'Gebruikte context',
     'command.brain.proposal': 'Actievoorstel',
-    'command.brain.retrievalWarning': 'Context ophalen mislukt — antwoord gebaseerd op systeemactie.',
+    'command.brain.retrievalWarning':
+      'Context ophalen mislukt — antwoord gebaseerd op systeemactie.',
     'command.brain.toolsUsed': 'Tools gebruikt',
     'command.brain.toolProposalTitle': 'Ik stel voor om het volgende uit te voeren',
     'command.brain.execute': 'Uitvoeren',
@@ -1098,7 +1114,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'command.brain.stepAssistant': 'Antwoord',
     'command.brain.stepProposed': 'Voorstel klaar',
     'command.brain.stepAwaitingApproval': 'Wacht op goedkeuring',
-    'command.brain.agentAwaitingApproval': 'Agent wacht op goedkeuring — hervat na jouw beslissing in Goedkeuringen',
+    'command.brain.agentAwaitingApproval':
+      'Agent wacht op goedkeuring — hervat na jouw beslissing in Goedkeuringen',
     'command.brain.autoExecuted': 'Automatisch uitgevoerd',
     'command.brain.autoExecutedBadge': 'Automatisch uitgevoerd',
     'command.brain.openInInbox': 'Open in inbox',
@@ -1117,28 +1134,36 @@ const messages: Record<Locale, Record<string, string>> = {
     'command.brain.reflection': 'Evaluatie',
     'command.brain.planRevised': 'Plan herzien',
     'settings.autonomy.brainActionMode': 'Brein acties',
-    'settings.autonomy.brainActionModeHint': 'Wanneer het brein mutaties voorstelt i.p.v. direct uitvoert',
+    'settings.autonomy.brainActionModeHint':
+      'Wanneer het brein mutaties voorstelt i.p.v. direct uitvoert',
     'settings.autonomy.brainModeUncertain': 'Bij onzekerheid',
     'settings.autonomy.brainModeAlways': 'Altijd bevestigen',
     'settings.autonomy.brainModeAdaptive': 'Adaptief',
     'settings.autonomy.adaptiveLearning': 'Adaptief leren',
-    'settings.autonomy.adaptiveLearningHint': 'AETHER leert van je keuzes en geeft hints bij vergelijkbare acties',
+    'settings.autonomy.adaptiveLearningHint':
+      'AETHER leert van je keuzes en geeft hints bij vergelijkbare acties',
     'settings.autonomy.adaptiveAutoExecute': 'Adaptief auto-uitvoeren',
-    'settings.autonomy.adaptiveAutoExecuteHint': 'Voer laag-risico voorstellen automatisch uit binnen het autonome venster wanneer je dat consistent goedkeurt',
+    'settings.autonomy.adaptiveAutoExecuteHint':
+      'Voer laag-risico voorstellen automatisch uit binnen het autonome venster wanneer je dat consistent goedkeurt',
     'settings.autonomy.knowledgeUpdateProfile': 'Kennis-updates profiel',
-    'settings.autonomy.knowledgeUpdateProfileHint': 'Hoe agressief het brein algemene patronen van andere merchants toepast',
+    'settings.autonomy.knowledgeUpdateProfileHint':
+      'Hoe agressief het brein algemene patronen van andere merchants toepast',
     'settings.autonomy.knowledgeProfileConservative': 'Conservatief',
     'settings.autonomy.knowledgeProfileBalanced': 'Gebalanceerd',
     'settings.autonomy.knowledgeProfileAggressive': 'Agressief',
     'settings.autonomy.federatedContribution': 'Bijdragen aan collectief brein',
-    'settings.autonomy.federatedContributionHint': 'Deel geanonimiseerde patronen om het collectieve brein te versterken',
+    'settings.autonomy.federatedContributionHint':
+      'Deel geanonimiseerde patronen om het collectieve brein te versterken',
     'settings.autonomy.crossTenantPatterns': 'Cross-tenant agentpatronen',
-    'settings.autonomy.crossTenantPatternsHint': 'Sta toe dat federated sandbox agentpatronen gebruikt (geen ruwe data)',
+    'settings.autonomy.crossTenantPatternsHint':
+      'Sta toe dat federated sandbox agentpatronen gebruikt (geen ruwe data)',
     'settings.autonomy.federatedExecutionContribute': 'Federated execution bijdragen',
-    'settings.autonomy.federatedExecutionContributeHint': 'Sta toe dat lokale runs geanonimiseerde samenvattingen delen via federated RPC',
+    'settings.autonomy.federatedExecutionContributeHint':
+      'Sta toe dat lokale runs geanonimiseerde samenvattingen delen via federated RPC',
     'settings.section.platform': 'Platform (operator)',
     'settings.platform.federatedTitle': 'Federated deployments',
-    'settings.platform.federatedHint': 'Beheer remote deployment registry voor multi-region federated RPC.',
+    'settings.platform.federatedHint':
+      'Beheer remote deployment registry voor multi-region federated RPC.',
     'settings.platform.localDeployment': 'Lokale deployment',
     'settings.platform.broker': 'Message broker',
     'settings.platform.rpcEnabled': 'Federated RPC',
@@ -1191,7 +1216,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'settings.bilateral.status.revoked': 'Ingetrokken',
     'settings.bilateral.status.expired': 'Verlopen',
     'settings.autonomy.knowledgeTransfer': 'Kennisoverdracht',
-    'settings.autonomy.knowledgeTransferHint': 'Sta toe dat het brein geanonimiseerde inzichten deelt en ontvangt',
+    'settings.autonomy.knowledgeTransferHint':
+      'Sta toe dat het brein geanonimiseerde inzichten deelt en ontvangt',
     'settings.autonomy.knowledgeTransferInherit': 'Standaard (omgeving)',
     'settings.autonomy.knowledgeTransferOn': 'Aan',
     'settings.autonomy.knowledgeTransferOff': 'Uit',
@@ -1229,7 +1255,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'settings.personalMemory.delete': 'Verwijder',
     'settings.personalMemory.empty': 'Nog geen langetermijnherinneringen.',
     'settings.section.globalKnowledge': 'Collectief brein',
-    'settings.globalKnowledge.subtitle': 'Status van kennis-updates van andere merchants (zonder details).',
+    'settings.globalKnowledge.subtitle':
+      'Status van kennis-updates van andere merchants (zonder details).',
     'settings.globalKnowledge.loading': 'Laden…',
     'settings.globalKnowledge.profile': 'Update profiel',
     'settings.globalKnowledge.syncStatus': 'Sync status',
@@ -1413,10 +1440,13 @@ const messages: Record<Locale, Record<string, string>> = {
     'explain.diff.flow': 'Agent flow',
     'explain.diff.flowAdded': 'New agents in flow',
     'explain.diff.flowRemoved': 'Agents removed from flow',
-    'settings.explainability.showCrossTenantSimilarActions': 'Compare with other merchants (anonymous)',
-    'settings.explainability.showCrossTenantSimilarActionsHint': 'Shows anonymized patterns; no other tenant data.',
+    'settings.explainability.showCrossTenantSimilarActions':
+      'Compare with other merchants (anonymous)',
+    'settings.explainability.showCrossTenantSimilarActionsHint':
+      'Shows anonymized patterns; no other tenant data.',
     'settings.explainability.federatePatterns': 'Contribute explainability patterns',
-    'settings.explainability.federatePatternsHint': 'Share anonymized action patterns for cross-tenant hints.',
+    'settings.explainability.federatePatternsHint':
+      'Share anonymized action patterns for cross-tenant hints.',
     'explain.summary.ai': 'AI summary',
     'explain.summary.system': 'System summary',
     'explain.summary.enriching': 'Summary is being enriched…',
@@ -1552,7 +1582,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'goals.form.parent': 'Parent goal',
     'goals.form.noParent': 'None (top-level)',
     'settings.goals.federatedContribute': 'Share federated goal patterns',
-    'settings.goals.federatedContributeHint': 'Share anonymized completion/recovery rates with the network.',
+    'settings.goals.federatedContributeHint':
+      'Share anonymized completion/recovery rates with the network.',
     'settings.goals.showGlobalHints': 'Show peer hints',
     'settings.goals.showGlobalHintsHint': 'Benchmarks from similar merchants in suggestions.',
     'goals.action.edit': 'Edit',
@@ -2098,13 +2129,15 @@ const messages: Record<Locale, Record<string, string>> = {
     'settings.autonomy.preset.subtitle':
       'Quickly switch between conservative, balanced, or aggressive. High-risk actions always require approval.',
     'settings.autonomy.preset.label': 'Profile',
-    'settings.autonomy.preset.labelHint': 'Applies autonomy, categories, proactive behavior, and goals at once.',
+    'settings.autonomy.preset.labelHint':
+      'Applies autonomy, categories, proactive behavior, and goals at once.',
     'settings.autonomy.preset.conservative': 'Conservative',
     'settings.autonomy.preset.balanced': 'Balanced',
     'settings.autonomy.preset.aggressive': 'Aggressive',
     'settings.autonomy.preset.customActive': 'Custom profile — you changed individual settings.',
     'settings.autonomy.preset.preview': 'This profile sets among other things:',
-    'settings.autonomy.preset.currentMargin': 'Margin threshold stays at {max} (adjust in guardrails below).',
+    'settings.autonomy.preset.currentMargin':
+      'Margin threshold stays at {max} (adjust in guardrails below).',
     'settings.autonomy.guardrails.title': 'Guardrails & window',
     'settings.autonomy.guardrails.subtitle':
       'Maximum impact and time window for autonomous actions.',
@@ -2146,7 +2179,8 @@ const messages: Record<Locale, Record<string, string>> = {
       'Higher priority = AETHER acts more autonomously on behalf of this agent in conflicts.',
     'settings.autonomy.agents.enabled': 'Agent enabled',
     'settings.autonomy.agents.priority': 'Priority',
-    'settings.autonomy.agents.priorityHint': '1 = low, 10 = high — tie-break for conflicting proposals.',
+    'settings.autonomy.agents.priorityHint':
+      '1 = low, 10 = high — tie-break for conflicting proposals.',
     'settings.autonomy.agents.tri.inherit': 'Inherit',
     'settings.autonomy.agents.tri.on': 'On',
     'settings.autonomy.agents.tri.off': 'Off',
@@ -2233,7 +2267,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'settings.notifications.weekly': 'Weekly summary',
     'settings.notifications.weeklyHint': 'Overview of autonomous actions and time saved.',
     'settings.notifications.proactive': 'Proactive suggestions',
-    'settings.notifications.proactiveHint': 'Notify when AETHER surfaces new Command Center suggestions',
+    'settings.notifications.proactiveHint':
+      'Notify when AETHER surfaces new Command Center suggestions',
     'settings.notifications.goalProgress': 'Goal progress & milestones',
     'settings.notifications.goalProgressHint': 'Notify on milestones and completed goals.',
     'settings.autonomyNotifications.title': 'Notifications for autonomous actions',
@@ -2344,7 +2379,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'command.brain.stepAssistant': 'Response',
     'command.brain.stepProposed': 'Proposal ready',
     'command.brain.stepAwaitingApproval': 'Awaiting approval',
-    'command.brain.agentAwaitingApproval': 'Agent is waiting for approval — it will resume after you decide in Approvals',
+    'command.brain.agentAwaitingApproval':
+      'Agent is waiting for approval — it will resume after you decide in Approvals',
     'command.brain.autoExecuted': 'Auto-executed',
     'command.brain.autoExecutedBadge': 'Auto-executed',
     'command.brain.openInInbox': 'Open in inbox',
@@ -2363,28 +2399,36 @@ const messages: Record<Locale, Record<string, string>> = {
     'command.brain.reflection': 'Evaluation',
     'command.brain.planRevised': 'Plan revised',
     'settings.autonomy.brainActionMode': 'Brain actions',
-    'settings.autonomy.brainActionModeHint': 'When the brain proposes mutations instead of executing directly',
+    'settings.autonomy.brainActionModeHint':
+      'When the brain proposes mutations instead of executing directly',
     'settings.autonomy.brainModeUncertain': 'When uncertain',
     'settings.autonomy.brainModeAlways': 'Always confirm',
     'settings.autonomy.brainModeAdaptive': 'Adaptive',
     'settings.autonomy.adaptiveLearning': 'Adaptive learning',
-    'settings.autonomy.adaptiveLearningHint': 'AETHER learns from your choices and hints on similar actions',
+    'settings.autonomy.adaptiveLearningHint':
+      'AETHER learns from your choices and hints on similar actions',
     'settings.autonomy.adaptiveAutoExecute': 'Adaptive auto-execute',
-    'settings.autonomy.adaptiveAutoExecuteHint': 'Auto-run low-risk proposals within the autonomous window when you consistently approve them',
+    'settings.autonomy.adaptiveAutoExecuteHint':
+      'Auto-run low-risk proposals within the autonomous window when you consistently approve them',
     'settings.autonomy.knowledgeUpdateProfile': 'Knowledge update profile',
-    'settings.autonomy.knowledgeUpdateProfileHint': 'How aggressively the brain applies general patterns from other merchants',
+    'settings.autonomy.knowledgeUpdateProfileHint':
+      'How aggressively the brain applies general patterns from other merchants',
     'settings.autonomy.knowledgeProfileConservative': 'Conservative',
     'settings.autonomy.knowledgeProfileBalanced': 'Balanced',
     'settings.autonomy.knowledgeProfileAggressive': 'Aggressive',
     'settings.autonomy.federatedContribution': 'Contribute to collective brain',
-    'settings.autonomy.federatedContributionHint': 'Share anonymized patterns to strengthen collective intelligence',
+    'settings.autonomy.federatedContributionHint':
+      'Share anonymized patterns to strengthen collective intelligence',
     'settings.autonomy.crossTenantPatterns': 'Cross-tenant agent patterns',
-    'settings.autonomy.crossTenantPatternsHint': 'Allow federated sandbox to use agent patterns (no raw data)',
+    'settings.autonomy.crossTenantPatternsHint':
+      'Allow federated sandbox to use agent patterns (no raw data)',
     'settings.autonomy.federatedExecutionContribute': 'Federated execution contribute',
-    'settings.autonomy.federatedExecutionContributeHint': 'Allow local runs to share anonymized summaries via federated RPC',
+    'settings.autonomy.federatedExecutionContributeHint':
+      'Allow local runs to share anonymized summaries via federated RPC',
     'settings.section.platform': 'Platform (operator)',
     'settings.platform.federatedTitle': 'Federated deployments',
-    'settings.platform.federatedHint': 'Manage remote deployment registry for multi-region federated RPC.',
+    'settings.platform.federatedHint':
+      'Manage remote deployment registry for multi-region federated RPC.',
     'settings.platform.localDeployment': 'Local deployment',
     'settings.platform.broker': 'Message broker',
     'settings.platform.rpcEnabled': 'Federated RPC',
@@ -2437,12 +2481,14 @@ const messages: Record<Locale, Record<string, string>> = {
     'settings.bilateral.status.revoked': 'Revoked',
     'settings.bilateral.status.expired': 'Expired',
     'settings.autonomy.knowledgeTransfer': 'Knowledge transfer',
-    'settings.autonomy.knowledgeTransferHint': 'Allow the brain to share and receive anonymized insights',
+    'settings.autonomy.knowledgeTransferHint':
+      'Allow the brain to share and receive anonymized insights',
     'settings.autonomy.knowledgeTransferInherit': 'Default (environment)',
     'settings.autonomy.knowledgeTransferOn': 'On',
     'settings.autonomy.knowledgeTransferOff': 'Off',
     'settings.autonomy.knowledgeGovernance': 'Knowledge loop mode',
-    'settings.autonomy.knowledgeGovernanceHint': 'Choose whether you receive knowledge, share it, or both',
+    'settings.autonomy.knowledgeGovernanceHint':
+      'Choose whether you receive knowledge, share it, or both',
     'settings.autonomy.governanceFullLoop': 'Full loop',
     'settings.autonomy.governanceReceiveOnly': 'Receive only',
     'settings.autonomy.governanceContributeOnly': 'Contribute only',
@@ -2475,7 +2521,8 @@ const messages: Record<Locale, Record<string, string>> = {
     'settings.personalMemory.delete': 'Delete',
     'settings.personalMemory.empty': 'No long-term memories yet.',
     'settings.section.globalKnowledge': 'Collective brain',
-    'settings.globalKnowledge.subtitle': 'Status of knowledge updates from other merchants (no details shared).',
+    'settings.globalKnowledge.subtitle':
+      'Status of knowledge updates from other merchants (no details shared).',
     'settings.globalKnowledge.loading': 'Loading…',
     'settings.globalKnowledge.profile': 'Update profile',
     'settings.globalKnowledge.syncStatus': 'Sync status',

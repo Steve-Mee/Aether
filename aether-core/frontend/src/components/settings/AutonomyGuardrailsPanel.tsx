@@ -1,12 +1,5 @@
 import { useId } from 'react';
-import {
-  Card,
-  RangeInput,
-  SegmentedControl,
-  SettingRow,
-  Switch,
-  TimeInput,
-} from '@/components/ui';
+import { Card, RangeInput, SegmentedControl, SettingRow, Switch, TimeInput } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import type { AutoRunWindow, MerchantSettings } from '@/lib/settings/merchantSettingsTypes';
 
@@ -36,7 +29,9 @@ export default function AutonomyGuardrailsPanel({ draft, onChange }: Props) {
       <h3 className="text-base font-semibold text-foreground mb-1">
         {t('settings.autonomy.guardrails.title')}
       </h3>
-      <p className="text-sm text-muted-foreground mb-6">{t('settings.autonomy.guardrails.subtitle')}</p>
+      <p className="text-sm text-muted-foreground mb-6">
+        {t('settings.autonomy.guardrails.subtitle')}
+      </p>
 
       <SettingRow
         label={t('settings.autonomy.policyEnabled')}
@@ -96,6 +91,7 @@ export default function AutonomyGuardrailsPanel({ draft, onChange }: Props) {
           value={draft.autoRunWindow}
           onChange={(v) => onChange({ autoRunWindow: v })}
           data-testid="auto-run-window"
+          aria-label={t('settings.autonomy.autoRunWindow')}
         />
       </SettingRow>
 

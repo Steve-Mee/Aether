@@ -1,11 +1,4 @@
-import {
-  Card,
-  RangeInput,
-  SegmentedControl,
-  SettingRow,
-  Switch,
-  TimeInput,
-} from '@/components/ui';
+import { Card, RangeInput, SegmentedControl, SettingRow, Switch, TimeInput } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import {
   AUTONOMY_ACTION_CATEGORIES,
@@ -98,7 +91,9 @@ export default function AutonomyCategoryGrid({ autonomyPrefs, onChange, disabled
                   checked={policy.allowMediumRiskAutoExecute}
                   disabled={disabled || !policy.enabled}
                   onCheckedChange={(allowMediumRiskAutoExecute) =>
-                    onChange(updateCategory(autonomyPrefs, category, { allowMediumRiskAutoExecute }))
+                    onChange(
+                      updateCategory(autonomyPrefs, category, { allowMediumRiskAutoExecute }),
+                    )
                   }
                 />
               </SettingRow>
@@ -108,23 +103,24 @@ export default function AutonomyCategoryGrid({ autonomyPrefs, onChange, disabled
                 description={t('settings.autonomy.category.scheduleHint')}
               >
                 <SegmentedControl
-                  options={scheduleOptions}
+                  options={scheduleOptions.map((opt) => ({
+                    ...opt,
+                    disabled: disabled || !policy.enabled,
+                  }))}
                   value={schedule.mode}
-                  disabled={disabled || !policy.enabled}
                   onChange={(mode) =>
                     onChange(
                       updateCategory(autonomyPrefs, category, {
                         schedule: {
                           ...schedule,
-                          mode,
-                          ...(mode === 'continuous'
-                            ? { useOutsideOfficePreset: false }
-                            : {}),
+                          mode: mode as typeof schedule.mode,
+                          ...(mode === 'continuous' ? { useOutsideOfficePreset: false } : {}),
                         },
                       }),
                     )
                   }
                   data-testid={`autonomy-category-schedule-${category}`}
+                  aria-label={t('settings.autonomy.category.schedule')}
                 />
               </SettingRow>
 

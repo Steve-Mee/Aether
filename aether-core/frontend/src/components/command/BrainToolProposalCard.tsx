@@ -6,7 +6,9 @@ import type { CommandResult } from '@/types/command';
 import { commandsApi } from '@/features/commands/api';
 import { t } from '@/lib/i18n';
 
-type PendingAction = NonNullable<CommandResult['brain']>['pendingActions'] extends (infer T)[] | undefined
+type PendingAction = NonNullable<CommandResult['brain']>['pendingActions'] extends
+  | (infer T)[]
+  | undefined
   ? T
   : never;
 
@@ -27,7 +29,7 @@ export default function BrainToolProposalCard({
 }: BrainToolProposalCardProps) {
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(
-    null
+    null,
   );
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -84,7 +86,9 @@ export default function BrainToolProposalCard({
 
       {action.expectedImpact && (
         <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-          <span className="font-medium text-foreground/80">{t('command.brain.expectedImpact')}:</span>{' '}
+          <span className="font-medium text-foreground/80">
+            {t('command.brain.expectedImpact')}:
+          </span>{' '}
           {action.expectedImpact}
         </p>
       )}
@@ -102,7 +106,9 @@ export default function BrainToolProposalCard({
         {action.confidence != null && <ConfidenceBadge confidence={action.confidence} />}
         <span className="text-[10px] font-mono text-muted-foreground/60">{action.tool}</span>
         {autoExecuted && (
-          <span className="text-[10px] text-success font-medium">{t('command.brain.autoExecutedBadge')}</span>
+          <span className="text-[10px] text-success font-medium">
+            {t('command.brain.autoExecutedBadge')}
+          </span>
         )}
         {action.requiresApproval && !autoExecuted && !routedToInbox && (
           <span className="text-[10px] text-amber-600">{t('command.brain.approvalRequired')}</span>
@@ -132,7 +138,12 @@ export default function BrainToolProposalCard({
               <Button size="sm" variant="primary" disabled={loading} onClick={execute}>
                 {loading ? t('command.brain.executing') : t('command.brain.confirmExecute')}
               </Button>
-              <Button size="sm" variant="ghost" disabled={loading} onClick={() => setConfirmOpen(false)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={loading}
+                onClick={() => setConfirmOpen(false)}
+              >
                 {t('command.brain.cancel')}
               </Button>
             </>

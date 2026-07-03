@@ -12,7 +12,13 @@ import type {
   ResolveApprovalResponse,
 } from '@/types/approval';
 import type { ActivityFeedResponse } from '@/types/activity';
-import type { CommandHistoryItem, CommandResult, ExecuteBrainToolResponse, UndoCommandResponse, AgentRunResponse } from '@/types/command';
+import type {
+  CommandHistoryItem,
+  CommandResult,
+  ExecuteBrainToolResponse,
+  UndoCommandResponse,
+  AgentRunResponse,
+} from '@/types/command';
 import type { AutonomyMetricsResponse, OutcomeReport } from '@/types/insight';
 import type { AppNotification } from '@/types/notification';
 import type {
@@ -21,6 +27,7 @@ import type {
   SupplierOverviewApiResponse,
 } from '@/types/supplier';
 import type { MerchantSettings } from '@/lib/settings/merchantSettingsTypes';
+import type { ExplainTimeline } from '@/types/explainability';
 import type { OrderRowDemo } from '@/lib/ordersPageDemo';
 import type { ProductRowDemo } from '@/lib/productsPageDemo';
 import type { EmailRowDemo } from '@/lib/emailsPageDemo';
@@ -35,23 +42,7 @@ export interface ActivityFetchParams {
   agentKey?: string;
 }
 
-export interface ExplainTimeline {
-  entityType: string;
-  entityId: string;
-  detailLevel?: 'simple' | 'extended';
-  summary?: string;
-  sections?: import('@/types/explainability').ExplainabilitySection[];
-  events?: Array<{
-    at: string;
-    label: string;
-    status?: string;
-    module?: string;
-    actor?: string;
-    category?: string;
-    actionType?: string;
-    details?: unknown;
-  }>;
-}
+export type { ExplainTimeline } from '@/types/explainability';
 
 export interface AutonomyTraceResponse {
   events: Array<{
@@ -130,18 +121,27 @@ export interface DataAdapter {
     route: string,
     limit: number,
   ): Promise<import('@/types/suggestions').ApiSuggestionsResponse>;
-  fetchProactiveSuggestions(): Promise<import('@/types/suggestions').ApiProactiveSuggestionsResponse>;
+  fetchProactiveSuggestions(): Promise<
+    import('@/types/suggestions').ApiProactiveSuggestionsResponse
+  >;
   dismissProactiveSuggestion(id: string): Promise<void>;
   snoozeProactiveSuggestion(id: string, hours?: number): Promise<void>;
   executeProactiveSuggestion(id: string): Promise<void>;
   trackUiEvent(event: { type: string; path: string }): Promise<void>;
   fetchGoals(includeCompleted?: boolean): Promise<import('@/types/goals').GoalsListResponse>;
   fetchGoal(id: string): Promise<import('@/types/goals').GoalDetailResponse>;
-  createGoal(payload: import('@/types/goals').CreateGoalPayload): Promise<{ goal: import('@/types/goals').MerchantGoal }>;
-  updateGoal(id: string, payload: import('@/types/goals').UpdateGoalPayload): Promise<{ goal: import('@/types/goals').MerchantGoal }>;
+  createGoal(
+    payload: import('@/types/goals').CreateGoalPayload,
+  ): Promise<{ goal: import('@/types/goals').MerchantGoal }>;
+  updateGoal(
+    id: string,
+    payload: import('@/types/goals').UpdateGoalPayload,
+  ): Promise<{ goal: import('@/types/goals').MerchantGoal }>;
   deleteGoal(id: string): Promise<void>;
   refreshGoal(id: string): Promise<unknown>;
-  fetchGoalLinkedSuggestions(id: string): Promise<import('@/types/goals').GoalLinkedSuggestionsResponse>;
+  fetchGoalLinkedSuggestions(
+    id: string,
+  ): Promise<import('@/types/goals').GoalLinkedSuggestionsResponse>;
   fetchAiGoalSuggestions(): Promise<import('@/types/goals').AiGoalSuggestionsResponse>;
   acceptAiGoalSuggestion(id: string): Promise<{ goal: import('@/types/goals').MerchantGoal }>;
   dismissAiGoalSuggestion(id: string): Promise<void>;

@@ -12,12 +12,13 @@ import OverviewAgentMetricsSection from '@/features/aether-overview/components/O
 import OverviewHandoffsSection from '@/features/aether-overview/components/OverviewHandoffsSection';
 import OverviewPageSkeleton from '@/features/aether-overview/components/OverviewPageSkeleton';
 import { useAetherOverviewPage } from '@/features/aether-overview/hooks/useAetherOverviewPage';
-import { DEFAULT_OVERVIEW_FILTERS, type OverviewSectionKey } from '@/features/aether-overview/types';
+import {
+  DEFAULT_OVERVIEW_FILTERS,
+  type OverviewSectionKey,
+} from '@/features/aether-overview/types';
 import { showAttentionSection } from '@/features/aether-overview/lib/overviewFilters';
 
-function hasActiveFilters(
-  filters: ReturnType<typeof useAetherOverviewPage>['filters'],
-): boolean {
+function hasActiveFilters(filters: ReturnType<typeof useAetherOverviewPage>['filters']): boolean {
   return (
     filters.agentKey !== DEFAULT_OVERVIEW_FILTERS.agentKey ||
     filters.actionType !== DEFAULT_OVERVIEW_FILTERS.actionType ||
@@ -46,9 +47,7 @@ export default function AetherOverviewPage() {
             onApprove={page.approve}
             onReject={page.reject}
             resolvingId={page.resolvingApprovalId}
-            highlightedId={
-              page.highlight?.kind === 'approval' ? page.highlightId : null
-            }
+            highlightedId={page.highlight?.kind === 'approval' ? page.highlightId : null}
           />
         );
       case 'agentMetrics':
@@ -72,9 +71,7 @@ export default function AetherOverviewPage() {
             onSnooze={page.proactive.snooze}
             executingId={page.proactive.executingId}
             streaming={page.proactive.streaming}
-            highlightedId={
-              page.highlight?.kind === 'proactive' ? page.highlightId : null
-            }
+            highlightedId={page.highlight?.kind === 'proactive' ? page.highlightId : null}
           />
         );
       case 'goals':
@@ -95,9 +92,7 @@ export default function AetherOverviewPage() {
             onLoadMore={page.loadMore}
             filteredEmpty={filteredEmpty}
             onClearFilters={page.clearFilters}
-            highlightedId={
-              page.highlight?.kind === 'activity' ? page.highlightId : null
-            }
+            highlightedId={page.highlight?.kind === 'activity' ? page.highlightId : null}
             onProactiveExecute={page.proactive.execute}
             onProactiveDismiss={page.proactive.dismiss}
             onProactiveSnooze={page.proactive.snooze}

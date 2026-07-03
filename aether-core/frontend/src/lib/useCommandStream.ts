@@ -3,8 +3,19 @@ import { env } from '@/lib/config';
 import { apiStreamPostFetch } from '@/lib/api/client';
 import { apiRoutes } from '@/lib/api/routes';
 import { commandsApi } from '@/features/commands/api';
-import { agentDisplayLabel, agentHandoffLabel, agentWorkingLabel, formatAgentKeysLabel } from '@/lib/agentDisplay';
-import type { AgentPlanStep, AgentStreamEvent, CommandResult, HandoffChainEntry, SharedMemoryEntry } from '@/types/command';
+import {
+  agentDisplayLabel,
+  agentHandoffLabel,
+  agentWorkingLabel,
+  formatAgentKeysLabel,
+} from '@/lib/agentDisplay';
+import type {
+  AgentPlanStep,
+  AgentStreamEvent,
+  CommandResult,
+  HandoffChainEntry,
+  SharedMemoryEntry,
+} from '@/types/command';
 import type { LiveExplainState } from '@/types/explainability';
 import { t } from '@/lib/i18n';
 import { humanizeHandoffReason } from '@/lib/agentDisplay';
@@ -323,7 +334,10 @@ export function useCommandStream() {
               }
 
               if (event.type === 'agent_assigned' && event.agentKey) {
-                const keys = event.agentKey.split(',').map((k) => k.trim()).filter(Boolean);
+                const keys = event.agentKey
+                  .split(',')
+                  .map((k) => k.trim())
+                  .filter(Boolean);
                 setActiveAgentKeys(keys);
                 if (event.executionMode) {
                   setExecutionMode(event.executionMode);
@@ -384,9 +398,7 @@ export function useCommandStream() {
               if (event.type === 'peer_job_failed' && event.jobId) {
                 setHandoffChain((prev) =>
                   prev.map((e) =>
-                    e.jobId === event.jobId
-                      ? { ...e, status: 'failed', summary: event.error }
-                      : e,
+                    e.jobId === event.jobId ? { ...e, status: 'failed', summary: event.error } : e,
                   ),
                 );
               }
@@ -395,11 +407,7 @@ export function useCommandStream() {
                 setHandoffChain(event.handoffChain);
               }
 
-              if (
-                event.type === 'shared_memory_updated' &&
-                event.namespace &&
-                event.key
-              ) {
+              if (event.type === 'shared_memory_updated' && event.namespace && event.key) {
                 setSharedMemory((prev) => {
                   const idx = prev.findIndex(
                     (e) => e.namespace === event.namespace && e.key === event.key,

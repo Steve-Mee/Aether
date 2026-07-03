@@ -277,7 +277,7 @@ export function CompoundStepTimeline({
           key={`${step.label}-${index}`}
           className={cn(
             'flex items-start gap-2 text-sm',
-            step.checkpoint && 'rounded-md border border-amber-500/25 bg-amber-500/5 px-2 py-1'
+            step.checkpoint && 'rounded-md border border-amber-500/25 bg-amber-500/5 px-2 py-1',
           )}
           data-testid={step.checkpoint ? 'agent-timeline-checkpoint' : undefined}
         >

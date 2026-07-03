@@ -31,7 +31,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -67,7 +67,7 @@ jobs:
       CI: 'true'
       OLLAMA_BASE_URL: http://localhost:11434
       OLLAMA_CONTRACT_TEST: 'true'
-      STRIPE_SECRET_KEY: sk_test_ci_mock
+      STRIPE_SECRET_KEY: sk_test_123
       STRIPE_API_HOST: localhost
       STRIPE_API_PORT: '12111'
       STRIPE_API_PROTOCOL: http
@@ -121,6 +121,7 @@ jobs:
             if curl -sf http://localhost:11434/api/tags; then break; fi
             sleep 2
           done
+          curl -sf -X POST http://localhost:11434/api/pull -d '{"name":"nomic-embed-text"}'
           curl -sf -X POST http://localhost:11434/api/pull -d '{"name":"llama3.2"}' || true
 
       - name: Ollama contract test

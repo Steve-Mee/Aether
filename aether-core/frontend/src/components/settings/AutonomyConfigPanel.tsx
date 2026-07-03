@@ -21,9 +21,8 @@ export default function AutonomyConfigPanel() {
   const [draft, setDraft] = useState<MerchantSettings>(settings);
   const [saving, setSaving] = useState(false);
 
-  const [simulatorPrefill, setSimulatorPrefill] = useState<
-    Parameters<typeof AutonomySimulatorPanel>[0]['prefill']
-  >();
+  const [simulatorPrefill, setSimulatorPrefill] =
+    useState<Parameters<typeof AutonomySimulatorPanel>[0]['prefill']>();
 
   React.useEffect(() => {
     setDraft(settings);
@@ -96,9 +95,11 @@ export default function AutonomyConfigPanel() {
         brainAdaptiveAutoExecuteEnabled: draft.brainAdaptiveAutoExecuteEnabled,
         autonomyPrefs: draft.autonomyPrefs,
         proactivePrefs: {
+          ...draft.proactivePrefs,
           allowAutoExecute: draft.proactivePrefs.allowAutoExecute,
         },
         goalPrefs: {
+          ...draft.goalPrefs,
           defaultPursuitMode: draft.goalPrefs.defaultPursuitMode,
           allowGoalLinkedAutoExecute: draft.goalPrefs.allowGoalLinkedAutoExecute,
         },

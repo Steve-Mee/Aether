@@ -9,7 +9,11 @@ import { CommandBar, Button } from '@/components/ui';
 import { useSmartCommandInput } from '@/hooks/useSmartCommandInput';
 import { useRotatingPlaceholder } from '@/hooks/useRotatingPlaceholder';
 import type { DemoSuggestion } from '@/lib/localIntentMatcher';
-import { IntentPill, CompoundStepTimeline, StepProgressRail } from '@/components/command-center/primitives';
+import {
+  IntentPill,
+  CompoundStepTimeline,
+  StepProgressRail,
+} from '@/components/command-center/primitives';
 import CommandSuggestionsList from './CommandSuggestionsList';
 import CommandResultCard from './CommandResultCard';
 import CommandErrorCard from './CommandErrorCard';
@@ -18,6 +22,7 @@ import HandoffChainRail, { executionModeBadgeLabel } from './HandoffChainRail';
 import SharedMemoryRail from './SharedMemoryRail';
 import { agentsWorkingParallelLabel } from './AgentContributionsPanel';
 import LiveExplainPanel from '@/components/explainability/LiveExplainPanel';
+import AgentGroupedTimeline from './AgentGroupedTimeline';
 
 export const COMMAND_PREFILL_STORAGE_KEY = 'aether_command_prefill';
 
@@ -93,12 +98,6 @@ export default function NaturalLanguageBar() {
 
   const placeholder = useRotatingPlaceholder(!smart.isActive && !loading && !optimistic);
   const showLoading = loading || optimistic;
-  const liveSteps = streamSteps.map((s) => ({
-    label: s.label,
-    summary: s.summary,
-    done: s.done,
-    checkpoint: s.checkpoint,
-  }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,9 +234,9 @@ export default function NaturalLanguageBar() {
                     />
                   </div>
                 )}
-                {liveSteps.length > 0 && (
+                {streamSteps.length > 0 && (
                   <AgentGroupedTimeline
-                    steps={liveSteps}
+                    steps={streamSteps}
                     plansByAgent={streamPlansByAgent}
                     executionMode={streamExecutionMode}
                   />

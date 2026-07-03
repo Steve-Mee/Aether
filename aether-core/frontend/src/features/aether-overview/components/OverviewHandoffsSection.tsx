@@ -25,9 +25,10 @@ function statusLabel(status: HandoffOverviewItem['status']): string {
 }
 
 export default function OverviewHandoffsSection({ items }: OverviewHandoffsSectionProps) {
-  const [explain, setExplain] = useState<{ type: 'command' | 'proactive_suggestion'; id: string } | null>(
-    null,
-  );
+  const [explain, setExplain] = useState<{
+    type: 'command' | 'proactive_suggestion';
+    id: string;
+  } | null>(null);
 
   if (items.length === 0) return null;
 
@@ -61,7 +62,9 @@ export default function OverviewHandoffsSection({ items }: OverviewHandoffsSecti
                     ? t('overview.handoffs.modeAsync')
                     : t('overview.handoffs.modeSync')}
                 </span>
-                <span className="text-[10px] text-muted-foreground">{statusLabel(item.status)}</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {statusLabel(item.status)}
+                </span>
                 <span className="ml-auto text-xs text-muted-foreground">
                   {formatRelativeTime(item.at)}
                 </span>

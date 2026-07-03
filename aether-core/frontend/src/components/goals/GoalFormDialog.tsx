@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import React from 'react';
-import { Button, Card, RangeInput, SegmentedControl } from '@/components/ui';
+import { Button, Card, RangeInput, SegmentedControl, SettingRow } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import type { GoalMetricType, GoalPursuitMode } from '@/types/goals';
@@ -30,7 +30,13 @@ const metricOptions: { value: GoalMetricType; label: string }[] = [
   { value: 'category_revenue', label: 'Categorie' },
 ];
 
-export default function GoalFormDialog({ open, initial, parentGoals = [], onClose, onSubmit }: GoalFormDialogProps) {
+export default function GoalFormDialog({
+  open,
+  initial,
+  parentGoals = [],
+  onClose,
+  onSubmit,
+}: GoalFormDialogProps) {
   const { settings } = useMerchantSettings();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -79,7 +85,10 @@ export default function GoalFormDialog({ open, initial, parentGoals = [], onClos
         metricType,
         metricScope:
           metricType === 'category_revenue'
-            ? { categoryId: categoryId.trim() || undefined, productSlug: categoryId.trim() || undefined }
+            ? {
+                categoryId: categoryId.trim() || undefined,
+                productSlug: categoryId.trim() || undefined,
+              }
             : undefined,
         targetValue,
         deadline: new Date(deadline).toISOString(),
@@ -117,12 +126,14 @@ export default function GoalFormDialog({ open, initial, parentGoals = [], onClos
           />
         </label>
 
-        <SegmentedControl
-          label={t('goals.form.metric')}
-          value={metricType}
-          onChange={(v) => setMetricType(v as GoalMetricType)}
-          options={metricOptions}
-        />
+        <SettingRow label={t('goals.form.metric')}>
+          <SegmentedControl
+            value={metricType}
+            onChange={(v) => setMetricType(v as GoalMetricType)}
+            options={metricOptions}
+            aria-label={t('goals.form.metric')}
+          />
+        </SettingRow>
 
         {metricType === 'category_revenue' ? (
           <label className="block space-y-1">
@@ -136,14 +147,15 @@ export default function GoalFormDialog({ open, initial, parentGoals = [], onClos
           </label>
         ) : null}
 
-        <RangeInput
-          label={t('goals.form.target')}
-          value={targetValue}
-          onChange={setTargetValue}
-          min={1}
-          max={100}
-          unit="%"
-        />
+        <label className="block space-y-1">
+          <span className="text-sm">{t('goals.form.target')}</span>
+          <RangeInput
+            value={targetValue}
+            onChange={(e) => setTargetValue(Number(e.target.value))}
+            min={1}
+            max={100}
+          />
+        </label>
 
         <label className="block space-y-1">
           <span className="text-sm">{t('goals.form.deadline')}</span>
@@ -155,16 +167,18 @@ export default function GoalFormDialog({ open, initial, parentGoals = [], onClos
           />
         </label>
 
-        <SegmentedControl
-          label={t('goals.form.pursuit')}
-          value={pursuitMode}
-          onChange={(v) => setPursuitMode(v as GoalPursuitMode)}
-          options={[
-            { value: 'conservative', label: t('goals.pursuit.conservative') },
-            { value: 'balanced', label: t('goals.pursuit.balanced') },
-            { value: 'aggressive', label: t('goals.pursuit.aggressive') },
-          ]}
-        />
+        <SettingRow label={t('goals.form.pursuit')}>
+          <SegmentedControl
+            value={pursuitMode}
+            onChange={(v) => setPursuitMode(v as GoalPursuitMode)}
+            options={[
+              { value: 'conservative', label: t('goals.pursuit.conservative') },
+              { value: 'balanced', label: t('goals.pursuit.balanced') },
+              { value: 'aggressive', label: t('goals.pursuit.aggressive') },
+            ]}
+            aria-label={t('goals.form.pursuit')}
+          />
+        </SettingRow>
 
         {!initial && parentGoals.length > 0 ? (
           <label className="block space-y-1">

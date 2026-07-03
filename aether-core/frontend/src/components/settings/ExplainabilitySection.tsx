@@ -28,14 +28,18 @@ export default function ExplainabilitySection() {
     <Card className="p-6 space-y-4">
       <div>
         <h3 className="text-base font-medium">{t('settings.explainability.title')}</h3>
-        <p className="text-sm text-muted-foreground mt-1">{t('settings.explainability.subtitle')}</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {t('settings.explainability.subtitle')}
+        </p>
       </div>
       <SettingRow label={t('settings.explainability.title')} description={t(hintKey)}>
         <SegmentedControl
           value={prefs.detailLevel}
           options={levelOptions}
-          onChange={(detailLevel) => patchPrefs({ detailLevel })}
-          ariaLabel={t('settings.explainability.title')}
+          onChange={(detailLevel) =>
+            patchPrefs({ detailLevel: detailLevel as ExplainabilityDetailLevel })
+          }
+          aria-label={t('settings.explainability.title')}
         />
       </SettingRow>
       {prefs.detailLevel !== 'off' && (

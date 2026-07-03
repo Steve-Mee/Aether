@@ -13,11 +13,20 @@ vi.mock('@/lib/config/env', () => ({
   env: { dataSource: 'mock' as const, liveDemo: false },
 }));
 
-vi.mock('@/lib/settings/MerchantSettingsContext', () => ({
-  useMerchantSettings: () => ({
-    settings: { autonomyLevel: 'balanced' },
-  }),
-}));
+vi.mock('@/lib/settings/MerchantSettingsContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/settings/MerchantSettingsContext')>();
+  return {
+    ...actual,
+    useMerchantSettings: () => ({
+      settings: { autonomyLevel: 'balanced' },
+      loading: false,
+      error: null,
+      reload: vi.fn(),
+      updateSettings: vi.fn(),
+      updateNotificationPrefs: vi.fn(),
+    }),
+  };
+});
 
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();

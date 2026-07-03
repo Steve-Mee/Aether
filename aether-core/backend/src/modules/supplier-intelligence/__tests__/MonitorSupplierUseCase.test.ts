@@ -4,6 +4,8 @@ import { SupplierProduct } from '../domain/entities/SupplierProduct';
 import { createInMemoryIntelligenceLayer } from '../../../ai/intelligence/createIntelligenceLayer';
 import { createApproval } from '../../../shared/approval/approvalService';
 import { eventBus } from '../../../shared/events/eventBus';
+import { DEFAULT_MERCHANT_SETTINGS } from '../../../shared/settings/merchantSettingsTypes';
+import { getMerchantSettings } from '../../../shared/settings/TenantSettingsService';
 
 jest.mock('../../../shared/approval/approvalService', () => ({
   createApproval: jest.fn().mockResolvedValue({ id: 'appr_1' }),
@@ -19,6 +21,12 @@ jest.mock('../../../shared/events/eventBus', () => ({
 
 jest.mock('../../../ai/orchestrator/Orchestrator', () => ({
   orchestrator: { execute: jest.fn().mockResolvedValue({ success: true }) },
+}));
+
+jest.mock('../../../shared/settings/TenantSettingsService', () => ({
+  getMerchantSettings: jest.fn().mockResolvedValue(
+    require('../../../shared/settings/merchantSettingsTypes').DEFAULT_MERCHANT_SETTINGS,
+  ),
 }));
 
 jest.mock('../../../shared/prisma/client', () => ({
@@ -83,6 +91,22 @@ describe('MonitorSupplierUseCase', () => {
   });
 
   it('recalls brain context on auto-apply and publishes autoApplied event', async () => {
+    (getMerchantSettings as jest.Mock).mockResolvedValueOnce({
+      ...DEFAULT_MERCHANT_SETTINGS,
+      policyEnabled: true,
+      autoApproveLowRisk: true,
+      autonomyPrefs: {
+        ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs,
+        actionCategories: {
+          ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs.actionCategories,
+          supplier: {
+            ...DEFAULT_MERCHANT_SETTINGS.autonomyPrefs.actionCategories.supplier,
+            allowLowRiskAutoExecute: true,
+          },
+        },
+      },
+    });
+
     const intelligence = createInMemoryIntelligenceLayer();
     const brain = intelligence.personalBrainRegistry.get('tenant_default', 'supplier');
     await brain.remember({

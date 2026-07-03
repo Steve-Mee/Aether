@@ -76,7 +76,7 @@ describe('Command Bar brain RAG integration', () => {
       },
     ]),
     restoreProductPrices: jest.fn(),
-  };
+  } as unknown as AdminDataPort;
 
   it('indexes products and returns brain context for Wireless Earbuds command', async () => {
     const layer = createInMemoryIntelligenceLayer();

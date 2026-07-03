@@ -148,7 +148,10 @@ function parseSchedule(raw: unknown): CategorySchedule {
   };
 }
 
-function parseCategoryPolicy(raw: unknown, fallback: AutonomyCategoryPolicy): AutonomyCategoryPolicy {
+function parseCategoryPolicy(
+  raw: unknown,
+  fallback: AutonomyCategoryPolicy,
+): AutonomyCategoryPolicy {
   if (!raw || typeof raw !== 'object') return { ...fallback };
   const c = raw as Record<string, unknown>;
   return {
@@ -166,9 +169,7 @@ export function parseAutonomyPrefs(raw: unknown): AutonomyPrefs {
   const obj = raw as Record<string, unknown>;
   const presetRaw = obj.preset;
   const preset: AutonomyPreset =
-    presetRaw === 'conservative' ||
-    presetRaw === 'aggressive' ||
-    presetRaw === 'custom'
+    presetRaw === 'conservative' || presetRaw === 'aggressive' || presetRaw === 'custom'
       ? presetRaw
       : 'balanced';
 

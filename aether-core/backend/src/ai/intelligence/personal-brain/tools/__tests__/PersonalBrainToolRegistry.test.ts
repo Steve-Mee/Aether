@@ -54,7 +54,7 @@ describe('PersonalBrainToolRegistry', () => {
     searchProductsByName: jest.fn().mockResolvedValue([
       { id: 'p1', name: 'Widget', price: 10, stock: 5, slug: 'widget' },
     ]),
-  };
+  } as unknown as AdminDataPort;
 
   beforeEach(() => {
     jest.clearAllMocks();

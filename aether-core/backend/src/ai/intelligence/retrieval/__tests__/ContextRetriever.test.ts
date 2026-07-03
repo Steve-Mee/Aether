@@ -7,7 +7,7 @@ import { InMemoryVectorStoreAdapter } from '../../vector-store/adapters/InMemory
 import { GlobalKnowledgeService } from '../../global-knowledge/GlobalKnowledgeService';
 import { StaticGlobalKnowledgeCatalog } from '../../global-knowledge/StaticGlobalKnowledgeCatalog';
 import type { AdminDataPort } from '../../../../modules/admin-command-bar/application/ports/AdminDataPort';
-import type { MerchantSettings } from '../../../../shared/settings/merchantSettingsTypes';
+import { DEFAULT_MERCHANT_SETTINGS, type MerchantSettings } from '../../../../shared/settings/merchantSettingsTypes';
 
 const adminData = {
   countProducts: async () => 0,
@@ -30,34 +30,10 @@ const adminData = {
   searchProductsByName: async () => [],
   updateProductPricesByIds: async () => 0,
   restoreProductPrices: async () => 0,
-} satisfies AdminDataPort;
+} as unknown as AdminDataPort;
 
 const settings: MerchantSettings = {
-  autonomyLevel: 'medium',
-  autoApproveLowRisk: true,
-  autoApproveMediumRiskMail: false,
-  maxAutoPriceChangePct: 5,
-  maxMarginImpactEuro: 500,
-  policyEnabled: true,
-  autoRunWindow: 'always',
-  autoRunWindowStart: '18:00',
-  autoRunWindowEnd: '08:00',
-  notificationPrefs: {
-    autonomousLowRisk: { inApp: true, email: false },
-    highRiskApproval: { inApp: true, email: true },
-    supplierChanges: { inApp: true, email: false },
-    weeklyDigest: { inApp: true, email: true },
-    frequency: 'immediate',
-  },
-  locale: 'nl',
-  dataExportEnabled: true,
-  brainVectorBackend: null,
-  brainKnowledgeTransferEnabled: null,
-  brainKnowledgeUpdateProfile: 'balanced',
-  brainLoRAPath: null,
-  brainActionMode: 'confirm_on_uncertain',
-  brainAdaptiveLearningEnabled: false,
-  brainAdaptiveAutoExecuteEnabled: false,
+  ...DEFAULT_MERCHANT_SETTINGS,
 };
 
 describe('ContextRetriever global knowledge', () => {
