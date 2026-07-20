@@ -12,6 +12,9 @@ export function RangeInput({
   max,
   value,
   id,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
   ...props
 }: RangeInputProps) {
   const numericValue = typeof value === 'number' ? value : Number(value);
@@ -27,6 +30,9 @@ export function RangeInput({
         min={min}
         max={max}
         value={value}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
         aria-valuemin={min != null ? Number(min) : undefined}
         aria-valuemax={max != null ? Number(max) : undefined}
         aria-valuenow={Number.isFinite(numericValue) ? numericValue : undefined}

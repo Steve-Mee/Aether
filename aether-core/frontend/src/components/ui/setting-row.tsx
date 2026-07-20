@@ -10,19 +10,25 @@ export interface SettingRowProps {
   htmlFor?: string;
 }
 
-function mergeDescribedBy(child: React.ReactElement, descriptionId: string): React.ReactElement {
-  const existing = child.props['aria-describedby'] as string | undefined;
-  return React.cloneElement(child, {
-    'aria-describedby': existing ? `${existing} ${descriptionId}` : descriptionId,
-  });
-}
-
 export function SettingRow({ label, description, children, className, htmlFor }: SettingRowProps) {
+  const autoId = useId();
   const descriptionId = useId();
-  const enhancedChildren =
-    description && React.isValidElement(children)
-      ? mergeDescribedBy(children, descriptionId)
-      : children;
+  const controlId = htmlFor ?? autoId;
+
+  let enhancedChildren = children;
+  if (React.isValidElement(children)) {
+    const childProps = children.props as Record<string, unknown>;
+    const next: Record<string, unknown> = {};
+    if (!childProps.id) next.id = controlId;
+    if (!childProps['aria-label'] && !childProps['aria-labelledby']) {
+      next['aria-label'] = label;
+    }
+    if (description) {
+      const existing = childProps['aria-describedby'] as string | undefined;
+      next['aria-describedby'] = existing ? `${existing} ${descriptionId}` : descriptionId;
+    }
+    enhancedChildren = React.cloneElement(children, next);
+  }
 
   return (
     <div
@@ -32,7 +38,7 @@ export function SettingRow({ label, description, children, className, htmlFor }:
       )}
     >
       <div className="min-w-0 flex-1">
-        <label htmlFor={htmlFor} className="text-body font-medium text-foreground block">
+        <label htmlFor={controlId} className="text-body font-medium text-foreground block">
           {label}
         </label>
         {description && (

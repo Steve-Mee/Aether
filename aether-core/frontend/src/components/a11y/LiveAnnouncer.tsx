@@ -38,7 +38,7 @@ export function LiveAnnouncerProvider({ children }: { children: React.ReactNode 
       <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
         {message}
       </div>
-      <div className="sr-only" role="alert" aria-atomic="true">
+      <div className="sr-only" role="alert" aria-live="assertive" aria-atomic="true">
         {assertiveMessage}
       </div>
     </LiveAnnouncerContext.Provider>

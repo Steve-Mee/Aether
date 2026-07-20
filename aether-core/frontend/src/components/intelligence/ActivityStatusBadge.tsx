@@ -9,7 +9,7 @@ const statusConfig: Record<
 > = {
   autonomous: {
     icon: Check,
-    className: 'border-success/40 bg-success/15 text-success',
+    className: 'border-success/50 bg-success/25 text-emerald-200',
     variant: 'success',
   },
   approved: {
@@ -19,12 +19,12 @@ const statusConfig: Record<
   },
   rejected: {
     icon: X,
-    className: 'border-danger/40 bg-danger/15 text-danger',
+    className: 'border-danger/50 bg-danger/25 text-red-200',
     variant: 'danger',
   },
   pending: {
     icon: Clock,
-    className: 'border-warning/40 bg-warning/15 text-warning',
+    className: 'border-warning/50 bg-warning/25 text-amber-200',
     variant: 'warning',
   },
   info: {
