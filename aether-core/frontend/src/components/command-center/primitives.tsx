@@ -271,7 +271,10 @@ export function CompoundStepTimeline({
   className?: string;
 }) {
   return (
-    <ul className={cn('space-y-2 border-t border-border/20 pt-3', className)}>
+    <ul
+      className={cn('space-y-2 border-t border-border/20 pt-3', className)}
+      data-testid="compound-step-timeline"
+    >
       {steps.map((step, index) => (
         <li
           key={`${step.label}-${index}`}

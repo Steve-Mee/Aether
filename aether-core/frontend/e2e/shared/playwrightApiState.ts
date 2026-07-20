@@ -1,6 +1,5 @@
 import { mockApprovalsPending, mockActivityFeed } from '../../src/test/fixtures';
 import { detectIntent, type DemoIntentId } from '../../src/lib/localIntentMatcher';
-import { isCompoundCommand } from '../../src/lib/compoundCommandParser';
 
 /** Map demo intents to backend intent keys that trigger post-command navigation. */
 function toRoutableParsedIntent(command: string): string {
@@ -124,9 +123,7 @@ export function executePlaywrightCommand(command: string) {
     throw new Error('E2E command failed');
   }
   const trimmed = command.trim();
-  if (isCompoundCommand(trimmed)) {
-    throw new Error('E2E compound demo fallback');
-  }
+  // Compound commands resolve via mergeApiWithDemoUi / buildDemoResponse on success.
   commandSeq += 1;
   lastCommandId = `e2e-cmd-${commandSeq}`;
   const now = new Date().toISOString();

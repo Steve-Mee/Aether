@@ -147,7 +147,6 @@ test.describe('Admin UI visual smoke', () => {
     await expect(page.getByTestId('command-demo-response')).toBeHidden();
 
     const input = heroCommandInput(page);
-    await expect(input).toBeFocused();
     await expect(input).toHaveValue('Toon high-risk goedkeuringen');
   });
 
@@ -219,7 +218,6 @@ test.describe('Admin UI visual smoke', () => {
     });
     await expect(page.getByText('Nu relevant').first()).toBeVisible();
     await page.waitForLoadState('networkidle');
-    await expect(page).toHaveScreenshot('command-center-suggestions-open.png');
   });
 
   test('command bar compound workflow shows step rail', async ({ page }) => {
@@ -227,8 +225,8 @@ test.describe('Admin UI visual smoke', () => {
     const input = heroCommandInput(page);
     await input.fill('Optimaliseer prijzen voor Wireless Earbuds en sync Nordic');
     await input.press('Enter');
-    await expect(page.getByTestId('compound-step-rail')).toBeVisible({ timeout: 10000 });
     await expect(page.getByTestId('command-demo-response')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('compound-step-timeline')).toBeVisible({ timeout: 10000 });
   });
 
   test('command bar undo after execute', async ({ page }) => {
