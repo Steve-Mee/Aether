@@ -38,6 +38,13 @@ test-ci-out*.txt
 /_parse_*.py
 /_do_commit.bat
 /_commit_msg.txt
+/_get_logs.bat
+/_extract.bat
+/_dl_a11y.bat
+/_fe_fail*.txt
+/_be_fail*.txt
+/_fe_job*.zip
+/_pw_a11y/
 /_be_raw.txt
 /_decode_log.py
 /_be_job_logs/
