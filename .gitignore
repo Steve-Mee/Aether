@@ -36,6 +36,8 @@ test-ci-out*.txt
 /_fe_job*.zip
 /_pw_report/
 /_parse_*.py
+/_do_commit.bat
+/_commit_msg.txt
 /_be_raw.txt
 /_decode_log.py
 /_be_job_logs/
