@@ -32,6 +32,10 @@ test-ci-out*.txt
 /_run_fixed_tests.bat
 /_ci_fail_log.txt
 /_pkg_*.json
+/_be_job.zip
+/_be_raw.txt
+/_decode_log.py
+/_be_job_logs/
 
 ## Environment and secrets
 **/.env
