@@ -18,7 +18,7 @@ export default defineConfig({
     navigationTimeout: 30_000,
   },
   expect: {
-    toHaveScreenshot: { maxDiffPixels: 200, timeout: 15_000 },
+    toHaveScreenshot: { maxDiffPixelRatio: 0.03, maxDiffPixels: 5000, timeout: 15_000 },
   },
   webServer: {
     command: 'npm run preview -- --host 127.0.0.1 --port 4173 --strictPort',

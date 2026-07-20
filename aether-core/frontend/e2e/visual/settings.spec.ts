@@ -118,7 +118,7 @@ test.describe('Settings smoke', () => {
     await expect(page.getByTestId('auto-low-risk')).toBeVisible({ timeout: 15000 });
 
     await page.getByTestId('auto-low-risk').click();
-    await page.getByRole('button', { name: 'Opslaan' }).click();
+    await page.getByTestId('settings-autonomy').getByRole('button', { name: 'Opslaan' }).click();
 
     await page.goto('/command-center');
     await expect(page.getByTestId('command-center-ready')).toBeVisible({ timeout: 15000 });

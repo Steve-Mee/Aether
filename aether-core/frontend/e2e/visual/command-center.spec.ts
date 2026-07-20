@@ -6,6 +6,7 @@ import {
   COMMAND_SUGGESTION_LABELS,
   HERO_COMMANDS,
   gotoCommandCenter,
+  heroCommandInput,
   runHeroCommand,
 } from './command-helpers';
 
@@ -145,7 +146,7 @@ test.describe('Admin UI visual smoke', () => {
     await expect(page.getByTestId('command-approval-sheet')).toBeHidden();
     await expect(page.getByTestId('command-demo-response')).toBeHidden();
 
-    const input = page.getByRole('textbox', { name: /Zeg wat je wilt/ });
+    const input = heroCommandInput(page);
     await expect(input).toBeFocused();
     await expect(input).toHaveValue('Toon high-risk goedkeuringen');
   });
@@ -156,7 +157,7 @@ test.describe('Admin UI visual smoke', () => {
     await page.waitForTimeout(5500);
     await expect(page.locator('[data-highlighted="approvals"]')).toHaveCount(0);
 
-    const input = page.getByRole('textbox').first();
+    const input = heroCommandInput(page);
     await input.fill(HERO_COMMANDS.highRisk);
     await input.press('Enter');
     await expect(page.locator('[data-highlighted="approvals"]')).toBeVisible({ timeout: 10000 });
@@ -210,7 +211,7 @@ test.describe('Admin UI visual smoke', () => {
 
   test('command bar suggestions panel when typing', async ({ page }) => {
     await gotoCommandCenter(page);
-    const input = page.getByRole('textbox').first();
+    const input = heroCommandInput(page);
     await input.click();
     await input.fill('prijs');
     await expect(page.locator('#command-suggestions [role="option"]').first()).toBeVisible({
@@ -223,7 +224,7 @@ test.describe('Admin UI visual smoke', () => {
 
   test('command bar compound workflow shows step rail', async ({ page }) => {
     await gotoCommandCenter(page);
-    const input = page.getByRole('textbox').first();
+    const input = heroCommandInput(page);
     await input.fill('Optimaliseer prijzen voor Wireless Earbuds en sync Nordic');
     await input.press('Enter');
     await expect(page.getByTestId('compound-step-rail')).toBeVisible({ timeout: 10000 });
