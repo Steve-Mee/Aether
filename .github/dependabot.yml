@@ -18,6 +18,15 @@ updates:
           - 'vitest*'
           - 'playwright*'
           - 'prettier'
+    ignore:
+      # Keep size-limit + @size-limit/file on the same major (peer dep).
+      - dependency-name: 'size-limit'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@size-limit/file'
+        update-types: ['version-update:semver-major']
+      # Vite 8+ needs coordinated plugin/tooling upgrades.
+      - dependency-name: 'vite'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: npm
     directory: /aether-core/backend
@@ -25,6 +34,12 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # Prisma 7 requires schema/config migration (prisma.config.ts).
+      - dependency-name: 'prisma'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/client'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /

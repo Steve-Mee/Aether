@@ -25,6 +25,14 @@ test-ci-out*.txt
 **/test-ci-output.txt
 **/_test-explain-out.txt
 
+## Local scratch / one-off helper scripts (not for GitHub)
+/_blog*.txt
+/_ci_commit*.bat
+/_job.json
+/_run_fixed_tests.bat
+/_ci_fail_log.txt
+/_pkg_*.json
+
 ## Environment and secrets
 **/.env
 **/.env.*
