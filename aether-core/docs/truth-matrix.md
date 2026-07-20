@@ -12,7 +12,7 @@ Status legend: `implemented` | `partial` | `planned` | `experimental` | `scaffol
 |---------|--------|----------|
 | Product catalog CRUD | implemented | [`product-catalog/`](../backend/src/modules/product-catalog/), tenant-scoped API, viewer GET |
 | Order management | implemented | [`order-management/`](../backend/src/modules/order-management/), tenant-scoped, viewer GET |
-| AETHER Mail v1 | partial | Ollama path + heuristic fallback; metrics API; IMAP polling; mail E2E in CI |
+| AETHER Mail v1 (LlmInferencePort + approval execute) | partial | [`aether-mail/`](../backend/src/modules/aether-mail/); Ollama path, approval execution, and mail E2E |
 | Supplier Intelligence v1 | implemented | Docker `supplier-worker`, `SUPPLIER_ALLOWLIST`, Playwright scrape in CI |
 | Admin Command Center v1 | partial | Parser-first NL commands with regex fallback; dashboard aggregations; command history |
 | Auth / RBAC / tenant | implemented | DB `ApiKey` + roles; tenant header must match key; viewer on read GET routes |
@@ -27,31 +27,31 @@ Status legend: `implemented` | `partial` | `planned` | `experimental` | `scaffol
 | Feature flags | implemented | `TenantFeature` + env overrides + `featureGate()` in [`app.ts`](../backend/src/app.ts) |
 | Attribution / outcome billing | partial | Causal uplift MVP; Outcomes billing tab; verified-only billing hook |
 | AI orchestration layer | partial | [`Orchestrator.ts`](../backend/src/ai/orchestrator/Orchestrator.ts) + `OrchestratorPort`; no LangGraph |
-| Intelligence Layer foundation | partial | [`ai/intelligence/`](../backend/src/ai/intelligence/) — PersonalBrain, pgvector, AgentRuntime, hive-mind bridge, GlobalBrain |
-| Global → Personal knowledge (v1–v4) | partial | [`global-knowledge/`](../backend/src/ai/intelligence/global-knowledge/) — static + DB patches, federated aggregates (v2 flag), distillation drafts, LoRA/vector kinds (v3 flag), A/B experiments; tests in `__tests__/` |
-| Brain multi-step agent loop | implemented | [`BrainAgentLoop`](../backend/src/ai/intelligence/command-brain/BrainAgentLoop.ts) — ReAct tools, checkpoints, resume |
-| Explicit agent planning | implemented | [`BrainAgentPlanner`](../backend/src/ai/intelligence/command-brain/BrainAgentPlanner.ts) — plan-before-execute, max 5 steps |
-| Agent step reflection | implemented | [`BrainAgentReflector`](../backend/src/ai/intelligence/command-brain/BrainAgentReflector.ts) — post-tool observe-evaluate, `reflection` SSE |
-| Dynamic agent replan | implemented | [`BrainAgentPlanner.replan`](../backend/src/ai/intelligence/command-brain/BrainAgentPlanner.ts) — error + reflection triggers, `plan_revised` SSE |
-| Agent plan memory | implemented | [`PlanMemoryService`](../backend/src/ai/intelligence/command-brain/PlanMemoryService.ts) — PersonalBrain recall of successful plans |
-| Personal brain episodic memory | implemented | [`PersonalBrainMemoryService`](../backend/src/ai/intelligence/personal-brain/memory/PersonalBrainMemoryService.ts) — short-term ring buffer + long-term vector recall |
-| Personal brain memory v2 | implemented | Metadata SQL filter, unified recall orchestration, reflection/summarization, session resume, consolidation job, admin memory panel |
-| Multi-agent delegation (Phase 5) | partial | [`AgentSupervisorOrchestrator`](../backend/src/ai/intelligence/multi-agent/AgentSupervisorOrchestrator.ts) — admin ↔ mail/supplier; `BrainAgentRun` delegation fields |
-| Reflection → patch distillation (HITL) | partial | [`ReflectionDistillationService`](../backend/src/ai/intelligence/global-knowledge/distillation/ReflectionDistillationService.ts) — draft patches only; separate from hive metrics |
-| Reflection quality A/B | partial | [`ReflectionExperimentService`](../backend/src/ai/intelligence/personal-brain/reflection/experiments/ReflectionExperimentService.ts) — tenant bucket; distinct from GlobalKnowledge experiments |
-| Cross-agent reflection timeline | partial | `GET /api/admin/brain/reflections/timeline` + [`ReflectionTimelinePanel`](../frontend/src/components/settings/ReflectionTimelinePanel.tsx) |
-| Compound command intent | implemented | [`CompoundCommandParser`](../backend/src/ai/intelligence/agent-runtime/CompoundCommandParser.ts) — `COMPOUND_WORKFLOW` in AgentRuntime |
-| Intelligence RAG (Mail/Supplier) | implemented | [`ProcessIncomingEmailUseCase.test.ts`](../backend/src/modules/aether-mail/__tests__/ProcessIncomingEmailUseCase.test.ts), [`MonitorSupplierUseCase.test.ts`](../backend/src/modules/supplier-intelligence/__tests__/MonitorSupplierUseCase.test.ts) |
-| Intelligence event chaining | implemented | [`eventHandlers.ts`](../backend/src/bootstrap/eventHandlers.ts) → `insight.submit`; [`eventHandlers.test.ts`](../backend/src/bootstrap/__tests__/eventHandlers.test.ts) |
-| Intelligence self-hosted vectors | partial | [`JsonFileVectorStoreAdapter`](../backend/src/ai/intelligence/vector-store/adapters/JsonFileVectorStoreAdapter.ts), [`BrainMemoryService.test.ts`](../backend/src/ai/intelligence/brain-memory/__tests__/BrainMemoryService.test.ts) |
-| LangGraph / multi-agent graph | partial | `NativeGraphOrchestrator` + `LangGraphOrchestrator` behind `MULTI_AGENT_GRAPH_ORCHESTRATION` |
+| Intelligence Layer Phase 2 (RAG, hive-mind bridge, GlobalBrain, LoRA registry, JSON export) | partial | [`ai/intelligence/`](../backend/src/ai/intelligence/) — PersonalBrain, RAG, hive-mind bridge, GlobalBrain, and export paths |
+| Mail/Supplier RAG via PersonalBrainRegistry | implemented | [`PersonalBrainRegistry`](../backend/src/ai/intelligence/personal-brain/PersonalBrainRegistry.ts) with mail and supplier integration tests |
+| Event-driven insight.submit via orchestrator | implemented | [`eventHandlers.ts`](../backend/src/bootstrap/eventHandlers.ts) → `insight.submit` |
+| JsonFile vector store + brain export/import | partial | [`JsonFileVectorStoreAdapter`](../backend/src/ai/intelligence/vector-store/adapters/JsonFileVectorStoreAdapter.ts) and brain export/import |
+| PersonalBrain episodic memory (short-term buffer + long-term recall) | implemented | [`PersonalBrainMemoryService`](../backend/src/ai/intelligence/personal-brain/memory/PersonalBrainMemoryService.ts) |
+| Personal Brain Memory v2 (metadata filter, orchestration, reflection, consolidation job, admin panel) | implemented | Metadata filtering, recall orchestration, consolidation job, and admin memory panel |
+| Phase 6 multi-agent specialists (pricing/supplier/inventory/mail), LLM routing, parallel orchestration, Command Bar agent badge | implemented | [`multi-agent/`](../backend/src/ai/intelligence/multi-agent/) specialists and Command Bar integration |
+| RESTOCK_SUGGEST suggestRestock propose tool with approval flow | implemented | [`RESTOCK_SUGGEST`](../backend/src/ai/intelligence/) tool and approval flow |
+| NativeGraphOrchestrator + LangGraph adapter behind MULTI_AGENT_GRAPH_ORCHESTRATION | partial | `NativeGraphOrchestrator` + `LangGraphOrchestrator` behind `MULTI_AGENT_GRAPH_ORCHESTRATION` |
+| GlobalAgentPattern distillation and opt-in sync (no shared run state) | partial | [`global-knowledge/`](../backend/src/ai/intelligence/global-knowledge/) distillation and opt-in sync |
+| Reflection → GlobalKnowledge patch drafts (HITL, no auto-publish) | partial | [`ReflectionDistillationService`](../backend/src/ai/intelligence/global-knowledge/distillation/ReflectionDistillationService.ts) |
+| A/B reflection quality experiments with outcome metrics | partial | [`ReflectionExperimentService`](../backend/src/ai/intelligence/personal-brain/reflection/experiments/ReflectionExperimentService.ts) |
+| Cross-agent reflection timeline (API + Settings panel) | partial | `GET /api/admin/brain/reflections/timeline` + [`ReflectionTimelinePanel`](../frontend/src/components/settings/ReflectionTimelinePanel.tsx) |
 | Event bus | implemented | In-process + optional `EVENT_BUS_URL` forward |
-| Approvals & audit | implemented | `/api/approvals` + ApprovalExecutor on resolve; mail approval-execute E2E |
-| Activity log / audit trail | partial | `GET /api/admin/activity`; `/timeline` UI; hybrid demo feed |
+| Approvals & audit (resolve executes actions) | implemented | `/api/approvals` + ApprovalExecutor on resolve; mail approval-execute E2E |
+| Activity log / audit trail (GET /api/admin/activity) | partial | `GET /api/admin/activity`; `/timeline` UI; hybrid demo feed |
 | Frontend admin UI | implemented | Status badges from `/api/admin/truth-status`; no hardcoded live claims |
-| Observability (Sentry) | implemented | Frontend `errorReporter` + `businessEvents`; backend `sentry.ts`; distributed trace propagation; OTEL parallel |
+| Sentry observability (frontend + backend error monitoring, tracing, business events) | implemented | Frontend `errorReporter` + `businessEvents`; backend [`sentry.ts`](../backend/src/shared/observability/sentry.ts) |
 | CI quality gates | implemented | Runtime DoD validation + coverage ≥60%; mandatory E2E in CI |
 | Prisma schema / migrations | implemented | `v070_foundation` + `v080_roadmap` + `roadmap_v1` |
+| Phase 10 multi-deployment federated sandbox RPC (Kafka, signed requests, local fallback) | partial | [`federated-rpc/`](../backend/src/) adapters, signed request path, and local fallback |
+| Phase 10 peer delegation in physical/negotiation/inventory/autonomy modules | partial | Physical, negotiation, inventory, and autonomy delegation modules |
+| Phase 11 governed bilateral exchange + Phase 11b-lite merchant Settings UI (contracts, slug propose, packages) | partial | Bilateral exchange backend and merchant Settings UI |
+| Phase 11 operator federated deployment registry API + Settings panel | partial | Federated deployment registry API and Settings panel |
+| Phase 11 outbox relay leader, row claiming, consumer idempotency, TLS/SASL env | partial | [`event_outbox`](../backend/prisma/migrations/20260531220000_event_outbox/migration.sql) migration and Kafka configuration |
 
 ## Master Roadmap Fase 1 trace (Mail / Supplier / Admin v0.5)
 

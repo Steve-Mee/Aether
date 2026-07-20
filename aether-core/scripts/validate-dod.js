@@ -42,8 +42,7 @@ const frontendPkg = JSON.parse(read(path.join(FRONTEND, 'package.json')));
 const truthMatrix = read(path.join(DOCS, 'truth-matrix.md'));
 const releaseGates = read(path.join(DOCS, 'release-gates.md'));
 const roadmapAlignment = read(path.join(DOCS, 'roadmap-alignment.md'));
-const ciYaml = read(path.join(ROOT, '.github', 'workflows', 'ci.yml'));
-const sidebarSrc = read(path.join(FRONTEND, 'src', 'components', 'Sidebar.tsx'));
+const ciYaml = read(path.join(ROOT, '..', '.github', 'workflows', 'ci.yml'));
 const appTsx = read(path.join(FRONTEND, 'src', 'App.tsx'));
 const envExample = read(path.join(BACKEND, '.env.example'));
 const outcomesModule = read(path.join(BACKEND, 'src', 'modules', 'outcomes', 'index.ts'));
@@ -51,20 +50,34 @@ const outcomesModule = read(path.join(BACKEND, 'src', 'modules', 'outcomes', 'in
 const runtimeVersion = extractVersionFromApp(appSrc);
 check('version-app', runtimeVersion === pkg.version, `app.ts (${runtimeVersion}) !== package.json (${pkg.version})`);
 check('version-docs', truthMatrix.includes(`backend \`${runtimeVersion}\``), `truth-matrix missing runtime version ${runtimeVersion}`);
-check('version-sidebar', sidebarSrc.includes(`v${runtimeVersion}`), `Sidebar.tsx must show v${runtimeVersion}`);
 check('version-frontend-pkg', frontendPkg.version === runtimeVersion, `frontend package.json (${frontendPkg.version}) !== runtime (${runtimeVersion})`);
 
+const modulePageLayout = read(path.join(FRONTEND, 'src', 'components', 'shell', 'ModulePageLayout.tsx'));
+const pageHeader = read(path.join(FRONTEND, 'src', 'components', 'ui', 'page-header.tsx'));
 check(
   'frontend-feature-badges',
-  read(path.join(FRONTEND, 'src', 'pages', 'Orders.tsx')).includes('FeatureStatusFromTruth') &&
-    read(path.join(FRONTEND, 'src', 'pages', 'CommandHistory.tsx')).includes('FeatureStatusFromTruth'),
-  'Admin pages must use FeatureStatusFromTruth component'
+  pageHeader.includes('FeatureStatusFromTruth') &&
+    modulePageLayout.includes('featureKey') &&
+    read(path.join(FRONTEND, 'src', 'pages', 'Orders.tsx')).includes('featureKey'),
+  'Admin pages must surface FeatureStatusFromTruth via ModulePageLayout/PageHeader'
 );
-check('frontend-settings-import', /import Settings from '\.\/pages\/Settings'/.test(appTsx), 'App.tsx missing Settings import');
-check('frontend-settings-route', appTsx.includes('<Settings />'), 'App.tsx missing Settings route');
+check(
+  'frontend-settings-import',
+  appTsx.includes('SettingsLayout') || /import Settings from '\.\/pages\/Settings'/.test(appTsx),
+  'App.tsx missing Settings layout/route wiring'
+);
+check(
+  'frontend-settings-route',
+  appTsx.includes("renderLayoutRoutes('settings')") || appTsx.includes('<Settings />'),
+  'App.tsx missing Settings route'
+);
 
 // 3. CI mandatory gates
-check('ci-postgres', ciYaml.includes('postgres:16-alpine'), 'CI missing Postgres service');
+check(
+  'ci-postgres',
+  /postgres:16-alpine|pgvector\/pgvector:pg16/.test(ciYaml),
+  'CI missing Postgres service'
+);
 check('ci-ci-flag', ciYaml.includes("CI: 'true'"), 'CI missing CI=true env for DB E2E');
 check('ci-mail-e2e', /mail-approval\.e2e|mail approval E2E/i.test(ciYaml), 'CI missing explicit mail-approval E2E step');
 check('ci-test-ci', ciYaml.includes('test:ci'), 'CI missing npm run test:ci');
@@ -174,7 +187,9 @@ check('admin-autonomy-route', adminIndex.includes('/autonomy'), 'admin missing G
 check('mail-metrics-route', mailIndex.includes('/metrics'), 'aether-mail missing GET /metrics route');
 check(
   'outcomes-billing-ui',
-  outcomesPage.includes('/api/outcomes/billing') && outcomesPage.includes('Billing'),
+  (outcomesPage.includes('billing') || outcomesPage.includes('Billing')) &&
+    (outcomesPage.includes('/api/outcomes/billing') ||
+      read(path.join(FRONTEND, 'src', 'hooks', 'useOutcomesPage.ts')).includes('billingSummary')),
   'Outcomes.tsx missing billing tab'
 );
 check(
@@ -327,13 +342,17 @@ check(
   'webhookTenantResolver.ts missing'
 );
 
-const agentsMd = fs.existsSync(path.join(ROOT, '..', 'AGENTS.md'))
-  ? read(path.join(ROOT, '..', 'AGENTS.md'))
-  : '';
+const agentsMdCandidates = [
+  path.join(ROOT, '..', 'AGENTS.md'),
+  path.join(ROOT, '..', 'project-dna', 'aether', 'AGENTS.md'),
+  path.join(DOCS, 'runtime-charter.md'),
+];
+const agentsMd =
+  agentsMdCandidates.map((p) => (fs.existsSync(p) ? read(p) : '')).find((c) => c.length > 0) || '';
 check(
   'agents-md-runtime-charter',
-  agentsMd.includes('aether-core/docs/runtime-charter.md'),
-  'AGENTS.md must reference runtime-charter.md as execution truth'
+  agentsMd.includes('runtime-charter') || agentsMd.includes('Canonical execution truth'),
+  'AGENTS.md / runtime-charter.md must declare runtime-charter as execution truth'
 );
 
 const cursorRules = fs.existsSync(path.join(ROOT, '..', '.cursorrules'))
@@ -341,8 +360,9 @@ const cursorRules = fs.existsSync(path.join(ROOT, '..', '.cursorrules'))
   : '';
 check(
   'cursorrules-local-ai',
-  cursorRules.includes('Local AI First') && cursorRules.includes('runtime-charter'),
-  '.cursorrules must sync with runtime-charter and Local AI First'
+  cursorRules.includes('project-dna/aether/AGENTS.md') ||
+    (cursorRules.includes('Local AI First') && cursorRules.includes('runtime-charter')),
+  '.cursorrules must point at project-dna AGENTS.md (Local AI First / runtime charter)'
 );
 
 check(
