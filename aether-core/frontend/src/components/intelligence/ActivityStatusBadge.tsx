@@ -9,27 +9,27 @@ const statusConfig: Record<
 > = {
   autonomous: {
     icon: Check,
-    className: 'border-success/50 bg-success/25 text-emerald-200',
+    className: 'border-success/60 bg-success/45 text-emerald-100',
     variant: 'success',
   },
   approved: {
     icon: Check,
-    className: 'border-border/50 bg-muted/30 text-foreground/80',
+    className: 'border-border/50 bg-muted/30 text-foreground/90',
     variant: 'default',
   },
   rejected: {
     icon: X,
-    className: 'border-danger/50 bg-danger/25 text-red-200',
+    className: 'border-danger/60 bg-danger/40 text-red-100',
     variant: 'danger',
   },
   pending: {
     icon: Clock,
-    className: 'border-warning/50 bg-warning/25 text-amber-200',
+    className: 'border-warning/60 bg-warning/40 text-amber-100',
     variant: 'warning',
   },
   info: {
     icon: Info,
-    className: 'border-border/50 bg-muted/20 text-muted-foreground',
+    className: 'border-border/50 bg-muted/30 text-foreground/80',
     variant: 'muted',
   },
 };
@@ -47,8 +47,8 @@ export default function ActivityStatusBadge({
 }: ActivityStatusBadgeProps) {
   const config = statusConfig[status];
   const Icon = config.icon;
-  const sizeClass = size === 'sm' ? 'text-[10px] px-2 py-0.5' : 'text-xs px-2.5 py-0.5';
-  const iconSize = size === 'sm' ? 10 : 12;
+  const sizeClass = size === 'sm' ? 'text-xs px-2 py-0.5' : 'text-xs px-2.5 py-0.5';
+  const iconSize = size === 'sm' ? 11 : 12;
 
   return (
     <span

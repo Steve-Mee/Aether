@@ -3,15 +3,17 @@ import { setupVisualPage } from '../visual/setup';
 import {
   A11Y_CORE_ROUTES,
   A11Y_DEEP_ROUTES,
+  formatDetailedViolationsReport,
   formatViolationsReport,
   isSeriousOrCritical,
   scanPageA11y,
+  scanPageA11yDetailed,
 } from './axe-scan';
 
 function attachAxeReport(
   path: string,
   violations: Awaited<ReturnType<typeof scanPageA11y>>,
-  testInfo: import('@playwright/test').TestInfo
+  testInfo: import('@playwright/test').TestInfo,
 ) {
   return testInfo.attach(`axe-${path.replace(/\//g, '_') || 'root'}.md`, {
     body: formatViolationsReport(path, violations),
@@ -30,11 +32,15 @@ for (const path of A11Y_CORE_ROUTES) {
       await expect(page.getByRole('main')).toBeVisible({ timeout: 15000 });
     }
 
-    const violations = await scanPageA11y(page);
-    await attachAxeReport(path, violations, testInfo);
+    const violations = await scanPageA11yDetailed(page);
+    await attachAxeReport(
+      path,
+      violations.map(({ nodeDetails: _n, ...s }) => s),
+      testInfo,
+    );
 
     const serious = violations.filter(isSeriousOrCritical);
-    expect(serious, formatViolationsReport(path, serious)).toHaveLength(0);
+    expect(serious, formatDetailedViolationsReport(path, serious)).toHaveLength(0);
   });
 }
 

@@ -20,7 +20,7 @@ async function mockActivityApi(page: import('@playwright/test').Page) {
               module: 'inventory-pricing',
               category: 'sync',
               risk: 'low',
-              status: 'autonomous',
+              status: 'approved',
               executor: 'aether',
             },
           ],
