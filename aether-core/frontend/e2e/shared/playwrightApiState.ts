@@ -104,7 +104,7 @@ export function resolvePlaywrightApproval(id: string): void {
     appendPlaywrightActivityItem({
       id: `e2e-activity-approval-${id}`,
       source: 'audit',
-      at: '2026-06-04T10:05:00.000Z',
+      at: new Date().toISOString(),
       actionType: 'approval_approved',
       actionLabel: 'Goedgekeurd',
       description: `${item.actionType} — ${item.module}`,
@@ -129,6 +129,8 @@ export function executePlaywrightCommand(command: string) {
   }
   commandSeq += 1;
   lastCommandId = `e2e-cmd-${commandSeq}`;
+  const now = new Date().toISOString();
+  const undoExpiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
   const result = {
     success: true,
     originalCommand: trimmed,
@@ -136,10 +138,10 @@ export function executePlaywrightCommand(command: string) {
     parsedIntent: toRoutableParsedIntent(trimmed),
     action: 'e2e_action',
     confidence: 0.91,
-    timestamp: '2026-06-04T10:00:00.000Z',
+    timestamp: now,
     commandId: lastCommandId,
     undoable: true,
-    undoExpiresAt: '2026-06-04T12:00:00.000Z',
+    undoExpiresAt,
   };
   autonomyMetrics = {
     ...autonomyMetrics,
@@ -149,7 +151,7 @@ export function executePlaywrightCommand(command: string) {
   appendPlaywrightActivityItem({
     id: `e2e-activity-command-${lastCommandId}`,
     source: 'command',
-    at: '2026-06-04T10:00:00.000Z',
+    at: now,
     actionType: 'command_executed',
     actionLabel: 'NL-commando',
     description: result.result,
@@ -194,7 +196,7 @@ export function getPlaywrightSupplierDetail(id: string) {
 }
 
 export function monitorPlaywrightSupplier(id: string) {
-  const now = '2026-06-04T11:00:00.000Z';
+  const now = new Date().toISOString();
   if (flowSupplier.id === id) {
     flowSupplier.lastSyncAt = now;
     flowSupplier.lastAutoSyncAt = now;
