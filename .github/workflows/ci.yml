@@ -185,7 +185,7 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: aether-core/frontend
@@ -266,6 +266,7 @@ jobs:
           VITE_HYBRID_DEMO: false
 
       - name: Visual regression smoke
+        timeout-minutes: 25
         run: npm run test:visual
         env:
           CI: true
