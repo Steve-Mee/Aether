@@ -1,0 +1,791 @@
+openapi: 3.0.3
+info:
+  title: AETHER Admin Website API
+  description: |
+    Admin storefront-builder API (`/api/website/*`).
+    Source of truth: `aether-core/docs/storefront-api-contracts.md` §1 + §6.
+    Gated by feature flag `storefront-builder` (env: FEATURE_STOREFRONT_BUILDER / STOREFRONT_BUILDER_ENABLED).
+  version: 0.1.0
+
+servers:
+  - url: /api/website
+    description: Admin website API (auth + tenant header required)
+
+tags:
+  - name: Projects
+  - name: Revisions
+  - name: Pages
+  - name: Builds
+  - name: Publish
+  - name: Preview
+  - name: Deploy
+
+paths:
+  /projects:
+    get:
+      tags: [Projects]
+      summary: List site projects for tenant
+      operationId: listProjects
+      responses:
+        '200':
+          description: Project summaries
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [projects]
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SiteProjectSummary'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+    post:
+      tags: [Projects]
+      summary: Create project from brief
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Project + initial revision + queued build
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateProjectResponse'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '409':
+          description: Slug taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+              example:
+                error:
+                  code: SLUG_TAKEN
+                  message: Site slug already exists for this tenant
+        '422':
+          description: Codegen rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+              example:
+                error:
+                  code: CODEGEN_REJECTED
+                  message: SitePlan failed allowlist validation
+
+  /projects/{projectId}:
+    get:
+      tags: [Projects]
+      summary: Get project detail
+      operationId: getProject
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Project detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [project]
+                properties:
+                  project:
+                    $ref: '#/components/schemas/SiteProjectDetail'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+
+  /projects/{projectId}/revisions:
+    get:
+      tags: [Revisions]
+      summary: List revisions for project
+      operationId: listRevisions
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Revision list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [revisions]
+                properties:
+                  revisions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RevisionListItem'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+    post:
+      tags: [Revisions]
+      summary: Create revision (iterate)
+      operationId: createRevision
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRevisionRequest'
+      responses:
+        '201':
+          description: Revision + queued build
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateRevisionResponse'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+        '422':
+          description: Codegen rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+
+  /revisions/{revisionId}:
+    get:
+      tags: [Revisions]
+      summary: Get revision detail
+      operationId: getRevision
+      parameters:
+        - $ref: '#/components/parameters/revisionId'
+      responses:
+        '200':
+          description: Revision with plan/brief/page summaries
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [revision]
+                properties:
+                  revision:
+                    $ref: '#/components/schemas/RevisionDetail'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+
+  /revisions/{revisionId}/pages:
+    get:
+      tags: [Pages]
+      summary: List pages in revision
+      operationId: listPages
+      parameters:
+        - $ref: '#/components/parameters/revisionId'
+      responses:
+        '200':
+          description: Page summaries
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pages]
+                properties:
+                  pages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PageSummary'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+
+  /pages/{pageId}:
+    get:
+      tags: [Pages]
+      summary: Get page tree
+      operationId: getPage
+      parameters:
+        - $ref: '#/components/parameters/pageId'
+      responses:
+        '200':
+          description: Page with seoJson + treeJson
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [page]
+                properties:
+                  page:
+                    $ref: '#/components/schemas/PageDetail'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+
+  /pages/{pageId}/copy:
+    patch:
+      tags: [Pages]
+      summary: Update page copy (headline / subheadline) and enqueue rebuild
+      operationId: updatePageCopy
+      parameters:
+        - $ref: '#/components/parameters/pageId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                headline:
+                  type: string
+                subheadline:
+                  type: string
+      responses:
+        '201':
+          description: Copy updated; new revision + build job queued
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+
+  /revisions/{revisionId}/build:
+    post:
+      tags: [Builds]
+      summary: Trigger build for revision
+      operationId: startBuild
+      parameters:
+        - $ref: '#/components/parameters/revisionId'
+      responses:
+        '202':
+          description: Build queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [buildJob]
+                properties:
+                  buildJob:
+                    $ref: '#/components/schemas/BuildJobQueued'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+        '409':
+          $ref: '#/components/responses/RevisionNotReady'
+        '422':
+          description: Codegen rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+
+  /builds/{buildId}:
+    get:
+      tags: [Builds]
+      summary: Get build job
+      operationId: getBuild
+      parameters:
+        - $ref: '#/components/parameters/buildId'
+      responses:
+        '200':
+          description: Build job detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [buildJob]
+                properties:
+                  buildJob:
+                    $ref: '#/components/schemas/BuildJobDetail'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+
+  /revisions/{revisionId}/publish:
+    post:
+      tags: [Publish]
+      summary: Propose publish (creates pending approval; does not go live)
+      operationId: proposePublish
+      parameters:
+        - $ref: '#/components/parameters/revisionId'
+      responses:
+        '201':
+          description: Pending PUBLISH_STOREFRONT approval
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [approval]
+                properties:
+                  approval:
+                    $ref: '#/components/schemas/PublishApproval'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+        '409':
+          $ref: '#/components/responses/RevisionNotReady'
+        '422':
+          description: QA score below publish threshold (0.80)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+              example:
+                error:
+                  code: QA_BELOW_THRESHOLD
+                  message: QA score 0.5 is below threshold 0.8
+                  details:
+                    qaScore: 0.5
+                    threshold: 0.8
+
+  /preview/{revisionId}:
+    get:
+      tags: [Preview]
+      summary: Get signed preview URL for revision
+      operationId: getPreview
+      parameters:
+        - $ref: '#/components/parameters/revisionId'
+      responses:
+        '200':
+          description: Preview URL + expiry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreviewResponse'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+
+  /projects/{projectId}/deploy-target:
+    get:
+      tags: [Deploy]
+      summary: Get deploy target
+      operationId: getDeployTarget
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Deploy target (null provider if unset)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deployTarget]
+                properties:
+                  deployTarget:
+                    $ref: '#/components/schemas/DeployTarget'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+    put:
+      tags: [Deploy]
+      summary: Upsert deploy target
+      operationId: putDeployTarget
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deployTarget]
+              properties:
+                deployTarget:
+                  $ref: '#/components/schemas/DeployTarget'
+      responses:
+        '200':
+          description: Upserted deploy target
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deployTarget]
+                properties:
+                  deployTarget:
+                    $ref: '#/components/schemas/DeployTarget'
+        '403':
+          $ref: '#/components/responses/WebsiteDisabled'
+        '404':
+          $ref: '#/components/responses/ProjectNotFound'
+
+components:
+  parameters:
+    projectId:
+      name: projectId
+      in: path
+      required: true
+      schema:
+        type: string
+    revisionId:
+      name: revisionId
+      in: path
+      required: true
+      schema:
+        type: string
+    pageId:
+      name: pageId
+      in: path
+      required: true
+      schema:
+        type: string
+    buildId:
+      name: buildId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    WebsiteDisabled:
+      description: Feature flag storefront-builder is off
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GatedErrorBody'
+          example:
+            error:
+              code: WEBSITE_DISABLED
+              message: Feature 'storefront-builder' is disabled
+            status: gated
+    ProjectNotFound:
+      description: Project / revision / page / build not found (or cross-tenant)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+          example:
+            error:
+              code: PROJECT_NOT_FOUND
+              message: Site project not found
+    RevisionNotReady:
+      description: Revision still generating
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+          example:
+            error:
+              code: REVISION_NOT_READY
+              message: Site revision is not ready
+
+  schemas:
+    ErrorBody:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - WEBSITE_DISABLED
+                - PROJECT_NOT_FOUND
+                - REVISION_NOT_READY
+                - SLUG_TAKEN
+                - CODEGEN_REJECTED
+                - QA_BELOW_THRESHOLD
+                - DEPLOY_FAILED
+                - VALIDATION_FAILED
+                - INTERNAL_ERROR
+            message:
+              type: string
+            details: {}
+
+    GatedErrorBody:
+      allOf:
+        - $ref: '#/components/schemas/ErrorBody'
+        - type: object
+          properties:
+            status:
+              type: string
+              enum: [gated]
+
+    CreateProjectRequest:
+      type: object
+      required: [slug]
+      properties:
+        slug:
+          type: string
+          example: atelier-noord
+        brief:
+          type: object
+          additionalProperties: true
+          properties:
+            prompt:
+              type: string
+            localeDefault:
+              type: string
+            locales:
+              type: array
+              items:
+                type: string
+            tone:
+              type: string
+            audience:
+              type: string
+            mustHavePages:
+              type: array
+              items:
+                type: string
+            brand:
+              type: object
+              additionalProperties: true
+        primaryDomain:
+          type: string
+          nullable: true
+
+    CreateProjectResponse:
+      type: object
+      required: [project, revision, buildJob]
+      properties:
+        project:
+          $ref: '#/components/schemas/SiteProjectSummary'
+        revision:
+          $ref: '#/components/schemas/RevisionCreate'
+        buildJob:
+          $ref: '#/components/schemas/BuildJobQueued'
+
+    SiteProjectSummary:
+      type: object
+      required: [id, tenantId, slug, status, createdAt]
+      properties:
+        id:
+          type: string
+        tenantId:
+          type: string
+        slug:
+          type: string
+        status:
+          type: string
+          example: draft
+        createdAt:
+          type: string
+          format: date-time
+
+    SiteProjectDetail:
+      type: object
+      required:
+        - id
+        - slug
+        - status
+        - primaryDomain
+        - liveRevisionId
+        - latestRevisionId
+        - latestPreviewUrl
+        - latestQaScore
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        status:
+          type: string
+        primaryDomain:
+          type: string
+          nullable: true
+        liveRevisionId:
+          type: string
+          nullable: true
+        latestRevisionId:
+          type: string
+          nullable: true
+        latestPreviewUrl:
+          type: string
+          nullable: true
+        latestQaScore:
+          type: number
+          nullable: true
+
+    CreateRevisionRequest:
+      type: object
+      properties:
+        parentRevisionId:
+          type: string
+          nullable: true
+        deltaPrompt:
+          type: string
+        briefPatch:
+          type: object
+          additionalProperties: true
+        brief: {}
+        plan: {}
+
+    CreateRevisionResponse:
+      type: object
+      required: [revision, buildJob]
+      properties:
+        revision:
+          $ref: '#/components/schemas/RevisionCreate'
+        buildJob:
+          $ref: '#/components/schemas/BuildJobQueued'
+
+    RevisionCreate:
+      type: object
+      required: [id, version, status]
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+        status:
+          type: string
+          example: generating
+
+    RevisionListItem:
+      type: object
+      required: [id, version, createdAt]
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+        createdByAgent:
+          type: string
+          nullable: true
+        qaScore:
+          type: number
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        previewUrl:
+          type: string
+          nullable: true
+
+    RevisionDetail:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+        briefJson: {}
+        planJson: {}
+        qaReportJson: {}
+        pages:
+          type: array
+          items:
+            $ref: '#/components/schemas/PageSummary'
+        artifactKeys:
+          type: array
+          items:
+            type: string
+
+    PageSummary:
+      type: object
+      required: [id, path, title]
+      properties:
+        id:
+          type: string
+        path:
+          type: string
+        title:
+          type: string
+
+    PageDetail:
+      type: object
+      required: [id, path, title, seoJson, treeJson]
+      properties:
+        id:
+          type: string
+        path:
+          type: string
+        title:
+          type: string
+        seoJson: {}
+        treeJson: {}
+
+    BuildJobQueued:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          example: queued
+        previewUrl:
+          type: string
+          description: Present when build runs synchronously and succeeds (local/dev Birth path)
+          nullable: true
+
+    BuildJobDetail:
+      type: object
+      required: [id, revisionId, status]
+      properties:
+        id:
+          type: string
+        revisionId:
+          type: string
+        status:
+          type: string
+        previewUrl:
+          type: string
+          nullable: true
+        logs:
+          type: string
+          nullable: true
+        qaReportJson: {}
+
+    PublishApproval:
+      type: object
+      required: [id, type, status, payload]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [PUBLISH_STOREFRONT]
+        status:
+          type: string
+          example: pending
+        payload:
+          type: object
+          required: [projectId, revisionId]
+          properties:
+            projectId:
+              type: string
+            revisionId:
+              type: string
+            qaScore:
+              type: number
+              nullable: true
+
+    PreviewResponse:
+      type: object
+      required: [previewUrl, expiresAt]
+      properties:
+        previewUrl:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+    DeployTarget:
+      type: object
+      properties:
+        provider:
+          type: string
+          nullable: true
+          example: cloudflare
+        liveUrl:
+          type: string
+          nullable: true
+        configJson:
+          type: object
+          additionalProperties: true

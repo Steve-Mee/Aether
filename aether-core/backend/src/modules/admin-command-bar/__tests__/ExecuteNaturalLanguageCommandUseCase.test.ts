@@ -111,6 +111,8 @@ const mockAdminData: AdminDataPort = {
   applyRestockUpdates: jest.fn().mockResolvedValue(0),
   countCustomers: jest.fn().mockResolvedValue(0),
   getTopCustomers: jest.fn().mockResolvedValue([]),
+  listCustomers: jest.fn().mockResolvedValue([]),
+  getCustomerById: jest.fn().mockResolvedValue(null),
   getOrderTrends: jest.fn().mockResolvedValue({
     recentCount: 0,
     priorCount: 0,
@@ -155,12 +157,26 @@ const mockAdminData: AdminDataPort = {
     totalSkus: 0,
     totalQuantity: 0,
   }),
+  getTenantDisplayName: jest.fn().mockResolvedValue(undefined),
+  upsertPushSubscription: jest.fn().mockResolvedValue(undefined),
+  deletePushSubscriptionByEndpoint: jest.fn().mockResolvedValue(undefined),
 };
 
 const mockCommandLog = {
   save: jest.fn().mockResolvedValue({ id: 'cmd_1' }),
   findRecent: jest.fn().mockResolvedValue([]),
   findById: jest.fn().mockResolvedValue(null),
+  updateResult: jest.fn().mockResolvedValue({
+    id: 'cmd_1',
+    command: 'test',
+    result: 'result',
+    intent: 'UNKNOWN',
+    confidence: 0.5,
+    createdAt: new Date(),
+  }),
+  updateBrainMemoryId: jest.fn().mockResolvedValue(undefined),
+  findForUndo: jest.fn(),
+  markReverted: jest.fn().mockResolvedValue(undefined),
 };
 
 const mockAgentRuntime: AgentRuntimePort = {
@@ -406,6 +422,55 @@ describe('ExecuteNaturalLanguageCommandUseCase', () => {
       expect(result.brain?.specialist?.agentKey).toBe('mail');
       expect(result.result).toBe('mail specialist narrative');
       expect(mockAdminData.countEmailsByStatus).not.toHaveBeenCalled();
+    });
+
+    it('routes STORE_BUILD NL to store_builder specialist', async () => {
+      const supervisor = createMockAgentSupervisor('store_builder', [
+        'STORE_BUILD',
+        'STORE_ITERATE',
+        'STORE_PUBLISH',
+        'STORE_STATUS',
+      ]);
+      const useCase = createUseCase(supervisor);
+
+      const result = await useCase.execute('bouw een webshop voor keramiek', {
+        tenantId: 'tenant_default',
+      });
+
+      expect(result.parsedIntent).toBe('STORE_BUILD');
+      expect(result.brain?.specialist?.agentKey).toBe('store_builder');
+      expect(result.result).toBe('store_builder specialist narrative');
+      expect(supervisor.executeSpecialist).toHaveBeenCalledWith(
+        expect.objectContaining({ agentKey: 'store_builder', intent: 'STORE_BUILD' })
+      );
+    });
+
+    it('routes STORE_PUBLISH / STORE_STATUS NL intents to store_builder', async () => {
+      const supervisor = createMockAgentSupervisor('store_builder', [
+        'STORE_BUILD',
+        'STORE_ITERATE',
+        'STORE_PUBLISH',
+        'STORE_STATUS',
+      ]);
+      const useCase = createUseCase(supervisor);
+
+      const publish = await useCase.execute('publiceer de website', {
+        tenantId: 'tenant_default',
+      });
+      expect(publish.parsedIntent).toBe('STORE_PUBLISH');
+      expect(publish.brain?.specialist?.agentKey).toBe('store_builder');
+
+      const status = await useCase.execute('status van mijn website', {
+        tenantId: 'tenant_default',
+      });
+      expect(status.parsedIntent).toBe('STORE_STATUS');
+      expect(status.brain?.specialist?.agentKey).toBe('store_builder');
+
+      const iterate = await useCase.execute('maak de hero rustiger', {
+        tenantId: 'tenant_default',
+      });
+      expect(iterate.parsedIntent).toBe('STORE_ITERATE');
+      expect(iterate.brain?.specialist?.agentKey).toBe('store_builder');
     });
 
     it('routes supplier create to supplier specialist', async () => {

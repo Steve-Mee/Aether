@@ -14,16 +14,17 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: 'border-transparent bg-primary/20 text-primary-readable',
-        success: 'border-success/40 bg-success/25 text-success',
-        warning: 'border-warning/40 bg-warning/25 text-warning',
-        danger: 'border-danger/40 bg-danger/25 text-danger',
+        success: 'border-success/50 bg-success/35 text-emerald-200',
+        warning: 'border-warning/50 bg-warning/35 text-amber-200',
+        danger: 'border-danger/50 bg-danger/35 text-red-200',
         muted: 'border-transparent bg-muted text-muted-foreground',
         outline: 'border-border text-foreground',
-        riskLow: 'border-success/40 bg-success/25 text-success',
-        riskMedium: 'border-warning/40 bg-warning/25 text-warning',
-        riskHigh: 'border-danger/40 bg-danger/25 text-danger',
-        live: 'border-success/50 bg-success/30 text-success uppercase tracking-widest px-3 py-1',
-        partial: 'border-warning/40 bg-warning/25 text-warning uppercase tracking-widest px-3 py-1',
+        riskLow: 'border-success/50 bg-success/35 text-emerald-200',
+        riskMedium: 'border-warning/50 bg-warning/35 text-amber-200',
+        riskHigh: 'border-danger/50 bg-danger/35 text-red-200',
+        live: 'border-success/50 bg-success/35 text-emerald-200 uppercase tracking-widest px-3 py-1',
+        partial:
+          'border-warning/50 bg-warning/35 text-amber-200 uppercase tracking-widest px-3 py-1',
         experimental:
           'border-primary/45 bg-primary/20 text-primary-readable uppercase tracking-widest px-3 py-1',
       },

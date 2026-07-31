@@ -35,6 +35,15 @@ export class PrismaPaymentRepository implements PaymentRepository {
     return rows.map((r) => this.toDomain(r));
   }
 
+  async listByTenant(tenantId: string): Promise<Payment[]> {
+    const tid = requireTenantId(tenantId, 'PrismaPaymentRepository.listByTenant');
+    const rows = await this.prisma.payment.findMany({
+      where: { tenantId: tid },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((r) => this.toDomain(r));
+  }
+
   async updateStatus(id: string, status: Payment['status'], tenantId: string): Promise<void> {
     const tid = requireTenantId(tenantId, 'PrismaPaymentRepository.updateStatus');
     await this.prisma.payment.updateMany({

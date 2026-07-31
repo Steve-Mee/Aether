@@ -1,11 +1,15 @@
 import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { t, formatCurrency } from '../lib/i18n';
-import { EmptyState, ModuleListPageSkeleton } from '@/components/ui';
+import { Button, EmptyState, ModuleListPageSkeleton } from '@/components/ui';
 import ModulePageLayout from '@/components/shell/ModulePageLayout';
 import { cn, interactiveSurface } from '@/lib/utils';
 import { useProductsPage } from '@/hooks/useProductsPage';
+import { COMMAND_CENTER_PATH } from '@/lib/navigation/routes';
+import { moduleLinks } from '@/lib/navigation/moduleLinks';
 
 export default function Products() {
+  const navigate = useNavigate();
   const { products, loading, error, reload } = useProductsPage();
 
   return (
@@ -18,6 +22,11 @@ export default function Products() {
       error={error}
       onRetry={reload}
       skeleton={<ModuleListPageSkeleton />}
+      headerExtra={
+        <Button data-testid="products-new" onClick={() => void navigate(moduleLinks.productNew)}>
+          {t('products.new.cta')}
+        </Button>
+      }
     >
       <div className="bg-card border border-border/40 rounded-aether overflow-x-auto">
         {!products || products.length === 0 ? (
@@ -25,6 +34,8 @@ export default function Products() {
             variant="premium"
             title={t('products.empty')}
             description={t('products.emptyDesc')}
+            actionLabel={t('products.empty.commandCenter')}
+            onAction={() => void navigate(COMMAND_CENTER_PATH)}
           />
         ) : (
           <table className="w-full text-sm min-w-[480px]">
@@ -42,7 +53,11 @@ export default function Products() {
                   key={product.id}
                   className={cn(interactiveSurface(), 'hover:bg-surface-elevated/60')}
                 >
-                  <td className="px-8 py-6 font-medium text-foreground">{product.name}</td>
+                  <td className="px-8 py-6 font-medium text-foreground">
+                    <Link to={`/products/${product.id}`} className="hover:underline">
+                      {product.name}
+                    </Link>
+                  </td>
                   <td className="px-8 py-6 text-muted-foreground">
                     {formatCurrency(product.price)}
                   </td>

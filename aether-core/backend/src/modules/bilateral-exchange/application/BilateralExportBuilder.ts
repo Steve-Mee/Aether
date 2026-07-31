@@ -1,6 +1,8 @@
-import { prisma } from '../../../shared/prisma/client';
+import type { BilateralExportDataPort } from './ports/BilateralExportDataPort';
 
 export class BilateralExportBuilder {
+  constructor(private exportData: BilateralExportDataPort) {}
+
   async buildForSchema(
     tenantId: string,
     schemaKey: string,
@@ -11,8 +13,8 @@ export class BilateralExportBuilder {
 
     if (schemaKey === 'inventory_turnover_band') {
       const [productCount, lowStockCount] = await Promise.all([
-        prisma.product.count({ where: { tenantId } }),
-        prisma.product.count({ where: { tenantId, stock: { lte: 5 } } }),
+        this.exportData.countProducts(tenantId),
+        this.exportData.countLowStockProducts(tenantId, 5),
       ]);
       if (allowed.has('product_count_band')) {
         payload.product_count_band = this.toCountBand(productCount);
@@ -30,16 +32,12 @@ export class BilateralExportBuilder {
         payload.promo_uplift_rate = 0.05;
       }
       if (allowed.has('sample_size')) {
-        payload.sample_size = Math.max(1, await prisma.product.count({ where: { tenantId } }));
+        payload.sample_size = Math.max(1, await this.exportData.countProducts(tenantId));
       }
     }
 
     if (schemaKey === 'supplier_category_mix') {
-      const suppliers = await prisma.supplier.findMany({
-        where: { tenantId },
-        select: { supplierType: true },
-        take: 100,
-      });
+      const suppliers = await this.exportData.findSupplierTypes(tenantId, 100);
       const categories = new Set(
         suppliers.map((s) => s.supplierType).filter((c): c is string => Boolean(c))
       );

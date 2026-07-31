@@ -54,4 +54,4 @@ AETHER is een **zelf-lerend, zelf-evoluerend AI-e-commerce organisme** — een i
 
 ---
 
-**Einde compacte context.** Voor volledige details: zie `principles.md`, `AGENTS.md` en de skills in `operating-system/skills/`.
+**Einde compacte context.** Voor volledige details: zie `project-dna/Aether/principles.md`, `project-dna/Aether/AGENTS.md` en de skills in `operating-system/skills/`.

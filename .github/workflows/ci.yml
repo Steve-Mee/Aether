@@ -106,6 +106,9 @@ jobs:
       - name: Validate Prisma schema
         run: npx prisma validate
 
+      - name: Validate OpenAPI specs
+        run: npm run openapi:validate
+
       - name: Apply migrations
         run: npx prisma migrate deploy
 
@@ -153,6 +156,27 @@ jobs:
       - name: Mail approval E2E (DB-backed, mandatory gate)
         run: npm test -- --testPathPattern=mail-approval.e2e --runInBand
 
+      - name: Storefront Birth Gate E2E (DB-backed, locked path)
+        run: npm test -- --testPathPattern=storefront-birth.e2e --runInBand
+        env:
+          FEATURE_STOREFRONT_BUILDER: 'true'
+          FEATURE_STOREFRONT_PUBLIC_API: 'true'
+          STOREFRONT_PREVIEW_HMAC_SECRET: ci-storefront-preview-hmac-secret
+
+      - name: Storefront publish E2E (DB-backed, vertical slice)
+        run: npm test -- --testPathPattern=storefront-publish.e2e --runInBand
+        env:
+          FEATURE_STOREFRONT_BUILDER: 'true'
+          FEATURE_STOREFRONT_PUBLIC_API: 'true'
+          STOREFRONT_PREVIEW_HMAC_SECRET: ci-storefront-preview-hmac-secret
+
+      - name: Storefront checkout E2E (DB-backed, catalog→cart→checkout)
+        run: npm test -- --testPathPattern=storefront-checkout.e2e --runInBand
+        env:
+          FEATURE_STOREFRONT_BUILDER: 'true'
+          FEATURE_STOREFRONT_PUBLIC_API: 'true'
+          STOREFRONT_PREVIEW_HMAC_SECRET: ci-storefront-preview-hmac-secret
+
       - name: Webhook boundary and supplier auth tests
         run: npm test -- --testPathPattern="webhookBoundary|supplierWebhook" --runInBand
 
@@ -185,7 +209,7 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: aether-core/frontend
@@ -227,6 +251,10 @@ jobs:
           VITE_API_URL: http://localhost:9000
           VITE_AETHER_API_KEY: ci-test-key
           VITE_AETHER_TENANT: tenant_default
+          VITE_HYBRID_DEMO: false
+          VITE_LIVE_DEMO: false
+          VITE_DATA_SOURCE: live
+          VITE_USE_MOCK: false
           VITE_APP_VERSION: ${{ github.sha }}
           VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -266,6 +294,7 @@ jobs:
           VITE_HYBRID_DEMO: false
 
       - name: Visual regression smoke
+        timeout-minutes: 25
         run: npm run test:visual
         env:
           CI: true
@@ -310,3 +339,77 @@ jobs:
           path: aether-core/frontend/coverage/
           retention-days: 7
           if-no-files-found: ignore
+
+  storefront-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: aether-core/storefront-runtime
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: aether-core/storefront-runtime/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_AETHER_API_BASE: http://localhost:9000
+
+      - name: Assert Lighthouse budget doc (P15 honesty gate)
+        working-directory: aether-core
+        run: node scripts/assert-storefront-lighthouse-budgets.js
+
+      - name: Start storefront-runtime for Lighthouse
+        run: |
+          npm start &
+          echo $! > /tmp/sf-runtime.pid
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:4177/lh-fixture >/dev/null; then
+              echo "storefront-runtime ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "storefront-runtime failed to become ready"
+          exit 1
+
+      # Intentional dual Lighthouse floor (Wave 10): storefront CI targets ~0.85;
+      # use 0.75 here for headless GHA variance (measured 0.78–0.82). Weekly admin
+      # workflow (lighthouse-weekly.yml) keeps LH_MIN_SCORE 0.60.
+      - name: Chrome Lighthouse budgets (fixture)
+        run: node scripts/lighthouse-budgets.mjs
+        env:
+          LH_BASE_URL: http://127.0.0.1:4177
+          LH_PATH: /lh-fixture
+          LH_MIN_SCORE: '0.75'
+          LH_MAX_LCP_MS: '2500'
+          LH_MAX_CLS: '0.1'
+
+      - name: Upload Lighthouse artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: storefront-lighthouse-${{ github.run_id }}
+          path: aether-core/storefront-runtime/.lighthouse/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Stop storefront-runtime
+        if: always()
+        run: |
+          if [ -f /tmp/sf-runtime.pid ]; then kill $(cat /tmp/sf-runtime.pid) || true; fi

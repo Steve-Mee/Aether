@@ -3,7 +3,7 @@ import type { MerchantSettings } from './settings/merchantSettingsTypes';
 import { applyMerchantAutonomyFromSuggestion } from './settings/applyMerchantAutonomy';
 import type { DemoIntentId, DemoSuggestion } from './localIntentMatcher';
 import { getProactiveSuggestions } from './proactiveSuggestionsDemo';
-import type { TodayReadyInsight } from './todayReadyDemo';
+import type { TodayReadyInsight } from './todayReady';
 
 export type SuggestionSource = 'static' | 'dashboard' | 'today' | 'proactive';
 

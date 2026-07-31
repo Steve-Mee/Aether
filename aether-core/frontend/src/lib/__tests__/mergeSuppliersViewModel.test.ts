@@ -1,12 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mergeSuppliersViewModel } from '../mergeSuppliersViewModel';
 
+vi.mock('@/lib/config', () => ({
+  env: { suppliersDemo: false, isMockMode: false },
+}));
+
 describe('mergeSuppliersViewModel', () => {
-  it('returns demo when API is empty', () => {
+  it('returns empty api view when API is null in live mode', () => {
     const vm = mergeSuppliersViewModel(null);
-    expect(vm.source).toBe('demo');
-    expect(vm.suppliers.length).toBeGreaterThanOrEqual(5);
-    expect(vm.stats.syncsCompletedThisMonth).toBeGreaterThan(0);
+    expect(vm.source).toBe('api');
+    expect(vm.suppliers).toHaveLength(0);
+    expect(vm.stats.totalMonitored).toBe(0);
   });
 
   it('returns api when suppliers exist', () => {
@@ -40,5 +44,20 @@ describe('mergeSuppliersViewModel', () => {
     expect(vm.source).toBe('api');
     expect(vm.suppliers).toHaveLength(1);
     expect(vm.suppliers[0].name).toBe('A');
+  });
+
+  it('returns api with empty suppliers when API has no suppliers (no silent demo)', () => {
+    const vm = mergeSuppliersViewModel({
+      stats: {
+        totalMonitored: 0,
+        activeAutoSyncs: 0,
+        syncsCompletedThisMonth: 0,
+        priceDropsThisMonth: 0,
+        autonomousPriceAdjustments: 0,
+      },
+      suppliers: [],
+    });
+    expect(vm.source).toBe('api');
+    expect(vm.suppliers).toHaveLength(0);
   });
 });

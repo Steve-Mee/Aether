@@ -1,3 +1,4 @@
+import { getCompositionRoot } from '../../../../bootstrap/compositionRoot';
 import { mapAuditRowToActivityItem } from './ActivityFeedService';
 import type { ActivityFeedItem } from './ActivityFeedService';
 import { overviewFeedEmitter, type OverviewFeedEventType } from './OverviewFeedEmitter';
@@ -6,8 +7,6 @@ import {
   type OverviewFeedItem,
   type OverviewFeedKind,
 } from './OverviewFeedService';
-import { upsertFeedEvent } from './OverviewFeedWriter';
-import { overviewNotificationDispatcher } from './OverviewNotificationDispatcher';
 import { mapOverviewFeedItemToNotification } from './notifications/notificationMappers';
 import { notificationEmitter } from './notifications/NotificationEmitter';
 
@@ -28,7 +27,8 @@ export async function notifyOverviewFeedItem(
   item: OverviewFeedItem,
 ): Promise<void> {
   try {
-    const persisted = await upsertFeedEvent(tenantId, event, item);
+    const { overviewFeedWriter, overviewNotificationDispatcher } = getCompositionRoot();
+    const persisted = await overviewFeedWriter.upsertFeedEvent(tenantId, event, item);
     overviewFeedEmitter.emit(tenantId, event, item);
     if (event === 'created') {
       void overviewNotificationDispatcher.onFeedEventCreated(tenantId, persisted.id, item);

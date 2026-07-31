@@ -8,12 +8,12 @@ const describeIfDb = runCommerceTests ? describe : describe.skip;
 
 describeIfDb('Commerce integration (tenant-scoped)', () => {
   const app = createApp();
-  const tenantId = 'tenant_commerce_test';
+  // Must match AETHER_DEFAULT_TENANT for env API key auth (header mismatch → 403).
+  const tenantId = process.env.AETHER_DEFAULT_TENANT ?? 'tenant_default';
   const headers = {
     'X-Aether-Api-Key': process.env.AETHER_API_KEY ?? 'ci-test-key',
     'X-Aether-Tenant-Id': tenantId,
     'X-Aether-Actor-Id': 'commerce-e2e',
-    'X-Aether-Role': 'operator',
   };
 
   beforeAll(async () => {

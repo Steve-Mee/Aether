@@ -42,7 +42,7 @@ export class FederatedAggregationService {
     return {
       tenantId,
       aggregated: true,
-      anonymization: 'HMAC-SHA256 + Laplace DP',
+      anonymization: 'HMAC commitment + optional Laplace noise (not ZK-SNARK)',
       privacyBudget: { spent: budget.spent, budgetLimit: budget.budgetLimit },
       ...batch,
     };

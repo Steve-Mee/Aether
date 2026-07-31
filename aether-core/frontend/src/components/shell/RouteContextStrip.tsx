@@ -110,6 +110,29 @@ export default function RouteContextStrip({ children }: RouteContextStripProps) 
   if (module === 'negotiations') {
     chips.push(<StatChip key="negotiations-hint">{t('routeContext.negotiationsHint')}</StatChip>);
   }
+  if (module === 'website') {
+    chips.push(
+      <ContextLink key="website" to={moduleLinks.website} label={t('nav.website')} />,
+      <ContextLink
+        key="website-preview"
+        to={moduleLinks.websitePreview}
+        label={t('nav.websitePreview')}
+      />,
+      <ContextLink
+        key="website-pages"
+        to={moduleLinks.websitePages}
+        label={t('nav.websitePages')}
+      />,
+      <ContextLink key="pages-cms" to={moduleLinks.pages} label={t('nav.pages')} />,
+      <ContextLink
+        key="website-publish"
+        to={moduleLinks.websitePublish}
+        label={t('nav.websitePublish')}
+      />,
+      <ContextLink key="approvals" to={moduleLinks.approvals} label={t('nav.approvals')} />,
+      <StatChip key="website-hint">{t('routeContext.websiteHint')}</StatChip>,
+    );
+  }
   if (module === 'other') {
     chips.push(
       <ContextLink

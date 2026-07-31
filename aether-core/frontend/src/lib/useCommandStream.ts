@@ -3,219 +3,46 @@ import { env } from '@/lib/config';
 import { apiStreamPostFetch } from '@/lib/api/client';
 import { apiRoutes } from '@/lib/api/routes';
 import { commandsApi } from '@/features/commands/api';
+import { applyStreamEvent } from '@/lib/commandStream/applyStreamEvent';
+import { eventToStep } from '@/lib/commandStream/eventToStep';
 import {
-  agentDisplayLabel,
-  agentHandoffLabel,
-  agentWorkingLabel,
-  formatAgentKeysLabel,
-} from '@/lib/agentDisplay';
-import type {
-  AgentPlanStep,
-  AgentStreamEvent,
-  CommandResult,
-  HandoffChainEntry,
-  SharedMemoryEntry,
-} from '@/types/command';
-import type { LiveExplainState } from '@/types/explainability';
-import { t } from '@/lib/i18n';
-import { humanizeHandoffReason } from '@/lib/agentDisplay';
+  createInitialStreamState,
+  type CommandStreamPlan,
+  type CommandStreamState,
+  type CommandStreamStep,
+} from '@/lib/commandStream/types';
+import type { AgentStreamEvent, CommandResult } from '@/types/command';
 
-export interface CommandStreamStep {
-  id: string;
-  label: string;
-  summary: string;
-  done: boolean;
-  status?: 'ok' | 'error' | 'pending';
-  checkpoint?: boolean;
-  agentKey?: string;
-}
+export type { CommandStreamStep, CommandStreamPlan } from '@/lib/commandStream/types';
+export { eventToStep } from '@/lib/commandStream/eventToStep';
 
-export interface CommandStreamPlan {
-  goal: string;
-  steps: AgentPlanStep[];
-  currentStep: number;
-  stepTotal: number;
-}
-
-export function eventToStep(event: AgentStreamEvent, index: number): CommandStreamStep | null {
-  const agentPrefix = event.agentKey ? `${event.agentKey}-` : '';
-  const agentKey = event.agentKey;
-
-  switch (event.type) {
-    case 'thinking':
-      return {
-        id: `${agentPrefix}thinking-${index}`,
-        label: t('command.brain.thinking'),
-        summary: event.narrative ?? '…',
-        done: false,
-        status: 'pending',
-        agentKey,
-      };
-    case 'plan_ready':
-      return null;
-    case 'plan_revised':
-      return {
-        id: `${agentPrefix}plan-revised-${event.revision ?? index}`,
-        label: t('command.brain.planRevised'),
-        summary: event.goal ?? '',
-        done: false,
-        status: 'pending',
-        agentKey,
-      };
-    case 'reflection':
-      return {
-        id: `${agentPrefix}reflection-${index}`,
-        label: t('command.brain.reflection'),
-        summary: (event.observation ?? '').slice(0, 120),
-        done: true,
-        status: 'ok',
-        agentKey,
-      };
-    case 'step_progress': {
-      const label =
-        event.steps?.[(event.planStep ?? 1) - 1]?.label ??
-        `${t('command.brain.planStep')} ${event.planStep ?? ''}`;
-      const done = event.stepStatus === 'done' || event.stepStatus === 'failed';
-      return {
-        id: `${agentPrefix}plan-step-${event.planStep ?? index}`,
-        label,
-        summary:
-          event.stepStatus === 'failed'
-            ? t('command.brain.stepFailed')
-            : event.stepStatus === 'running'
-              ? t('command.brain.stepRunning')
-              : t('command.brain.stepDone'),
-        done,
-        status: event.stepStatus === 'failed' ? 'error' : done ? 'ok' : 'pending',
-        agentKey,
-      };
-    }
-    case 'tool_start':
-      return {
-        id: `${agentPrefix}tool-${event.tool}-${index}`,
-        label: event.tool ?? 'tool',
-        summary: event.summary ?? '',
-        done: false,
-        status: 'pending',
-        agentKey,
-      };
-    case 'tool_result':
-      return {
-        id: `${agentPrefix}tool-result-${event.tool}-${index}`,
-        label: event.tool ?? 'tool',
-        summary: (event.output ?? '').slice(0, 120),
-        done: true,
-        status: 'ok',
-        agentKey,
-      };
-    case 'proposal_ready':
-      return {
-        id: `${agentPrefix}proposal-${event.proposalId}`,
-        label: event.tool ?? 'proposal',
-        summary: event.summary ?? '',
-        done: false,
-        status: 'pending',
-        agentKey,
-      };
-    case 'checkpoint':
-      return {
-        id: `${agentPrefix}checkpoint-${event.proposalId ?? index}`,
-        label: t('command.brain.stepAwaitingApproval'),
-        summary: event.summary ?? '',
-        done: false,
-        status: 'pending',
-        checkpoint: true,
-        agentKey,
-      };
-    case 'narrative_delta':
-      return {
-        id: `${agentPrefix}narrative-${index}`,
-        label: t('command.brain.stepAssistant'),
-        summary: (event.narrative ?? '').slice(0, 120),
-        done: true,
-        status: 'ok',
-        agentKey,
-      };
-    case 'agent_assigned': {
-      const keys = event.agentKey ?? '';
-      const label = agentWorkingLabel(keys, t('command.brain.agentWorkingSuffix'));
-      return {
-        id: `agent-${keys || index}`,
-        label,
-        summary: keys.includes(',') ? formatAgentKeysLabel(keys) : agentDisplayLabel(keys),
-        done: false,
-        status: 'pending',
-      };
-    }
-    case 'agent_started':
-      return {
-        id: `agent-start-${event.agentKey}-${index}`,
-        label: agentWorkingLabel(event.agentKey ?? '', t('command.brain.agentWorkingSuffix')),
-        summary: agentDisplayLabel(event.agentKey ?? ''),
-        done: false,
-        status: 'pending',
-        agentKey: event.agentKey,
-      };
-    case 'agent_completed':
-      return {
-        id: `agent-done-${event.agentKey}-${index}`,
-        label: `${agentDisplayLabel(event.agentKey ?? '')} ✓`,
-        summary: event.error ?? event.summary ?? t('command.brain.stepDone'),
-        done: true,
-        status: event.error ? 'error' : 'ok',
-        agentKey: event.agentKey,
-      };
-    case 'agent_handoff':
-      return {
-        id: `handoff-${event.fromAgentKey}-${event.toAgentKey}-${index}`,
-        label: agentHandoffLabel(
-          event.fromAgentKey ?? '',
-          event.toAgentKey ?? '',
-          t('command.brain.agentHandoffArrow'),
-        ),
-        summary: humanizeHandoffReason(event.handoffReason ?? ''),
-        done: true,
-        status: 'ok',
-      };
-    case 'peer_job_queued':
-      return {
-        id: `peer-queued-${event.jobId ?? index}`,
-        label: agentHandoffLabel(
-          event.fromAgentKey ?? '',
-          event.toAgentKey ?? '',
-          t('command.brain.agentHandoffArrow'),
-        ),
-        summary: t('command.brain.asyncPeerQueued'),
-        done: false,
-        status: 'pending',
-      };
-    case 'peer_job_completed':
-      return {
-        id: `peer-done-${event.jobId ?? index}`,
-        label: t('command.brain.asyncPeerCompleted'),
-        summary: event.summary ?? '',
-        done: true,
-        status: 'ok',
-      };
-    case 'peer_job_failed':
-      return {
-        id: `peer-fail-${event.jobId ?? index}`,
-        label: t('command.brain.asyncPeerFailed'),
-        summary: event.error ?? '',
-        done: true,
-        status: 'error',
-      };
-    case 'error':
-      return {
-        id: `error-${index}`,
-        label: 'error',
-        summary: event.error ?? 'Error',
-        done: true,
-        status: 'error',
-      };
-    default:
-      return null;
-  }
+function syncStreamState(
+  state: CommandStreamState,
+  setters: {
+    setSteps: (v: CommandStreamStep[]) => void;
+    setPlan: (v: CommandStreamPlan | null) => void;
+    setPlansByAgent: (v: Record<string, CommandStreamPlan>) => void;
+    setActiveAgentKeys: (v: string[]) => void;
+    setHandoffChain: (v: CommandStreamState['handoffChain']) => void;
+    setSharedMemory: (v: CommandStreamState['sharedMemory']) => void;
+    setExecutionMode: (v: CommandStreamState['executionMode']) => void;
+    setChainFrom: (v: string | null) => void;
+    setCancelled: (v: boolean) => void;
+    setLiveExplain: (v: CommandStreamState['liveExplain']) => void;
+  },
+  streamCommandIdRef: React.MutableRefObject<string | null>,
+) {
+  setters.setSteps(state.steps);
+  setters.setPlan(state.plan);
+  setters.setPlansByAgent(state.plansByAgent);
+  setters.setActiveAgentKeys(state.activeAgentKeys);
+  setters.setHandoffChain(state.handoffChain);
+  setters.setSharedMemory(state.sharedMemory);
+  setters.setExecutionMode(state.executionMode);
+  setters.setChainFrom(state.chainFrom);
+  setters.setCancelled(state.cancelled);
+  setters.setLiveExplain(state.liveExplain);
+  streamCommandIdRef.current = state.streamCommandId;
 }
 
 /**
@@ -228,14 +55,12 @@ export function useCommandStream() {
   const [plansByAgent, setPlansByAgent] = useState<Record<string, CommandStreamPlan>>({});
   const [streaming, setStreaming] = useState(false);
   const [activeAgentKeys, setActiveAgentKeys] = useState<string[]>([]);
-  const [handoffChain, setHandoffChain] = useState<HandoffChainEntry[]>([]);
-  const [sharedMemory, setSharedMemory] = useState<SharedMemoryEntry[]>([]);
-  const [executionMode, setExecutionMode] = useState<'single' | 'sequential' | 'parallel' | null>(
-    null,
-  );
+  const [handoffChain, setHandoffChain] = useState<CommandStreamState['handoffChain']>([]);
+  const [sharedMemory, setSharedMemory] = useState<CommandStreamState['sharedMemory']>([]);
+  const [executionMode, setExecutionMode] = useState<CommandStreamState['executionMode']>(null);
   const [chainFrom, setChainFrom] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
-  const [liveExplain, setLiveExplain] = useState<LiveExplainState | null>(null);
+  const [liveExplain, setLiveExplain] = useState<CommandStreamState['liveExplain']>(null);
   const [executingProactiveId, setExecutingProactiveId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const streamCommandIdRef = useRef<string | null>(null);
@@ -292,6 +117,7 @@ export function useCommandStream() {
         const decoder = new TextDecoder();
         let buffer = '';
         let finalResult: CommandResult | null = null;
+        let streamState = createInitialStreamState();
         let stepIndex = 0;
 
         while (true) {
@@ -312,198 +138,28 @@ export function useCommandStream() {
                 continue;
               }
 
-              if (event.type === 'explain_update') {
-                setLiveExplain({
-                  summary: event.summary,
-                  sections: event.explainSections,
-                  flowGraph: event.flowGraph,
-                });
-                continue;
-              }
+              streamState = applyStreamEvent(streamState, event, stepIndex);
+              if (eventToStep(event, stepIndex)) stepIndex += 1;
 
-              if (event.type === 'run_started' && event.commandId) {
-                streamCommandIdRef.current = event.commandId;
-              }
+              syncStreamState(
+                streamState,
+                {
+                  setSteps,
+                  setPlan,
+                  setPlansByAgent,
+                  setActiveAgentKeys,
+                  setHandoffChain,
+                  setSharedMemory,
+                  setExecutionMode,
+                  setChainFrom,
+                  setCancelled,
+                  setLiveExplain,
+                },
+                streamCommandIdRef,
+              );
 
-              if (event.type === 'done') {
-                if (event.runStatus === 'cancelled') {
-                  setCancelled(true);
-                  setStreaming(false);
-                }
-                continue;
-              }
-
-              if (event.type === 'agent_assigned' && event.agentKey) {
-                const keys = event.agentKey
-                  .split(',')
-                  .map((k) => k.trim())
-                  .filter(Boolean);
-                setActiveAgentKeys(keys);
-                if (event.executionMode) {
-                  setExecutionMode(event.executionMode);
-                }
-              }
-
-              if (event.type === 'agent_started' && event.agentKey) {
-                setActiveAgentKeys((prev) =>
-                  prev.includes(event.agentKey!) ? prev : [...prev, event.agentKey!],
-                );
-                if (event.executionMode) {
-                  setExecutionMode(event.executionMode);
-                }
-              }
-
-              if (event.type === 'agent_completed' && event.agentKey) {
-                setActiveAgentKeys((prev) => prev.filter((k) => k !== event.agentKey));
-              }
-
-              if (event.type === 'agent_handoff' && event.fromAgentKey && event.toAgentKey) {
-                setChainFrom(event.fromAgentKey);
-                setHandoffChain((prev) => [
-                  ...prev,
-                  {
-                    from: event.fromAgentKey!,
-                    to: event.toAgentKey!,
-                    reason: event.handoffReason ?? '',
-                    mode: 'sync',
-                    handoffMode: event.handoffMode,
-                  },
-                ]);
-              }
-
-              if (event.type === 'peer_job_queued' && event.fromAgentKey && event.toAgentKey) {
-                setHandoffChain((prev) => [
-                  ...prev,
-                  {
-                    from: event.fromAgentKey!,
-                    to: event.toAgentKey!,
-                    reason: event.handoffReason ?? 'async',
-                    mode: 'async',
-                    jobId: event.jobId,
-                    status: 'pending',
-                  },
-                ]);
-              }
-
-              if (event.type === 'peer_job_completed' && event.jobId) {
-                setHandoffChain((prev) =>
-                  prev.map((e) =>
-                    e.jobId === event.jobId
-                      ? { ...e, status: 'completed', summary: event.summary }
-                      : e,
-                  ),
-                );
-              }
-
-              if (event.type === 'peer_job_failed' && event.jobId) {
-                setHandoffChain((prev) =>
-                  prev.map((e) =>
-                    e.jobId === event.jobId ? { ...e, status: 'failed', summary: event.error } : e,
-                  ),
-                );
-              }
-
-              if (event.type === 'handoff_chain_update' && event.handoffChain) {
-                setHandoffChain(event.handoffChain);
-              }
-
-              if (event.type === 'shared_memory_updated' && event.namespace && event.key) {
-                setSharedMemory((prev) => {
-                  const idx = prev.findIndex(
-                    (e) => e.namespace === event.namespace && e.key === event.key,
-                  );
-                  const nextEntry: SharedMemoryEntry = {
-                    namespace: event.namespace!,
-                    key: event.key!,
-                    updatedByAgentKey: event.agentKey,
-                    updatedAt: event.timestamp,
-                    valuePreview: event.valuePreview,
-                  };
-                  if (idx >= 0) {
-                    const next = [...prev];
-                    next[idx] = { ...next[idx], ...nextEntry };
-                    return next;
-                  }
-                  return [...prev, nextEntry];
-                });
-              }
-
-              if (event.type === 'result' && event.result?.brain?.executionMode) {
-                setExecutionMode(event.result.brain.executionMode);
-              }
-              if (event.type === 'result' && event.result?.brain?.handoffChain) {
-                setHandoffChain(event.result.brain.handoffChain);
-              }
-              if (event.type === 'result' && event.result?.brain?.sharedMemorySummary) {
-                const summary = event.result.brain.sharedMemorySummary;
-                setSharedMemory(
-                  Object.entries(summary).map(([key, value]) => ({
-                    namespace: 'shared',
-                    key,
-                    valuePreview: JSON.stringify(value).slice(0, 200),
-                  })),
-                );
-              }
-
-              if (event.type === 'plan_ready' && event.goal && event.steps) {
-                const nextPlan = {
-                  goal: event.goal,
-                  steps: event.steps,
-                  currentStep: 0,
-                  stepTotal: event.stepTotal ?? event.steps.length,
-                };
-                if (event.agentKey) {
-                  setPlansByAgent((prev) => ({ ...prev, [event.agentKey!]: nextPlan }));
-                } else {
-                  setPlan(nextPlan);
-                }
-              }
-
-              if (event.type === 'plan_revised' && event.goal && event.steps) {
-                const nextPlan = {
-                  goal: event.goal,
-                  steps: event.steps,
-                  currentStep: 0,
-                  stepTotal: event.stepTotal ?? event.steps.length,
-                };
-                if (event.agentKey) {
-                  setPlansByAgent((prev) => ({ ...prev, [event.agentKey!]: nextPlan }));
-                } else {
-                  setPlan(nextPlan);
-                }
-              }
-
-              if (event.type === 'step_progress' && event.planStep != null) {
-                const updater = (prev: CommandStreamPlan | null) =>
-                  prev
-                    ? {
-                        ...prev,
-                        currentStep: event.planStep ?? prev.currentStep,
-                        stepTotal: event.planStepTotal ?? prev.stepTotal,
-                      }
-                    : prev;
-                if (event.agentKey) {
-                  setPlansByAgent((prev) => {
-                    const current = prev[event.agentKey!];
-                    const updated = updater(current ?? null);
-                    return updated ? { ...prev, [event.agentKey!]: updated } : prev;
-                  });
-                } else {
-                  setPlan(updater);
-                }
-              }
-
-              const step = eventToStep(event, stepIndex++);
-              if (step) {
-                setSteps((prev) => {
-                  const existing = prev.findIndex((s) => s.id === step.id);
-                  if (existing >= 0) {
-                    const next = [...prev];
-                    next[existing] = step;
-                    return next;
-                  }
-                  return [...prev, step];
-                });
+              if (event.type === 'done' && event.runStatus === 'cancelled') {
+                setStreaming(false);
               }
             } catch {
               /* ignore malformed chunk */
@@ -548,6 +204,7 @@ export function useCommandStream() {
         const decoder = new TextDecoder();
         let buffer = '';
         let finalResult: CommandResult | null = null;
+        let streamState = createInitialStreamState();
 
         while (true) {
           const { done, value } = await reader.read();
@@ -566,25 +223,23 @@ export function useCommandStream() {
                 finalResult = event.result;
                 continue;
               }
-              if (event.type === 'explain_update') {
-                setLiveExplain({
-                  summary: event.summary,
-                  sections: event.explainSections,
-                  flowGraph: event.flowGraph,
-                });
-              }
-              if (event.type === 'agent_handoff' && event.fromAgentKey && event.toAgentKey) {
-                setHandoffChain((prev) => [
-                  ...prev,
-                  {
-                    from: event.fromAgentKey!,
-                    to: event.toAgentKey!,
-                    reason: event.handoffReason ?? '',
-                    mode: 'sync',
-                    handoffMode: event.handoffMode,
-                  },
-                ]);
-              }
+              streamState = applyStreamEvent(streamState, event, 0);
+              syncStreamState(
+                streamState,
+                {
+                  setSteps,
+                  setPlan,
+                  setPlansByAgent,
+                  setActiveAgentKeys,
+                  setHandoffChain,
+                  setSharedMemory,
+                  setExecutionMode,
+                  setChainFrom,
+                  setCancelled,
+                  setLiveExplain,
+                },
+                streamCommandIdRef,
+              );
             } catch {
               /* ignore malformed chunk */
             }

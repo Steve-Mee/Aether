@@ -1,6 +1,6 @@
 # AETHER Principles (Compact)
 
-**Primary source of truth:** `project-dna/aether/principles.md`
+**Primary source of truth:** `project-dna/Aether/principles.md`
 
 ---
 
@@ -16,5 +16,6 @@
 
 ---
 
-**Volledige versie:** `project-dna/aether/principles.md`
-**Anti-Patterns:** `project-dna/aether/anti-patterns.md`
+**Volledige versie:** `project-dna/Aether/principles.md`  
+**Anti-Patterns:** `project-dna/Aether/anti-patterns.md`  
+**Agents:** `project-dna/Aether/AGENTS.md`

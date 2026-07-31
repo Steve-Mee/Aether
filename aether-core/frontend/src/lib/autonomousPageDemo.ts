@@ -1,10 +1,5 @@
-export interface AutonomousDecisionRowDemo {
-  id: string;
-  type: string;
-  result: string;
-  rationale: string | null;
-  createdAt: string;
-}
+import type { AutonomousDecisionRowDemo } from '@/lib/data/types';
+export type { AutonomousDecisionRowDemo } from '@/lib/data/types';
 
 export function getAutonomousDemoDecisions(): AutonomousDecisionRowDemo[] {
   const now = Date.now();

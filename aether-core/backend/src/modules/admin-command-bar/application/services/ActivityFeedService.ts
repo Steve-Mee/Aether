@@ -1,7 +1,7 @@
-import { prisma } from '../../../../shared/prisma/client';
 import { labelForAction } from '../../../../shared/audit/activityLabels';
 import { requireTenantId } from '../../../../shared/tenant/tenantContext';
 import { explainabilityPersister } from '../../../../ai/intelligence/explainability/ExplainabilityPersister';
+import type { ActivityFeedPort } from '../ports/ActivityFeedPort';
 
 export type ActivityRisk = 'low' | 'high' | 'none';
 export type ActivityStatus = 'autonomous' | 'approved' | 'rejected' | 'pending' | 'info';
@@ -304,52 +304,47 @@ function mapCommandRow(row: {
   };
 }
 
-export async function buildActivityFeed(query: ActivityFeedQuery): Promise<{
-  items: ActivityFeedItem[];
-  source: 'live' | 'partial';
-}> {
-  const tenantId = requireTenantId(query.tenantId, 'activity.feed');
-  const limit = Math.min(Math.max(query.limit ?? 100, 1), 200);
-  const includeNav = query.includeNav ?? false;
+export class ActivityFeedService {
+  constructor(private activityFeedPort: ActivityFeedPort) {}
 
-  const auditWhere = {
-    tenantId,
-    createdAt: { gte: query.since },
-    ...(query.module ? { module: query.module } : {}),
-    ...(!includeNav ? { NOT: { action: 'ui.navigation' } } : {}),
-  };
+  async buildActivityFeed(query: ActivityFeedQuery): Promise<{
+    items: ActivityFeedItem[];
+    source: 'live' | 'partial';
+  }> {
+    const tenantId = requireTenantId(query.tenantId, 'activity.feed');
+    const limit = Math.min(Math.max(query.limit ?? 100, 1), 200);
+    const includeNav = query.includeNav ?? false;
 
-  const includeCommands = !query.module || query.module === 'admin-command-bar';
-  const commandTake = Math.floor(limit / 2);
+    const includeCommands = !query.module || query.module === 'admin-command-bar';
+    const commandTake = Math.floor(limit / 2);
 
-  const [audits, commands] = await Promise.all([
-    prisma.auditLog.findMany({
-      where: auditWhere,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    }),
-    includeCommands
-      ? prisma.command.findMany({
-          where: { tenantId, createdAt: { gte: query.since } },
-          orderBy: { createdAt: 'desc' },
-          take: commandTake,
-        })
-      : Promise.resolve([]),
-  ]);
+    const [audits, commands] = await Promise.all([
+      this.activityFeedPort.findAuditLogs({
+        tenantId,
+        since: query.since,
+        module: query.module,
+        excludeNavigation: !includeNav,
+        take: limit,
+      }),
+      includeCommands
+        ? this.activityFeedPort.findCommands(tenantId, query.since, commandTake)
+        : Promise.resolve([]),
+    ]);
 
-  const items = [
-    ...audits.map(mapAuditRowToActivityItem),
-    ...commands.map(mapCommandRow),
-  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+    const items = [
+      ...audits.map(mapAuditRowToActivityItem),
+      ...commands.map(mapCommandRow),
+    ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
-  const capped = items.slice(0, limit);
-  const enriched = await enrichWithExplainability(tenantId, capped);
-  const filtered = query.agentKey
-    ? enriched.filter((item) => itemMatchesAgentKey(item, query.agentKey!))
-    : enriched;
-  const source = filtered.length >= 5 ? 'live' : 'partial';
+    const capped = items.slice(0, limit);
+    const enriched = await enrichWithExplainability(tenantId, capped);
+    const filtered = query.agentKey
+      ? enriched.filter((item) => itemMatchesAgentKey(item, query.agentKey!))
+      : enriched;
+    const source = filtered.length >= 5 ? 'live' : 'partial';
 
-  return { items: filtered, source };
+    return { items: filtered, source };
+  }
 }
 
 export function resolveActivitySince(days?: number, sinceIso?: string): Date {

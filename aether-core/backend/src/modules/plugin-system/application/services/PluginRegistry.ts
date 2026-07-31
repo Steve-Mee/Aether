@@ -32,6 +32,11 @@ export class PluginRegistry {
     await this.pluginRepository.update(plugin, tid);
   }
 
+  async listPlugins(tenantId: string): Promise<Plugin[]> {
+    const tid = requireTenantId(tenantId, 'PluginRegistry.listPlugins');
+    return this.pluginRepository.findAll(tid);
+  }
+
   getLoadedPlugins(): Plugin[] {
     return Array.from(this.loadedPlugins.values());
   }

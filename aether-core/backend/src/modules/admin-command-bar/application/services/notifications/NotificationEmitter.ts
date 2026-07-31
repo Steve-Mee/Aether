@@ -1,7 +1,7 @@
 import { getMerchantSettings } from '../../../../../shared/settings/TenantSettingsService';
+import { getCompositionRoot } from '../../../../../bootstrap/compositionRoot';
 import type { MerchantNotification } from './notificationTypes';
 import { isInAppNotificationEnabled } from './notificationPrefUtils';
-import { materializeNotification } from './NotificationWriter';
 import { notificationDeliveryService } from '../../../../../shared/notifications/notificationDeliveryService';
 
 export interface NotificationPushEvent {
@@ -68,7 +68,7 @@ class NotificationEmitterImpl {
       /* best-effort prefs check */
     }
 
-    const materialized = await materializeNotification({
+    const materialized = await getCompositionRoot().notificationWriter.materializeNotification({
       tenantId,
       notification,
       sourceType: opts?.sourceType ?? notification.kind,

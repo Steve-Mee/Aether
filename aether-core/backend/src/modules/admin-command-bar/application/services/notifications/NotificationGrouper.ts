@@ -1,5 +1,5 @@
-import { prisma } from '../../../../../shared/prisma/client';
 import type { MerchantNotification, NotificationKind } from './notificationTypes';
+import type { NotificationPort } from '../../ports/NotificationPort';
 import { APPROVAL_GROUP_WINDOW_MS, PROACTIVE_GROUP_WINDOW_MS } from './notificationConfig';
 
 export interface GroupRollupResult {
@@ -28,90 +28,86 @@ function rollupTitle(kind: NotificationKind, count: number): string {
   return count === 1 ? 'Goedkeuring vereist' : `${count} goedkeuringen wachten`;
 }
 
-export async function applyNotificationGrouping(
-  tenantId: string,
-  notification: MerchantNotification,
-  sourceType: string,
-  sourceId: string,
-): Promise<GroupRollupResult> {
-  if (!GROUPABLE_KINDS.includes(notification.kind)) {
-    return { notification, hideIndividual: false };
-  }
+export class NotificationGrouper {
+  constructor(private notificationPort: NotificationPort) {}
 
-  const groupKey = groupKeyFor(tenantId, notification.kind);
-  if (!groupKey) return { notification, hideIndividual: false };
+  async applyNotificationGrouping(
+    tenantId: string,
+    notification: MerchantNotification,
+    sourceType: string,
+    sourceId: string,
+  ): Promise<GroupRollupResult> {
+    if (!GROUPABLE_KINDS.includes(notification.kind)) {
+      return { notification, hideIndividual: false };
+    }
 
-  const since = new Date(Date.now() - windowMsFor(notification.kind));
-  const existing = await prisma.merchantNotification.findFirst({
-    where: {
+    const groupKey = groupKeyFor(tenantId, notification.kind);
+    if (!groupKey) return { notification, hideIndividual: false };
+
+    const since = new Date(Date.now() - windowMsFor(notification.kind));
+    const existing = await this.notificationPort.findRecentVisibleGroupMember(
       tenantId,
       groupKey,
-      visible: true,
-      createdAt: { gte: since },
-    },
-    orderBy: { updatedAt: 'desc' },
-  });
+      since,
+    );
 
-  if (!existing || existing.id === notification.id) {
-    return {
-      notification: { ...notification, groupKey, groupCount: 1 },
-      hideIndividual: false,
-    };
-  }
+    if (!existing || existing.id === notification.id) {
+      return {
+        notification: { ...notification, groupKey, groupCount: 1 },
+        hideIndividual: false,
+      };
+    }
 
-  const nextCount = existing.groupCount + 1;
-  const rollupId = existing.id;
+    const nextCount = existing.groupCount + 1;
+    const rollupId = existing.id;
 
-  await prisma.merchantNotification.update({
-    where: { id: rollupId },
-    data: {
+    await this.notificationPort.updateNotification(rollupId, {
       groupCount: nextCount,
       title: rollupTitle(notification.kind, nextCount),
       body: notification.body,
       updatedAt: new Date(),
-    },
-  });
+    });
 
-  if (notification.id !== rollupId) {
-    await prisma.merchantNotification.upsert({
-      where: { id: notification.id },
-      update: { visible: false, groupKey },
-      create: {
-        id: notification.id,
-        tenantId,
+    if (notification.id !== rollupId) {
+      await this.notificationPort.upsertNotification(
+        {
+          id: notification.id,
+          tenantId,
+          kind: notification.kind,
+          category: notification.category ?? 'general',
+          title: notification.title,
+          body: notification.body,
+          severity: notification.severity,
+          href: notification.href,
+          actionLabel: notification.actionLabel,
+          sourceType,
+          sourceId,
+          groupKey,
+          groupCount: 1,
+          visible: false,
+          createdAt: new Date(notification.createdAt),
+        },
+        false,
+      );
+    }
+
+    return {
+      notification: {
+        id: rollupId,
         kind: notification.kind,
-        category: notification.category ?? 'general',
-        title: notification.title,
+        title: rollupTitle(notification.kind, nextCount),
         body: notification.body,
         severity: notification.severity,
-        href: notification.href,
-        actionLabel: notification.actionLabel,
-        sourceType,
-        sourceId,
+        read: false,
+        createdAt: existing.createdAt.toISOString(),
+        href: notification.href ?? existing.href ?? undefined,
+        actionLabel: notification.actionLabel ?? existing.actionLabel ?? undefined,
+        source: 'system',
+        category: notification.category,
         groupKey,
-        groupCount: 1,
-        visible: false,
-        createdAt: new Date(notification.createdAt),
+        groupCount: nextCount,
       },
-    });
+      hideIndividual: true,
+    };
   }
-
-  return {
-    notification: {
-      id: rollupId,
-      kind: notification.kind,
-      title: rollupTitle(notification.kind, nextCount),
-      body: notification.body,
-      severity: notification.severity,
-      read: false,
-      createdAt: existing.createdAt.toISOString(),
-      href: notification.href ?? existing.href ?? undefined,
-      actionLabel: notification.actionLabel ?? existing.actionLabel ?? undefined,
-      source: 'system',
-      category: notification.category,
-      groupKey,
-      groupCount: nextCount,
-    },
-    hideIndividual: true,
-  };
 }

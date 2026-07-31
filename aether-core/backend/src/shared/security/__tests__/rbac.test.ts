@@ -63,11 +63,11 @@ describe('RBAC viewer read routes', () => {
     expect(res.status).toBe(403);
   });
 
-  it('operator can process emails', async () => {
+  it('operator can mutate via product create', async () => {
     const res = await request(app)
-      .post('/api/emails/process')
+      .post('/api/products')
       .set(operatorHeaders)
-      .send({ from: 'test@example.com', subject: 'Hi', body: 'Hello' });
+      .send({ name: 'RBAC Ok', slug: `rbac-ok-${Date.now()}`, price: 1, stock: 1 });
 
     expect(res.status).not.toBe(403);
   });

@@ -1,6 +1,6 @@
 # AETHER — Current Status
 
-**Last Updated**: 2026-06-26  
+**Last Updated**: 2026-07-31  
 **Update Rule**: Iedere agent die significant werk doet aan AETHER moet dit bestand updaten aan het einde van de sessie.
 
 ---
@@ -9,30 +9,35 @@
 
 | Component                    | Status              | Opmerking |
 |-----------------------------|---------------------|---------|
-| Custom AETHER Core          | In ontwikkeling     | Node.js + TypeScript + Prisma |
-| PersonalBrain               | Foundation fase     | Vector memory + tenant isolation |
-| GlobalBrain                 | Ontwerp             | Nog grotendeels placeholder |
-| KnowledgeTransfer           | Ontwerp             | Nog grotendeels placeholder |
-| Multi-Agent Orchestration   | Vroege implementatie| Basis patronen aanwezig |
-| Local AI Integratie         | In ontwikkeling     | Ollama/vLLM integratie |
-| Autonomous Merchant Agents  | Conceptueel         | Eerste agents in ontwikkeling |
+| Custom AETHER Core          | v0.8.1 foundation   | Node.js + TypeScript + Prisma — runtime truth |
+| PersonalBrain               | Partial / live pieces | Memory service thinned (Wave 15) |
+| GlobalBrain                 | Partial             | Placeholder mode on `/health`; hive bridge when wired |
+| KnowledgeTransfer           | Partial             | Opt-in; no false accept without hive bridge |
+| Multi-Agent Orchestration   | Implemented (ops)   | collaborationRules domain-split (Wave 15) |
+| Local AI Integratie         | Partial             | Ollama paths; Cursor skill `local-ai-patterns` mirrored |
+| Autonomous Merchant Agents  | Partial             | AutonomyGuardSteps split (Wave 13) |
+| Storefront Builder          | **Partial**         | OpenAPI + Express drift in CI (five specs) |
+| Public storefront API       | **Partial**         | Feature-gated; drift-checked vs `storefront.yaml` |
+| Merchant commerce dashboard | **Partial**         | commerce/admin/platform OpenAPI + key DTOs (Wave 18) |
+| Architecture hygiene        | **Improved**        | Waves 0–18; OpenAPI track **closed** — see [`audit-checklist.md`](./audit-checklist.md) |
 
 ---
 
-## Huidige Focus (Juni 2026)
+## Huidige Focus (Juli 2026)
 
-- Robuuste **PersonalBrain** architectuur
-- Basis **Multi-Agent Orchestration**
-- **Local AI** integratie (Ollama / vLLM)
-- Implementatie van kernprincipes via `aether-principles-guard`
+- **P14 evidence locked:** Birth e2e + checkout e2e required in CI; truth-matrix / feature-status stay **partial**
+- Next: **P15 hardening** — not claimed done
+- Architecture OpenAPI track closed (Wave 18); further god-file / domain work via [`audit-checklist.md`](./audit-checklist.md) as needed
+- Mail Gate 8 autonomy metric remains separate Fase 1 exit criteria
 
 ---
 
-## Volgende Mijlpalen
+## Volgende Mijlpalen (planned-only backlog)
 
-- Werkende PersonalBrain met tenant isolation
-- Eerste autonome Merchant Agent met human-in-the-loop
-- Basis AETHER Mail functionaliteit
+- Redis-backed public rate limit (multi-instance)
+- Edge CDN deploy providers beyond LocalDeploy/StubDeploy
+- Keep feature flags default-off for builder/public/deploy outside explicit seed/dev
+- Optional: OpenAPI for experimental gated mounts if product promotes them to core
 
 ---
 

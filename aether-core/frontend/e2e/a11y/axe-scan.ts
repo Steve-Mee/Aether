@@ -12,9 +12,18 @@ export const A11Y_CORE_ROUTES = [
   '/settings',
   '/emails',
   '/products',
+  '/website',
+  '/website/brief',
+  '/website/preview',
+  '/website/pages',
+  '/website/publish',
+  '/pages',
 ] as const;
 
-/** Deep module routes (extended coverage, report-only until promoted). */
+/**
+ * Deep module routes (extended coverage, report-only until promoted).
+ * Product/order detail lack stable seed IDs for axe e2e — covered by Vitest a11y smoke.
+ */
 export const A11Y_DEEP_ROUTES = ['/login'] as const;
 
 export const A11Y_ROUTES = [...A11Y_CORE_ROUTES, ...A11Y_DEEP_ROUTES] as const;

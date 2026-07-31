@@ -1,0 +1,1580 @@
+openapi: 3.0.3
+info:
+  title: AETHER Commerce API
+  description: |-
+    Merchant commerce REST under `/api/*` (auth + tenant required).
+    Wave 18: path inventory + schemas from controllers/domain entities.
+  version: 0.1.0
+servers:
+  - url: /api
+    description: Authenticated commerce API
+tags:
+  - name: Products
+  - name: Orders
+  - name: Customers
+  - name: Promotions
+  - name: Inventory
+  - name: Payments
+paths:
+  /orders:
+    get:
+      tags:
+        - Orders
+      summary: GET /orders
+      operationId: get_orders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Orders
+      summary: POST /orders
+      operationId: post_orders
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+  '/orders/{id}':
+    get:
+      tags:
+        - Orders
+      summary: 'GET /orders/{id}'
+      operationId: get_orders_id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetail'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /payments:
+    get:
+      tags:
+        - Payments
+      summary: GET /payments
+      operationId: get_payments
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - provider
+                  - payments
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - partial
+                  provider:
+                    type: string
+                  payments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /products:
+    get:
+      tags:
+        - Products
+      summary: GET /products
+      operationId: get_products
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductDetail'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Products
+      summary: POST /products
+      operationId: post_products
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+  /customers:
+    get:
+      tags:
+        - Customers
+      summary: GET /customers
+      operationId: get_customers
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - customers
+                properties:
+                  customers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CustomerSegment'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /inventory:
+    get:
+      tags:
+        - Inventory
+      summary: GET /inventory
+      operationId: get_inventory
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InventoryListItem'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/products/{id}':
+    delete:
+      tags:
+        - Products
+      summary: 'DELETE /products/{id}'
+      operationId: delete_products_id
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    get:
+      tags:
+        - Products
+      summary: 'GET /products/{id}'
+      operationId: get_products_id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    patch:
+      tags:
+        - Products
+      summary: 'PATCH /products/{id}'
+      operationId: patch_products_id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+  /promotions:
+    get:
+      tags:
+        - Promotions
+      summary: GET /promotions
+      operationId: get_promotions
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - promotions
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - partial
+                  promotions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Promotion'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Promotions
+      summary: POST /promotions
+      operationId: post_promotions
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - promotion
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - partial
+                  promotion:
+                    $ref: '#/components/schemas/Promotion'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePromotionRequest'
+  '/customers/{id}':
+    get:
+      tags:
+        - Customers
+      summary: 'GET /customers/{id}'
+      operationId: get_customers_id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - customer
+                properties:
+                  customer:
+                    $ref: '#/components/schemas/CustomerDetail'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  '/orders/{id}/ship':
+    post:
+      tags:
+        - Orders
+      summary: 'POST /orders/{id}/ship'
+      operationId: post_orders_id_ship
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - shipment
+                  - order
+                properties:
+                  shipment:
+                    type: object
+                    additionalProperties: true
+                  order:
+                    allOf:
+                      - $ref: '#/components/schemas/OrderDetail'
+                    nullable: true
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipOrderRequest'
+  /payments/ship:
+    post:
+      tags:
+        - Payments
+      summary: POST /payments/ship
+      operationId: post_payments_ship
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /inventory/price:
+    post:
+      tags:
+        - Inventory
+      summary: POST /inventory/price
+      operationId: post_inventory_price
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /inventory/stock:
+    post:
+      tags:
+        - Inventory
+      summary: POST /inventory/stock
+      operationId: post_inventory_stock
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/orders/{id}/status':
+    patch:
+      tags:
+        - Orders
+      summary: 'PATCH /orders/{id}/status'
+      operationId: patch_orders_id_status
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+  /payments/refund:
+    post:
+      tags:
+        - Payments
+      summary: POST /payments/refund
+      operationId: post_payments_refund
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+                  message:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - paymentId
+              properties:
+                paymentId:
+                  type: string
+                amount:
+                  type: number
+  /inventory/adjust:
+    post:
+      tags:
+        - Inventory
+      summary: POST /inventory/adjust
+      operationId: post_inventory_adjust
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - adjustment
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+                  adjustment:
+                    type: object
+                    required:
+                      - productId
+                      - warehouseId
+                      - quantity
+                    properties:
+                      productId:
+                        type: string
+                      warehouseId:
+                        type: string
+                      quantity:
+                        type: integer
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdjustInventoryRequest'
+  '/orders/{id}/refunds':
+    post:
+      tags:
+        - Orders
+      summary: 'POST /orders/{id}/refunds'
+      operationId: post_orders_id_refunds
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - refund
+                  - approval
+                properties:
+                  refund:
+                    type: object
+                    additionalProperties: true
+                  approval:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: string
+                      status:
+                        type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRefundRequest'
+  /payments/payment:
+    post:
+      tags:
+        - Payments
+      summary: POST /payments/payment
+      operationId: post_payments_payment
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - success
+                  - payment
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - partial
+                  success:
+                    type: boolean
+                  payment:
+                    $ref: '#/components/schemas/Payment'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessPaymentRequest'
+  /payments/payouts:
+    get:
+      tags:
+        - Payments
+      summary: GET /payments/payouts
+      operationId: get_payments_payouts
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /payments/summary:
+    get:
+      tags:
+        - Payments
+      summary: GET /payments/summary
+      operationId: get_payments_summary
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - provider
+                  - connectConfigured
+                  - paymentCount
+                  - byStatus
+                  - paidAmount
+                  - failedCount
+                  - currency
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - partial
+                  provider:
+                    type: string
+                  connectConfigured:
+                    type: boolean
+                  paymentCount:
+                    type: integer
+                  byStatus:
+                    type: object
+                    properties:
+                      pending:
+                        type: integer
+                      paid:
+                        type: integer
+                      failed:
+                        type: integer
+                      refunded:
+                        type: integer
+                  paidAmount:
+                    type: number
+                  failedCount:
+                    type: integer
+                  currency:
+                    type: string
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /payments/webhook:
+    post:
+      tags:
+        - Payments
+      summary: POST /payments/webhook
+      operationId: post_payments_webhook
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/products/{id}/media':
+    post:
+      tags:
+        - Products
+      summary: 'POST /products/{id}/media'
+      operationId: post_products_id_media
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - product
+                properties:
+                  product:
+                    $ref: '#/components/schemas/ProductDetail'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/customers/{id}/orders':
+    get:
+      tags:
+        - Customers
+      summary: 'GET /customers/{id}/orders'
+      operationId: get_customers_id_orders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - orders
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /payments/reconcile:
+    post:
+      tags:
+        - Payments
+      summary: POST /payments/reconcile
+      operationId: post_payments_reconcile
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /inventory/low-stock:
+    get:
+      tags:
+        - Inventory
+      summary: GET /inventory/low-stock
+      operationId: get_inventory_low_stock
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/products/{id}/variants':
+    get:
+      tags:
+        - Products
+      summary: 'GET /products/{id}/variants'
+      operationId: get_products_id_variants
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - variants
+                properties:
+                  variants:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductVariant'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    post:
+      tags:
+        - Products
+      summary: 'POST /products/{id}/variants'
+      operationId: post_products_id_variants
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariant'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVariantRequest'
+  /payments/fulfillment:
+    post:
+      tags:
+        - Payments
+      summary: POST /payments/fulfillment
+      operationId: post_payments_fulfillment
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/products/{id}/variants/{variantId}':
+    delete:
+      tags:
+        - Products
+      summary: 'DELETE /products/{id}/variants/{variantId}'
+      operationId: delete_products_id_variants_variantId
+      responses:
+        '204':
+          description: Deleted
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    patch:
+      tags:
+        - Products
+      summary: 'PATCH /products/{id}/variants/{variantId}'
+      operationId: patch_products_id_variants_variantId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductVariant'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateVariantRequest'
+  /payments/webhook/stripe:
+    post:
+      tags:
+        - Payments
+      summary: POST /payments/webhook/stripe
+      operationId: post_payments_webhook_stripe
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /payments/connect/onboard:
+    get:
+      tags:
+        - Payments
+      summary: GET /payments/connect/onboard
+      operationId: get_payments_connect_onboard
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+components:
+  schemas:
+    ProductMediaItem:
+      type: object
+      required:
+        - id
+        - mediaAssetId
+        - url
+        - mimeType
+        - alt
+        - sortOrder
+      properties:
+        id:
+          type: string
+        mediaAssetId:
+          type: string
+        url:
+          type: string
+        mimeType:
+          type: string
+        alt:
+          type: string
+          nullable: true
+        sortOrder:
+          type: integer
+    ProductVariant:
+      type: object
+      required:
+        - id
+        - productId
+        - sku
+        - price
+        - currency
+        - stock
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        sku:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        stock:
+          type: integer
+    ProductDetail:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - slug
+        - status
+        - price
+        - stock
+        - seoTitle
+        - seoDescription
+        - categoryId
+        - createdAt
+        - updatedAt
+        - variants
+        - media
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        slug:
+          type: string
+        status:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+        seoTitle:
+          type: string
+          nullable: true
+        seoDescription:
+          type: string
+          nullable: true
+        categoryId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductVariant'
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductMediaItem'
+    CreateProductRequest:
+      type: object
+      required:
+        - name
+        - slug
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+    UpdateProductRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        slug:
+          type: string
+        status:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+        seoTitle:
+          type: string
+          nullable: true
+        seoDescription:
+          type: string
+          nullable: true
+        categoryId:
+          type: string
+          nullable: true
+    CreateVariantRequest:
+      type: object
+      required:
+        - sku
+        - price
+      properties:
+        sku:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        stock:
+          type: integer
+    UpdateVariantRequest:
+      type: object
+      properties:
+        sku:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+        stock:
+          type: integer
+    OrderItem:
+      type: object
+      required:
+        - id
+        - productId
+        - quantity
+        - price
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: number
+        productName:
+          type: string
+    Order:
+      type: object
+      required:
+        - id
+        - customerId
+        - status
+        - total
+        - currency
+        - createdAt
+        - updatedAt
+        - items
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - paid
+            - shipped
+            - delivered
+            - cancelled
+        total:
+          type: number
+        currency:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+    OrderDetail:
+      allOf:
+        - $ref: '#/components/schemas/Order'
+        - type: object
+          required:
+            - customer
+            - shipments
+            - refunds
+            - payment
+          properties:
+            customer:
+              type: object
+              nullable: true
+              properties:
+                id:
+                  type: string
+                email:
+                  type: string
+                name:
+                  type: string
+            shipments:
+              type: array
+              items:
+                type: object
+                required:
+                  - id
+                  - status
+                  - carrier
+                  - trackingNumber
+                  - shippedAt
+                  - createdAt
+                properties:
+                  id:
+                    type: string
+                  status:
+                    type: string
+                  carrier:
+                    type: string
+                    nullable: true
+                  trackingNumber:
+                    type: string
+                    nullable: true
+                  shippedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  createdAt:
+                    type: string
+                    format: date-time
+            refunds:
+              type: array
+              items:
+                type: object
+                required:
+                  - id
+                  - amount
+                  - currency
+                  - status
+                  - reason
+                  - createdAt
+                properties:
+                  id:
+                    type: string
+                  amount:
+                    type: number
+                  currency:
+                    type: string
+                  status:
+                    type: string
+                  reason:
+                    type: string
+                    nullable: true
+                  createdAt:
+                    type: string
+                    format: date-time
+            payment:
+              type: object
+              nullable: true
+              properties:
+                id:
+                  type: string
+                status:
+                  type: string
+                amount:
+                  type: number
+                paymentMethod:
+                  type: string
+    CreateOrderRequest:
+      type: object
+      required:
+        - customerId
+        - items
+      properties:
+        customerId:
+          type: string
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+              - price
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: integer
+              price:
+                type: number
+    ShipOrderRequest:
+      type: object
+      required:
+        - carrier
+        - trackingNumber
+      properties:
+        carrier:
+          type: string
+        trackingNumber:
+          type: string
+    CreateOrderRefundRequest:
+      type: object
+      required:
+        - amount
+      properties:
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        reason:
+          type: string
+    CustomerSegment:
+      type: object
+      required:
+        - id
+        - email
+        - name
+        - segment
+        - orderCount
+        - totalSpent
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        segment:
+          type: string
+          enum:
+            - vip
+            - at_risk
+            - new
+            - regular
+        orderCount:
+          type: integer
+        totalSpent:
+          type: number
+        lastOrderAt:
+          type: string
+          format: date-time
+          nullable: true
+    CustomerDetail:
+      type: object
+      required:
+        - id
+        - email
+        - name
+        - firstName
+        - lastName
+        - createdAt
+        - orderCount
+        - totalSpent
+        - lastOrderAt
+        - segment
+        - churnRisk
+        - daysSinceLastOrder
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        orderCount:
+          type: integer
+        totalSpent:
+          type: number
+        lastOrderAt:
+          type: string
+          format: date-time
+          nullable: true
+        segment:
+          type: string
+          enum:
+            - vip
+            - at_risk
+            - new
+            - regular
+        churnRisk:
+          type: boolean
+        daysSinceLastOrder:
+          type: integer
+          nullable: true
+    InventoryListItem:
+      type: object
+      required:
+        - id
+        - productId
+        - warehouseId
+        - quantity
+        - productName
+        - productSlug
+        - threshold
+        - status
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        warehouseId:
+          type: string
+        quantity:
+          type: integer
+        productName:
+          type: string
+          nullable: true
+        productSlug:
+          type: string
+          nullable: true
+        threshold:
+          type: integer
+        status:
+          type: string
+          enum:
+            - ok
+            - low
+    AdjustInventoryRequest:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: integer
+        warehouseId:
+          type: string
+    Promotion:
+      type: object
+      required:
+        - id
+        - tenantId
+        - name
+        - type
+        - value
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        tenantId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - percent
+            - fixed
+        value:
+          type: number
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - scheduled
+            - ended
+            - archived
+        code:
+          type: string
+          nullable: true
+        startsAt:
+          type: string
+          format: date-time
+          nullable: true
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+        configJson:
+          type: object
+          additionalProperties: true
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CreatePromotionRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - percent
+            - fixed
+        value:
+          type: number
+        code:
+          type: string
+          nullable: true
+        startsAt:
+          type: string
+          format: date-time
+          nullable: true
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+    Payment:
+      type: object
+      required:
+        - id
+        - orderId
+        - amount
+        - currency
+        - status
+        - paymentMethod
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        orderId:
+          type: string
+        amount:
+          type: number
+        currency:
+          type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - paid
+            - failed
+            - refunded
+        paymentMethod:
+          type: string
+        transactionId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProcessPaymentRequest:
+      type: object
+      required:
+        - orderId
+        - amount
+        - paymentMethod
+      properties:
+        orderId:
+          type: string
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+        paymentMethod:
+          type: string
+        idempotencyKey:
+          type: string
+    ErrorBody:
+      type: object
+      properties:
+        error:
+          oneOf:
+            - type: string
+            - type: object
+              properties:
+                code:
+                  type: string
+                message:
+                  type: string

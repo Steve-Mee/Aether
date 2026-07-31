@@ -1,4 +1,4 @@
-import type { BilateralExchangeContract, BilateralExchangeSchema, Tenant } from '@prisma/client';
+import type { BilateralContractRecord } from './ports/BilateralExchangeRepository';
 
 export type BilateralContractRole = 'provider' | 'consumer';
 
@@ -41,12 +41,12 @@ export interface BilateralAuditDto {
   createdAt: string;
 }
 
-type ContractWithSchema = BilateralExchangeContract & { schema: BilateralExchangeSchema };
+type ContractWithSchema = BilateralContractRecord;
 
 export function toContractDto(
   contract: ContractWithSchema,
   viewerTenantId: string,
-  partner?: Pick<Tenant, 'id' | 'name' | 'slug'>
+  partner?: { id: string; name: string; slug: string }
 ): BilateralContractDto {
   const isProvider = contract.providerTenantId === viewerTenantId;
   const partnerTenantId = isProvider ? contract.consumerTenantId : contract.providerTenantId;

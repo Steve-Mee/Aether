@@ -1,8 +1,8 @@
-import { prisma } from '../../../../shared/prisma/client';
 import { getMerchantSettings } from '../../../../shared/settings/TenantSettingsService';
-import { smtpClient } from '../../../../modules/aether-mail/infrastructure/smtp/SmtpClient';
+import type { MailSenderPort } from '../../../aether-mail/application/ports/MailSenderPort';
 import { logger } from '../../../../shared/logging/logger';
 import { resolveMerchantNotificationEmail } from '../../../../shared/notifications/resolveMerchantNotificationEmail';
+import type { OverviewFeedPort } from '../ports/OverviewFeedPort';
 import type { OverviewFeedItem } from './OverviewFeedService';
 import { overviewHighlightHref } from './OverviewFeedService';
 import {
@@ -28,8 +28,13 @@ function categoryForItem(item: OverviewFeedItem): NotificationCategory | null {
 }
 
 function subjectForItem(item: OverviewFeedItem): string {
-  const label =
-    String(item.payload.label ?? item.payload.title ?? item.payload.actionLabel ?? item.payload.description ?? item.id);
+  const label = String(
+    item.payload.label ??
+      item.payload.title ??
+      item.payload.actionLabel ??
+      item.payload.description ??
+      item.id,
+  );
   return `AETHER — ${label}`.slice(0, 120);
 }
 
@@ -42,6 +47,11 @@ function hrefForItem(item: OverviewFeedItem): string {
 
 export class OverviewNotificationDispatcher {
   private hourlyCount = new Map<string, { hour: string; count: number }>();
+
+  constructor(
+    private overviewFeedPort: OverviewFeedPort,
+    private mailSender: MailSenderPort,
+  ) {}
 
   private canSend(tenantId: string): boolean {
     const hour = new Date().toISOString().slice(0, 13);
@@ -89,13 +99,10 @@ export class OverviewNotificationDispatcher {
     const body = `${subjectForItem(item)}\n\nBekijk in AETHER Overzicht:\n${link}`;
 
     try {
-      const result = await smtpClient.send({ to, subject: subjectForItem(item), body });
+      const result = await this.mailSender.send({ to, subject: subjectForItem(item), body });
       if (result.sent) {
         this.bump(tenantId);
-        await prisma.overviewFeedEvent.update({
-          where: { id: feedEventId },
-          data: { emailDispatchedAt: new Date() },
-        });
+        await this.overviewFeedPort.markEmailDispatched(feedEventId);
       }
     } catch (err) {
       logger.warn('overview_email_failed', {
@@ -114,16 +121,7 @@ export class OverviewNotificationDispatcher {
     if (freq !== 'daily' && freq !== 'weekly') return 0;
     if (!settings.notificationPrefs.weeklyDigest.email) return 0;
 
-    const rows = await prisma.overviewFeedEvent.findMany({
-      where: {
-        tenantId,
-        visible: true,
-        emailDispatchedAt: null,
-        createdAt: { gte: since },
-      },
-      orderBy: { at: 'desc' },
-      take: 20,
-    });
+    const rows = await this.overviewFeedPort.findUndispatchedForDigest(tenantId, since, 20);
 
     if (rows.length === 0) return 0;
 
@@ -139,21 +137,16 @@ export class OverviewNotificationDispatcher {
     const body = `AETHER overzicht (${rows.length} items)\n\n${lines.join('\n')}\n\n${baseUrl}/overview`;
 
     try {
-      const result = await smtpClient.send({
+      const result = await this.mailSender.send({
         to,
         subject: `AETHER — Overzicht digest (${rows.length})`,
         body,
       });
       if (!result.sent) return 0;
-      await prisma.overviewFeedEvent.updateMany({
-        where: { id: { in: rows.map((r) => r.id) } },
-        data: { emailDispatchedAt: new Date() },
-      });
+      await this.overviewFeedPort.markManyEmailDispatched(rows.map((r) => r.id));
       return rows.length;
     } catch {
       return 0;
     }
   }
 }
-
-export const overviewNotificationDispatcher = new OverviewNotificationDispatcher();

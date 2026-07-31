@@ -1,36 +1,8 @@
 import { BilateralExchangeService } from '../application/BilateralExchangeService';
+import { BilateralExportBuilder } from '../application/BilateralExportBuilder';
 import type { BilateralImportAdapter } from '../application/BilateralImportAdapter';
-
-jest.mock('../../../shared/prisma/client', () => ({
-  prisma: {
-    bilateralExchangeSchema: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-    },
-    bilateralExchangeContract: {
-      create: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      findMany: jest.fn(),
-    },
-    bilateralExchangePackage: {
-      create: jest.fn(),
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      updateMany: jest.fn(),
-    },
-    bilateralExchangeAudit: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-    },
-    tenant: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-    },
-    product: { count: jest.fn().mockResolvedValue(20) },
-    supplier: { findMany: jest.fn().mockResolvedValue([]) },
-  },
-}));
+import type { BilateralExchangeRepository } from '../application/ports/BilateralExchangeRepository';
+import type { BilateralExportDataPort } from '../application/ports/BilateralExportDataPort';
 
 const getMerchantSettings = jest.fn().mockResolvedValue({ brainBilateralExchangeEnabled: true });
 
@@ -38,11 +10,42 @@ jest.mock('../../../shared/settings/TenantSettingsService', () => ({
   getMerchantSettings: (...args: unknown[]) => getMerchantSettings(...args),
 }));
 
-import { prisma } from '../../../shared/prisma/client';
+function createMockRepository(): jest.Mocked<BilateralExchangeRepository> {
+  return {
+    listSchemas: jest.fn(),
+    findSchemaByKey: jest.fn(),
+    findSchemaById: jest.fn(),
+    findTenantBySlug: jest.fn(),
+    findTenantById: jest.fn(),
+    findTenantsByIds: jest.fn(),
+    listContractsForTenant: jest.fn(),
+    findContractById: jest.fn(),
+    createContract: jest.fn(),
+    updateContractAccepted: jest.fn(),
+    revokeContract: jest.fn(),
+    softDeletePackagesForContract: jest.fn(),
+    listPackagesForContract: jest.fn(),
+    findPackageById: jest.fn(),
+    createPackage: jest.fn(),
+    listAuditForContract: jest.fn(),
+    listAudit: jest.fn(),
+    createAudit: jest.fn(),
+  };
+}
+
+function createMockExportData(): jest.Mocked<BilateralExportDataPort> {
+  return {
+    countProducts: jest.fn().mockResolvedValue(20),
+    countLowStockProducts: jest.fn().mockResolvedValue(2),
+    findSupplierTypes: jest.fn().mockResolvedValue([]),
+  };
+}
 
 describe('BilateralExchangeService', () => {
   const importAdapter = { ingest: jest.fn() } as unknown as BilateralImportAdapter;
-  const service = new BilateralExchangeService(importAdapter);
+  const repository = createMockRepository();
+  const exportBuilder = new BilateralExportBuilder(createMockExportData());
+  const service = new BilateralExchangeService(importAdapter, repository, exportBuilder);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -50,20 +53,19 @@ describe('BilateralExchangeService', () => {
   });
 
   it('proposes contract with slug resolution', async () => {
-    (prisma.tenant.findUnique as jest.Mock)
-      .mockResolvedValueOnce({ id: 't-consumer' })
-      .mockResolvedValueOnce({ id: 't-consumer', name: 'Partner', slug: 'partner-shop' });
-    (prisma.bilateralExchangeSchema.findUnique as jest.Mock).mockResolvedValue({
+    repository.findTenantBySlug.mockResolvedValue({ id: 't-consumer' });
+    repository.findSchemaByKey.mockResolvedValue({
       id: 'schema1',
       schemaKey: 'inventory_turnover_band',
       fields: ['product_count_band'],
       description: 'Inventory bands',
     });
-    (prisma.bilateralExchangeContract.create as jest.Mock).mockResolvedValue({
+    repository.createContract.mockResolvedValue({
       id: 'c1',
       status: 'pending',
       providerTenantId: 't-provider',
       consumerTenantId: 't-consumer',
+      schemaId: 'schema1',
       consentProviderAt: new Date('2026-01-01'),
       consentConsumerAt: null,
       revokedAt: null,
@@ -72,9 +74,16 @@ describe('BilateralExchangeService', () => {
       createdAt: new Date('2026-01-01'),
       updatedAt: new Date('2026-01-01'),
       schema: {
+        id: 'schema1',
         schemaKey: 'inventory_turnover_band',
+        fields: ['product_count_band'],
         description: 'Inventory bands',
       },
+    });
+    repository.findTenantById.mockResolvedValue({
+      id: 't-consumer',
+      name: 'Partner',
+      slug: 'partner-shop',
     });
 
     const contract = await service.proposeContract({
@@ -90,7 +99,6 @@ describe('BilateralExchangeService', () => {
   });
 
   it('rejects propose when partner bilateral disabled', async () => {
-    (prisma.tenant.findUnique as jest.Mock).mockResolvedValue({ id: 't-consumer' });
     getMerchantSettings
       .mockResolvedValueOnce({ brainBilateralExchangeEnabled: true })
       .mockResolvedValueOnce({ brainBilateralExchangeEnabled: false });
@@ -117,37 +125,78 @@ describe('BilateralExchangeService', () => {
   });
 
   it('rejects accept without provider consent', async () => {
-    (prisma.bilateralExchangeContract.findUnique as jest.Mock).mockResolvedValue({
+    repository.findContractById.mockResolvedValue({
       id: 'c1',
       consumerTenantId: 't-consumer',
+      providerTenantId: 't-provider',
+      schemaId: 'schema1',
       status: 'pending',
       consentProviderAt: null,
+      consentConsumerAt: null,
+      revokedAt: null,
+      ttlExpiresAt: null,
+      allowedFields: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      schema: {
+        id: 'schema1',
+        schemaKey: 'inventory_turnover_band',
+        fields: [],
+        description: '',
+      },
     });
     await expect(service.acceptContract('c1', 't-consumer')).rejects.toThrow('Provider consent missing');
   });
 
   it('rejects publish when contract not active', async () => {
-    (prisma.bilateralExchangeContract.findUnique as jest.Mock).mockResolvedValue({
+    repository.findContractById.mockResolvedValue({
       id: 'c1',
       providerTenantId: 't-provider',
+      consumerTenantId: 't-consumer',
+      schemaId: 'schema1',
       status: 'pending',
       consentProviderAt: new Date(),
       consentConsumerAt: null,
-      schemaId: 'schema1',
+      revokedAt: null,
+      ttlExpiresAt: null,
       allowedFields: ['product_count_band'],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      schema: {
+        id: 'schema1',
+        schemaKey: 'inventory_turnover_band',
+        fields: [],
+        description: '',
+      },
     });
     await expect(service.publishPackage('c1', 't-provider')).rejects.toThrow('Contract not active');
   });
 
   it('lists packages for contract party only', async () => {
-    (prisma.bilateralExchangeContract.findUnique as jest.Mock).mockResolvedValue({
+    repository.findContractById.mockResolvedValue({
       id: 'c1',
       providerTenantId: 't-provider',
       consumerTenantId: 't-consumer',
+      schemaId: 'schema1',
+      status: 'active',
+      consentProviderAt: new Date(),
+      consentConsumerAt: new Date(),
+      revokedAt: null,
+      ttlExpiresAt: null,
+      allowedFields: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      schema: {
+        id: 'schema1',
+        schemaKey: 'inventory_turnover_band',
+        fields: [],
+        description: '',
+      },
     });
-    (prisma.bilateralExchangePackage.findMany as jest.Mock).mockResolvedValue([
+    repository.listPackagesForContract.mockResolvedValue([
       {
         id: 'p1',
+        contractId: 'c1',
         packageHash: 'abc',
         expiresAt: new Date('2027-01-01'),
         createdAt: new Date('2026-01-01'),
@@ -163,10 +212,25 @@ describe('BilateralExchangeService', () => {
   });
 
   it('rejects listPackages for non-party', async () => {
-    (prisma.bilateralExchangeContract.findUnique as jest.Mock).mockResolvedValue({
+    repository.findContractById.mockResolvedValue({
       id: 'c1',
       providerTenantId: 't-provider',
       consumerTenantId: 't-consumer',
+      schemaId: 'schema1',
+      status: 'active',
+      consentProviderAt: new Date(),
+      consentConsumerAt: new Date(),
+      revokedAt: null,
+      ttlExpiresAt: null,
+      allowedFields: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      schema: {
+        id: 'schema1',
+        schemaKey: 'inventory_turnover_band',
+        fields: [],
+        description: '',
+      },
     });
 
     await expect(service.listPackages('c1', 't-other')).rejects.toThrow('Not a party to this contract');

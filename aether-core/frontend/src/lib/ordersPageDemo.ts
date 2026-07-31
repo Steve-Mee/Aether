@@ -1,10 +1,5 @@
-export interface OrderRowDemo {
-  id: string;
-  status: string;
-  total: number;
-  currency: string;
-  createdAt: string;
-}
+import type { OrderRowDemo } from '@/lib/data/types';
+export type { OrderRowDemo } from '@/lib/data/types';
 
 export function getOrdersDemoItems(): OrderRowDemo[] {
   const now = Date.now();

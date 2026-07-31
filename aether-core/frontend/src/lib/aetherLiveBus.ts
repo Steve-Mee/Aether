@@ -1,7 +1,7 @@
 import type { ActivityItem } from '@/types/activity';
 import type { PushNotificationInput } from '@/lib/notifications/types';
 import type { NotificationStateChangedEvent } from '@/types/notification';
-import type { TodayReadyInsightId } from '@/lib/todayReadyDemo';
+import type { TodayReadyInsightId } from '@/lib/todayReady';
 
 export const NOTIFICATION_EVENT = 'aether:notification';
 export const NOTIFICATION_STATE_EVENT = 'aether:notification-state';

@@ -1,5 +1,6 @@
 import { executeApprovedAction } from '../approvalExecutor';
 import { EmailApprovalHandler } from '../handlers/emailApprovalHandler';
+import { StorefrontPublishApprovalHandler } from '../handlers/storefrontPublishApprovalHandler';
 
 jest.mock('../../prisma/client', () => ({
   prisma: {
@@ -31,6 +32,11 @@ describe('ApprovalExecutor', () => {
     const handler = new EmailApprovalHandler();
     expect(handler.canHandle('aether-mail', 'email_response')).toBe(true);
     expect(handler.canHandle('payment-fulfillment', 'refund')).toBe(false);
+  });
+
+  it('StorefrontPublishApprovalHandler is registered for PUBLISH_STOREFRONT', () => {
+    const handler = new StorefrontPublishApprovalHandler();
+    expect(handler.canHandle('storefront-builder', 'PUBLISH_STOREFRONT')).toBe(true);
   });
 
   it('executeApprovedAction runs email handler', async () => {

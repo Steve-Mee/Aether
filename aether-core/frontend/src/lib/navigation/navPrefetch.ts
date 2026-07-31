@@ -10,6 +10,7 @@ import {
   suppliersRepository,
 } from '@/lib/data';
 import { overviewApi } from '@/features/aether-overview/api/overviewApi';
+import { websiteApi } from '@/features/website/api';
 import { queryKeys } from '@/lib/query/keys';
 import { queryTiming } from '@/lib/query/client';
 import { COMMAND_CENTER_PATH } from './routes';
@@ -146,6 +147,19 @@ export function prefetchNavRoute(queryClient: QueryClient, path: string): void {
       queryKey: queryKeys.settings(),
       queryFn: () => settingsRepository.fetch(),
       staleTime: queryTiming.settingsStale,
+    });
+    return;
+  }
+
+  if (
+    path === moduleLinks.website ||
+    path.startsWith(`${moduleLinks.website}/`) ||
+    path === moduleLinks.pages
+  ) {
+    void queryClient.prefetchQuery({
+      queryKey: websiteApi.queryKeys.projects(),
+      queryFn: () => websiteApi.listProjects(),
+      staleTime,
     });
   }
 }

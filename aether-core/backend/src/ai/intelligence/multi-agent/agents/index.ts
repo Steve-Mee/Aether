@@ -11,6 +11,10 @@ import { negotiationAgentDefinition } from './NegotiationAgent';
 import { promotionAgentDefinition } from './PromotionAgent';
 import { catalogAgentDefinition } from './CatalogAgent';
 import { autonomyAgentDefinition } from './AutonomyAgent';
+import { storeBuilderAgentDefinition } from './StoreBuilderAgent';
+import { designAgentDefinition } from './DesignAgent';
+import { copySeoAgentDefinition } from './CopySeoAgent';
+import { storeQaAgentDefinition } from './StoreQAAgent';
 import type { SpecialistAgentDefinition } from '../types';
 
 export { pricingAgentDefinition, PRICING_AGENT_KEY, PRICING_SUPPORTED_INTENTS } from './PricingAgent';
@@ -28,6 +32,18 @@ export { outcomesAgentDefinition, OUTCOMES_AGENT_KEY } from './OutcomesAgent';
 export { negotiationAgentDefinition, NEGOTIATION_AGENT_KEY } from './NegotiationAgent';
 export { catalogAgentDefinition, CATALOG_AGENT_KEY } from './CatalogAgent';
 export { autonomyAgentDefinition, AUTONOMY_AGENT_KEY } from './AutonomyAgent';
+export {
+  storeBuilderAgentDefinition,
+  STORE_BUILDER_AGENT_KEY,
+  STORE_BUILDER_SUPPORTED_INTENTS,
+} from './StoreBuilderAgent';
+export { designAgentDefinition, DESIGN_AGENT_KEY, DESIGN_SUPPORTED_INTENTS } from './DesignAgent';
+export {
+  copySeoAgentDefinition,
+  COPY_SEO_AGENT_KEY,
+  COPY_SEO_SUPPORTED_INTENTS,
+} from './CopySeoAgent';
+export { storeQaAgentDefinition, STORE_QA_AGENT_KEY, STORE_QA_SUPPORTED_INTENTS } from './StoreQAAgent';
 export { globalAdvisoryAgentDefinition } from './GlobalAdvisoryAgent';
 export { GLOBAL_ADVISORY_AGENT_KEY } from '../peer/FederatedPeerPort';
 export { analyzeMarginsTool, suggestOptimalPriceTool } from './pricingTools';
@@ -79,6 +95,21 @@ export {
   routeAutonomousDecisionTool,
 } from './autonomyTools';
 export { getEmailSummaryTool } from './mailTools';
+export {
+  createSiteProjectTool,
+  createRevisionFromBriefTool,
+  runBuildTool,
+  proposePublishTool,
+  getStoreStatusTool,
+} from './storeBuilderTools';
+export { proposeLayoutTool, proposeTokensTool, proposePageTreeTool } from './designTools';
+export { proposeCopyTool, proposeMetaTool, localizeTool } from './copySeoTools';
+export { runBuildChecksTool, runLighthouseTool, diffRevisionsTool } from './storeQaTools';
+export {
+  buildFallbackSitePlan,
+  buildFallbackPageTree,
+  buildFallbackTokens,
+} from './storefrontPlanFallback';
 export { workflowSupervisorDefinition, WORKFLOW_SUPERVISOR_KEY } from './WorkflowSupervisorAgent';
 
 export const DEFAULT_SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
@@ -94,5 +125,9 @@ export const DEFAULT_SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
   promotionAgentDefinition,
   catalogAgentDefinition,
   autonomyAgentDefinition,
+  storeBuilderAgentDefinition,
+  designAgentDefinition,
+  copySeoAgentDefinition,
+  storeQaAgentDefinition,
   workflowSupervisorDefinition,
 ];

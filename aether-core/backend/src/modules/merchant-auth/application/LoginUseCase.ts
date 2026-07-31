@@ -1,7 +1,7 @@
-import { prisma } from '../../../shared/prisma/client';
 import { signAccessToken } from '../../../shared/auth/jwtService';
 import { verifyPassword } from '../../../shared/auth/passwordService';
 import type { UserRole } from '../../../types/express';
+import type { AuthRepository } from './ports/AuthRepository';
 
 export interface AuthUserDto {
   id: string;
@@ -22,49 +22,46 @@ function displayNameFromEmail(email: string): string {
   return local.charAt(0).toUpperCase() + local.slice(1);
 }
 
-export async function loginWithEmail(
-  tenantId: string,
-  email: string,
-  password: string
-): Promise<LoginResult> {
-  const normalized = email.trim().toLowerCase();
-  const user = await prisma.user.findUnique({
-    where: { tenantId_email: { tenantId, email: normalized } },
-    include: { tenant: true },
-  });
+export class LoginUseCase {
+  constructor(private authRepository: AuthRepository) {}
 
-  if (!user || !user.passwordHash) {
-    throw new Error('Invalid credentials');
-  }
+  async execute(tenantId: string, email: string, password: string): Promise<LoginResult> {
+    const normalized = email.trim().toLowerCase();
+    const user = await this.authRepository.findUserByEmail(tenantId, normalized);
 
-  const passwordOk = await verifyPassword(user.passwordHash, password);
-  if (!passwordOk) {
-    throw new Error('Invalid credentials');
-  }
+    if (!user || !user.passwordHash) {
+      throw new Error('Invalid credentials');
+    }
 
-  const role = user.role as UserRole;
-  if (!['admin', 'operator', 'viewer'].includes(role)) {
-    throw new Error('Invalid credentials');
-  }
+    const passwordOk = await verifyPassword(user.passwordHash, password);
+    if (!passwordOk) {
+      throw new Error('Invalid credentials');
+    }
 
-  const accessToken = signAccessToken({
-    sub: user.id,
-    tenantId: user.tenantId,
-    role,
-    email: user.email,
-  });
+    const role = user.role;
+    if (!['admin', 'operator', 'viewer'].includes(role)) {
+      throw new Error('Invalid credentials');
+    }
 
-  return {
-    accessToken,
-    tenantId: user.tenantId,
-    merchantName: user.tenant.name,
-    user: {
-      id: user.id,
-      name: displayNameFromEmail(user.email),
-      email: user.email,
+    const accessToken = signAccessToken({
+      sub: user.id,
+      tenantId: user.tenantId,
       role,
-    },
-  };
+      email: user.email,
+    });
+
+    return {
+      accessToken,
+      tenantId: user.tenantId,
+      merchantName: user.tenant.name,
+      user: {
+        id: user.id,
+        name: displayNameFromEmail(user.email),
+        email: user.email,
+        role,
+      },
+    };
+  }
 }
 
 export function sessionFromTokenPayload(payload: {

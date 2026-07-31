@@ -1,8 +1,13 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../../shared/prisma/client';
 import { requireTenantId } from '../../../../shared/tenant/tenantContext';
+import type {
+  ProposalConfigJson,
+  SelfEvolvingPort,
+  SelfEvolvingProposal,
+} from '../../application/ports/SelfEvolvingPort';
 
-export class PrismaSelfEvolvingAdapter {
+export class PrismaSelfEvolvingAdapter implements SelfEvolvingPort {
   async createProposal(
     tenantId: string,
     data: {
@@ -25,17 +30,28 @@ export class PrismaSelfEvolvingAdapter {
     });
   }
 
-  async findProposal(tenantId: string, id: string) {
+  async findProposal(tenantId: string, id: string): Promise<SelfEvolvingProposal | null> {
     const tid = requireTenantId(tenantId, 'SelfEvolving.findProposal');
-    return prisma.improvementProposal.findFirst({ where: { id, tenantId: tid } });
+    const row = await prisma.improvementProposal.findFirst({ where: { id, tenantId: tid } });
+    if (!row) return null;
+    return {
+      id: row.id,
+      status: row.status,
+      module: row.module,
+      type: row.type,
+      description: row.description,
+      appliedConfig: row.appliedConfig,
+    };
   }
 
-  async updateProposalStatus(id: string, status: string, appliedConfig?: Prisma.InputJsonValue) {
+  async updateProposalStatus(id: string, status: string, appliedConfig?: ProposalConfigJson) {
     return prisma.improvementProposal.update({
       where: { id },
       data: {
         status,
-        ...(appliedConfig !== undefined ? { appliedConfig } : {}),
+        ...(appliedConfig !== undefined
+          ? { appliedConfig: appliedConfig as Prisma.InputJsonValue }
+          : {}),
       },
     });
   }

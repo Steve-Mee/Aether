@@ -1,4 +1,17 @@
+import { getCompositionRoot } from '../../../../bootstrap/compositionRoot';
 import type { IntentHandler } from './types';
+
+function slugifyBrief(prompt: string): string {
+  const base = prompt
+    .toLowerCase()
+    .replace(/bouw een webshop voor|maak mijn store|create (my )?store|build (a )?store/gi, '')
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 48);
+  return base || `store-${Date.now().toString(36)}`;
+}
 
 export const priceUpdateHandler: IntentHandler = {
   intent: 'PRICE_UPDATE',
@@ -185,6 +198,110 @@ export const supplierMonitorHandler: IntentHandler = {
   },
 };
 
+/** Fallback when store_builder specialist is not active — prefers delegation to store_builder. */
+export const storeBuildHandler: IntentHandler = {
+  intent: 'STORE_BUILD',
+  async execute(nl, parameters, ctx) {
+    const root = getCompositionRoot();
+    const prompt = String(parameters?.prompt ?? nl).trim();
+    const slug = slugifyBrief(prompt);
+    const brief = {
+      prompt,
+      brand: { name: prompt.slice(0, 80) || 'My Store' },
+    };
+    const created = await root.createSiteProject.execute(ctx.tenantId, {
+      slug,
+      brief,
+      createdByAgent: 'admin-command',
+    });
+    return {
+      result: `Storefront project aangemaakt: ${created.project.slug} (${created.project.id}). Open /website.`,
+      operationalMeta: {
+        projectId: created.project.id,
+        revisionId: created.revision.id,
+        buildJobId: created.buildJob.id,
+        navigate: '/website',
+      },
+    };
+  },
+};
+
+export const storeIterateHandler: IntentHandler = {
+  intent: 'STORE_ITERATE',
+  async execute(nl, parameters, ctx) {
+    const root = getCompositionRoot();
+    const deltaPrompt = String(parameters?.deltaPrompt ?? nl).trim();
+    const projects = await root.listSiteProjects.execute(ctx.tenantId);
+    const project = projects[0];
+    if (!project) {
+      return { result: 'Geen website-project gevonden. Bouw eerst een store (STORE_BUILD).' };
+    }
+    const created = await root.createSiteRevision.execute(ctx.tenantId, project.id, {
+      brief: { deltaPrompt },
+      createdByAgent: 'admin-command',
+    });
+    return {
+      result: `Nieuwe revisie v${created.revision.version} voor ${project.slug}. Preview: /website/preview`,
+      operationalMeta: {
+        projectId: project.id,
+        revisionId: created.revision.id,
+        buildJobId: created.buildJob.id,
+        navigate: '/website/preview',
+      },
+    };
+  },
+};
+
+export const storePublishHandler: IntentHandler = {
+  intent: 'STORE_PUBLISH',
+  async execute(_nl, parameters, ctx) {
+    const root = getCompositionRoot();
+    const projects = await root.listSiteProjects.execute(ctx.tenantId);
+    const project = projects[0];
+    if (!project) {
+      return { result: 'Geen website-project om te publiceren.' };
+    }
+    const revisions = await root.listSiteRevisions.execute(ctx.tenantId, project.id);
+    const revisionId = String(parameters?.revisionId ?? revisions[0]?.id ?? '').trim();
+    if (!revisionId) {
+      return { result: 'Geen revisie om te publiceren.' };
+    }
+    const { approval } = await root.proposeSitePublish.execute(ctx.tenantId, revisionId, {
+      requestedBy: ctx.actorId,
+    });
+    return {
+      result: `Publicatie voorgesteld — approval ${approval.id} (niet live tot goedkeuring). Open /website/publish`,
+      operationalMeta: {
+        approvalId: approval.id,
+        type: approval.type,
+        projectId: approval.payload.projectId,
+        revisionId: approval.payload.revisionId,
+        navigate: '/website/publish',
+        deployed: false,
+      },
+    };
+  },
+};
+
+export const storeStatusHandler: IntentHandler = {
+  intent: 'STORE_STATUS',
+  async execute(_nl, _params, ctx) {
+    const root = getCompositionRoot();
+    const projects = await root.listSiteProjects.execute(ctx.tenantId);
+    if (projects.length === 0) {
+      return { result: 'Nog geen website-projecten. Gebruik STORE_BUILD om te starten.' };
+    }
+    const summary = projects
+      .slice(0, 5)
+      .map((p) => `${p.slug}: ${p.status}${p.liveRevisionId ? ` (live=${p.liveRevisionId})` : ''}`)
+      .join('; ');
+    return {
+      result: `Website status (${projects.length}): ${summary}`,
+      operationalMeta: { projectCount: projects.length, navigate: '/website' },
+    };
+  },
+};
+
 export const ALL_INTENT_HANDLERS: IntentHandler[] = [
   priceUpdateHandler,
   lowMarginReportHandler,
@@ -198,4 +315,8 @@ export const ALL_INTENT_HANDLERS: IntentHandler[] = [
   supplierCreateHandler,
   outcomeVerifyHandler,
   supplierMonitorHandler,
+  storeBuildHandler,
+  storeIterateHandler,
+  storePublishHandler,
+  storeStatusHandler,
 ];

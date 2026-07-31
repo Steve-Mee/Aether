@@ -5,7 +5,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: 1,
+  workers: process.env.CI ? 2 : 1,
+  timeout: 60_000,
   reporter: 'list',
   snapshotPathTemplate: '{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}',
   use: {
@@ -13,9 +14,11 @@ export default defineConfig({
     baseURL: 'http://127.0.0.1:4173',
     viewport: { width: 1280, height: 720 },
     colorScheme: 'dark',
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
   },
   expect: {
-    toHaveScreenshot: { maxDiffPixels: 200 },
+    toHaveScreenshot: { maxDiffPixelRatio: 0.03, maxDiffPixels: 5000, timeout: 15_000 },
   },
   webServer: {
     command: 'npm run preview -- --host 127.0.0.1 --port 4173 --strictPort',

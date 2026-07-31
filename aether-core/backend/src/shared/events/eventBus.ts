@@ -19,7 +19,15 @@ export type DomainEventType =
   | 'agent.handoff.completed'
   | 'inventory.low_stock_detected'
   | 'goals.progress_drift'
-  | 'goal.completed';
+  | 'goal.completed'
+  | 'website.revision.created'
+  | 'website.build.finished'
+  | 'website.build.wall_triggered'
+  | 'website.health.healed'
+  | 'website.health.demoted'
+  | 'website.publish.approved'
+  | 'website.deploy.succeeded'
+  | 'website.deploy.failed';
 
 export interface DomainEventPayload {
   tenantId: string;

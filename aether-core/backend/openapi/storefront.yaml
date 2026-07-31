@@ -1,0 +1,457 @@
+openapi: 3.0.3
+info:
+  title: AETHER Public Storefront API
+  description: |
+    Public storefront API (`/api/storefront/*`).
+    Source of truth: `aether-core/docs/storefront-api-contracts.md` §2.
+    Gated by feature flag `storefront-public-api`
+    (env: FEATURE_STOREFRONT_PUBLIC_API / STOREFRONT_PUBLIC_API_ENABLED).
+    Auth: none (tenant slug). Preview via `Authorization: Preview <hmac-token>`.
+    Rate limit: 60 req/min/IP (in-memory).
+  version: 0.1.0
+
+servers:
+  - url: /api/storefront
+    description: Public storefront API (no admin API key)
+
+tags:
+  - name: Site
+  - name: Catalog
+  - name: Pages
+  - name: Cart
+  - name: Checkout
+
+paths:
+  /{tenantSlug}:
+    get:
+      tags: [Site]
+      summary: Resolve live (or preview) site
+      operationId: resolveSite
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - $ref: '#/components/parameters/PreviewAuth'
+      responses:
+        '200':
+          description: Site summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [site]
+                properties:
+                  site:
+                    $ref: '#/components/schemas/StorefrontSite'
+        '403':
+          $ref: '#/components/responses/PublicDisabled'
+        '404':
+          $ref: '#/components/responses/SiteNotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /{tenantSlug}/catalog:
+    get:
+      tags: [Catalog]
+      summary: List catalog products for tenant slug
+      operationId: getCatalog
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: limit
+          in: query
+          schema: { type: integer, default: 24, maximum: 100 }
+        - name: cursor
+          in: query
+          schema: { type: string, nullable: true }
+      responses:
+        '200':
+          description: Product list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [products]
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CatalogProduct'
+                  nextCursor:
+                    type: string
+                    nullable: true
+        '403':
+          $ref: '#/components/responses/PublicDisabled'
+        '404':
+          $ref: '#/components/responses/SiteNotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /{tenantSlug}/products/{slug}:
+    get:
+      tags: [Catalog]
+      summary: Get product by slug
+      operationId: getProduct
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Product detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  product:
+                    $ref: '#/components/schemas/CatalogProduct'
+        '403':
+          $ref: '#/components/responses/PublicDisabled'
+        '404':
+          description: Site or product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /{tenantSlug}/pages:
+    get:
+      tags: [Pages]
+      summary: Get page tree by path (live or preview)
+      operationId: getPage
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - $ref: '#/components/parameters/PreviewAuth'
+        - name: path
+          in: query
+          required: true
+          schema: { type: string, example: / }
+      responses:
+        '200':
+          description: Page tree + SEO
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [page]
+                properties:
+                  page:
+                    $ref: '#/components/schemas/StorefrontPage'
+        '401':
+          description: Preview token invalid/expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '403':
+          $ref: '#/components/responses/PublicDisabled'
+        '404':
+          $ref: '#/components/responses/SiteNotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /{tenantSlug}/carts:
+    post:
+      tags: [Cart]
+      summary: Create anonymous cart
+      operationId: createCart
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+      responses:
+        '201':
+          description: Cart created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cart:
+                    $ref: '#/components/schemas/Cart'
+        '403':
+          $ref: '#/components/responses/PublicDisabled'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /{tenantSlug}/carts/{cartId}:
+    get:
+      tags: [Cart]
+      summary: Get cart
+      operationId: getCart
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - $ref: '#/components/parameters/CartId'
+      responses:
+        '200':
+          description: Cart
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cart:
+                    $ref: '#/components/schemas/Cart'
+        '404':
+          description: Cart not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /{tenantSlug}/carts/{cartId}/items:
+    post:
+      tags: [Cart]
+      summary: Add cart item
+      operationId: addCartItem
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - $ref: '#/components/parameters/CartId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, quantity]
+              properties:
+                productId: { type: string }
+                variantId: { type: string, nullable: true }
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cart:
+                    $ref: '#/components/schemas/Cart'
+        '422':
+          description: Stock / validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /{tenantSlug}/carts/{cartId}/items/{itemId}:
+    patch:
+      tags: [Cart]
+      summary: Update cart item quantity
+      operationId: updateCartItem
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - $ref: '#/components/parameters/CartId'
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity: { type: integer, minimum: 0 }
+      responses:
+        '200':
+          description: Updated cart
+        '422':
+          description: Stock / validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    delete:
+      tags: [Cart]
+      summary: Remove cart item
+      operationId: removeCartItem
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - $ref: '#/components/parameters/CartId'
+        - name: itemId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Updated cart
+        '404':
+          description: Item not found
+
+  /{tenantSlug}/checkout:
+    post:
+      tags: [Checkout]
+      summary: Checkout cart (sandbox payment)
+      operationId: checkout
+      parameters:
+        - $ref: '#/components/parameters/TenantSlug'
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cartId, customer, paymentMethod]
+              properties:
+                cartId: { type: string }
+                customer:
+                  type: object
+                  required: [email]
+                  properties:
+                    email: { type: string, format: email }
+                    firstName: { type: string }
+                    lastName: { type: string }
+                shippingAddress: { type: object }
+                paymentMethod: { type: string, example: stripe }
+                idempotencyKey: { type: string }
+      responses:
+        '200':
+          description: Order + payment client secret / redirect
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId: { type: string }
+                  clientSecret: { type: string }
+                  redirectUrl: { type: string }
+        '422':
+          description: Empty cart / insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+components:
+  parameters:
+    TenantSlug:
+      name: tenantSlug
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$' }
+    CartId:
+      name: cartId
+      in: path
+      required: true
+      schema: { type: string }
+    PreviewAuth:
+      name: Authorization
+      in: header
+      required: false
+      description: 'Preview <hmac-token> for non-live revision (TTL 15m)'
+      schema: { type: string }
+
+  schemas:
+    ErrorBody:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+
+    StorefrontSite:
+      type: object
+      required: [slug, status, revisionId, locales, tokens, mode]
+      properties:
+        slug: { type: string }
+        status: { type: string, enum: [draft, preview, live, archived] }
+        revisionId: { type: string }
+        locales:
+          type: array
+          items: { type: string }
+        tokens:
+          type: object
+          additionalProperties: true
+        mode: { type: string, enum: [live, preview] }
+
+    StorefrontPage:
+      type: object
+      required: [path, title, treeJson]
+      properties:
+        id: { type: string }
+        path: { type: string }
+        title: { type: string }
+        seoJson: { type: object, additionalProperties: true }
+        treeJson: { type: object, additionalProperties: true }
+
+    CatalogProduct:
+      type: object
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        price: { type: number }
+        currency: { type: string }
+        stock: { type: integer }
+        imageUrl: { type: string, nullable: true }
+        variants:
+          type: array
+          items: { type: object, additionalProperties: true }
+
+    Cart:
+      type: object
+      properties:
+        id: { type: string }
+        status: { type: string }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              productId: { type: string }
+              variantId: { type: string, nullable: true }
+              quantity: { type: integer }
+
+  responses:
+    PublicDisabled:
+      description: Feature flag off
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+          example:
+            error:
+              code: STOREFRONT_PUBLIC_DISABLED
+              message: Feature 'storefront-public-api' is disabled
+            status: gated
+    SiteNotFound:
+      description: Unknown slug, corrupt live pointer, or not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+          example:
+            error:
+              code: SITE_NOT_FOUND
+              message: Storefront site not found
+    RateLimited:
+      description: Public IP rate limit exceeded (60/min default)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+          example:
+            error:
+              code: RATE_LIMIT_EXCEEDED
+              message: Too many requests

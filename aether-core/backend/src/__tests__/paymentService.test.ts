@@ -19,6 +19,7 @@ jest.mock('../shared/approval/approvalService', () => ({
 }));
 
 const mockRepo: jest.Mocked<PaymentRepository> = {
+  listByTenant: jest.fn(),
   create: jest.fn(),
   findById: jest.fn(),
   updateStatus: jest.fn(),
@@ -55,7 +56,7 @@ describe('PaymentService', () => {
       tenantId: 'tenant_default',
     });
 
-    expect(result.status).toBe('paid');
+    expect(result.payment.status).toBe('paid');
     expect(mockRepo.create).toHaveBeenCalled();
   });
 

@@ -30,6 +30,11 @@ describe('delegationConfig', () => {
     expect(resolveDelegationTarget('NEGOTIATION_LIST')).toBe('negotiation');
     expect(resolveDelegationTarget('CREATE_PRODUCT')).toBe('catalog');
     expect(resolveDelegationTarget('PRODUCT_LIST')).toBe('catalog');
+    expect(resolveDelegationTarget('STORE_BUILD')).toBe('store_builder');
+    expect(resolveDelegationTarget('STORE_PUBLISH')).toBe('store_builder');
+    expect(resolveDelegationTarget('DESIGN_PROPOSE')).toBe('design');
+    expect(resolveDelegationTarget('COPY_PROPOSE')).toBe('copy_seo');
+    expect(resolveDelegationTarget('STORE_QA')).toBe('store_qa');
     expect(resolveDelegationTarget('UNKNOWN_INTENT')).toBeNull();
   });
 
@@ -46,9 +51,13 @@ describe('delegationConfig', () => {
     process.env.NODE_ENV = 'test';
   });
 
-  it('includes customer and catalog in default allowed delegation targets', () => {
+  it('includes customer, catalog, and storefront agents in default allowed delegation targets', () => {
     delete process.env.MULTI_AGENT_ALLOWED_TARGETS;
     expect(getAllowedDelegationTargets().has('customer')).toBe(true);
     expect(getAllowedDelegationTargets().has('catalog')).toBe(true);
+    expect(getAllowedDelegationTargets().has('store_builder')).toBe(true);
+    expect(getAllowedDelegationTargets().has('design')).toBe(true);
+    expect(getAllowedDelegationTargets().has('copy_seo')).toBe(true);
+    expect(getAllowedDelegationTargets().has('store_qa')).toBe(true);
   });
 });

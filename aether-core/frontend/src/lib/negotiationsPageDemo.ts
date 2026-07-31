@@ -1,10 +1,5 @@
-export interface NegotiationRowDemo {
-  id: string;
-  status: string;
-  currentOffer: number | null;
-  productId: string | null;
-  updatedAt: string;
-}
+import type { NegotiationRowDemo } from '@/lib/data/types';
+export type { NegotiationRowDemo } from '@/lib/data/types';
 
 export function getNegotiationsDemoItems(): NegotiationRowDemo[] {
   const now = Date.now();

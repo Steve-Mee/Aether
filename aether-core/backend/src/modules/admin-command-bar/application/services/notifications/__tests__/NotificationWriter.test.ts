@@ -1,15 +1,9 @@
-jest.mock('../../../../../../shared/prisma/client', () => ({
-  prisma: {
-    merchantNotification: {
-      upsert: jest.fn(),
-    },
-  },
-}));
-
 jest.mock('../NotificationGrouper', () => ({
-  applyNotificationGrouping: jest.fn(async (_tenantId, notification) => ({
-    notification,
-    hideIndividual: false,
+  NotificationGrouper: jest.fn().mockImplementation(() => ({
+    applyNotificationGrouping: jest.fn(async (_tenantId, notification) => ({
+      notification,
+      hideIndividual: false,
+    })),
   })),
 }));
 
@@ -17,11 +11,28 @@ jest.mock('../notificationConfig', () => ({
   isNotificationMaterializeEnabled: jest.fn(() => true),
 }));
 
-import { prisma } from '../../../../../../shared/prisma/client';
+import type { NotificationPort } from '../../../ports/NotificationPort';
+import { NotificationGrouper } from '../NotificationGrouper';
 import { isNotificationMaterializeEnabled } from '../notificationConfig';
-import { materializeNotification } from '../NotificationWriter';
+import { NotificationWriterService } from '../NotificationWriter';
 
 describe('NotificationWriter', () => {
+  const notificationPort: jest.Mocked<NotificationPort> = {
+    listVisibleSince: jest.fn(),
+    listVisibleIdsSince: jest.fn(),
+    listByGroupKey: jest.fn(),
+    findRecentVisibleGroupMember: jest.fn(),
+    updateNotification: jest.fn(),
+    upsertNotification: jest.fn(),
+    listInboxStates: jest.fn(),
+    upsertInboxRead: jest.fn(),
+    upsertManyInboxRead: jest.fn(),
+    upsertDigestState: jest.fn(),
+    updateDigestState: jest.fn(),
+  };
+  const grouper = new NotificationGrouper(notificationPort);
+  const service = new NotificationWriterService(notificationPort, grouper);
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -39,7 +50,7 @@ describe('NotificationWriter', () => {
       source: 'system' as const,
     };
 
-    const result = await materializeNotification({
+    const result = await service.materializeNotification({
       tenantId: 't1',
       notification,
       sourceType: 'test',
@@ -47,7 +58,7 @@ describe('NotificationWriter', () => {
     });
 
     expect(result).toEqual(notification);
-    expect(prisma.merchantNotification.upsert).not.toHaveBeenCalled();
+    expect(notificationPort.upsertNotification).not.toHaveBeenCalled();
   });
 
   it('upserts notification when materialize enabled', async () => {
@@ -64,17 +75,18 @@ describe('NotificationWriter', () => {
       category: 'proactive_suggestion' as const,
     };
 
-    const result = await materializeNotification({
+    const result = await service.materializeNotification({
       tenantId: 't1',
       notification,
       sourceType: 'proactive_suggestion',
       sourceId: 'ps-1',
     });
 
-    expect(prisma.merchantNotification.upsert).toHaveBeenCalledWith(
+    expect(notificationPort.upsertNotification).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'n-2' },
-        create: expect.objectContaining({ tenantId: 't1', sourceType: 'proactive_suggestion' }),
+        id: 'n-2',
+        tenantId: 't1',
+        sourceType: 'proactive_suggestion',
       }),
     );
     expect(result?.id).toBe('n-2');

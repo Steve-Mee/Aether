@@ -14,12 +14,21 @@ describe('KnowledgeTransferService', () => {
     expect(result).toEqual({ updates: [], version: '0.0.0' });
   });
 
-  it('accepts anonymized insights with zero count when disabled', async () => {
+  it('does not claim acceptance when disabled (no hive bridge)', async () => {
     process.env.INTELLIGENCE_KNOWLEDGE_TRANSFER_ENABLED = 'false';
     const service = new KnowledgeTransferService();
     const result = await service.submitAnonymizedInsights('merchant_1', [
       { category: 'pricing', metric: 'uplift', value: 0.05 },
     ]);
-    expect(result).toEqual({ accepted: true, count: 0 });
+    expect(result).toEqual({ accepted: false, count: 0 });
+  });
+
+  it('does not claim acceptance when enabled but no hive bridge', async () => {
+    process.env.INTELLIGENCE_KNOWLEDGE_TRANSFER_ENABLED = 'true';
+    const service = new KnowledgeTransferService();
+    const result = await service.submitAnonymizedInsights('merchant_1', [
+      { category: 'pricing', metric: 'uplift', value: 0.05 },
+    ]);
+    expect(result).toEqual({ accepted: false, count: 0 });
   });
 });

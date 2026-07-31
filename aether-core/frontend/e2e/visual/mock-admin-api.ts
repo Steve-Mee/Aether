@@ -234,6 +234,15 @@ export async function setupMockAdminApi(page: Page) {
       await route.fulfill({ json: [] });
       return;
     }
+    // Website / storefront admin (P15 a11y): empty projects → hub/publish empty states
+    if (url.includes('/api/website/projects') && method === 'GET') {
+      await route.fulfill({ json: { projects: [] } });
+      return;
+    }
+    if (url.includes('/api/website/') && method === 'GET') {
+      await route.fulfill({ json: { projects: [], project: null, revisions: [], pages: [] } });
+      return;
+    }
     await route.fulfill({ status: 200, json: {} });
   });
 }

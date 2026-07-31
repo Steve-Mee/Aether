@@ -53,10 +53,16 @@ export class CommandParserService {
       const prompt = `Je bent AETHER, een slimme AI voor e-commerce merchants. 
 ${merchantBlock}${memoryBlock}${collectiveBlock}${globalKnowledgeBlock}${knowledgeUpdateBlock}${brainBlock}
 Analyseer dit commando en geef een JSON response terug met:
-- intent: (PRICE_UPDATE, LOW_MARGIN_REPORT, APPROVE_CHANGES, CREATE_PRODUCT, etc.)
-- action: (lower, raise, query, approve, etc.)
-- parameters: object met extra info (bijv. { percentage: 8, color: "red", product: "sneakers" })
+- intent: (PRICE_UPDATE, LOW_MARGIN_REPORT, APPROVE_CHANGES, CREATE_PRODUCT, STORE_BUILD, STORE_ITERATE, STORE_PUBLISH, STORE_STATUS, etc.)
+- action: (lower, raise, query, approve, build, iterate, publish, etc.)
+- parameters: object met extra info (bijv. { percentage: 8, color: "red", product: "sneakers", prompt: "...", deltaPrompt: "..." })
 - confidence: getal tussen 0 en 1
+
+Storefront intent hints (NL):
+- STORE_BUILD: "bouw een webshop voor …", "maak mijn store"
+- STORE_ITERATE: "maak de hero rustiger", "voeg FAQ toe"
+- STORE_PUBLISH: "publiceer de website", "zet live"
+- STORE_STATUS: "status van mijn website"
 
 Commando: "${naturalLanguage}"
 

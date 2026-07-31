@@ -39,7 +39,10 @@ export default function ActivityPageHeader({
         <StatChip>{t('activity.stat.approved').replace('{count}', String(approvedCount))}</StatChip>
       )}
       {feedSource === 'hybrid' && <StatChip>{t('activity.stat.hybrid')}</StatChip>}
-      <Link to="/overview" className="text-sm font-medium text-primary hover:underline ml-auto">
+      <Link
+        to="/overview"
+        className="text-sm font-medium text-primary-readable hover:underline ml-auto"
+      >
         {t('overview.link.fromTimeline')} →
       </Link>
       {settings.dataExportEnabled && !env.isMockMode && (

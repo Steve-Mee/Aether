@@ -9,6 +9,13 @@ export class ProcessPaymentUseCase {
     paymentMethod: string,
     ctx?: { tenantId: string; idempotencyKey?: string; actorId?: string }
   ) {
-    return this.paymentService.processPayment(orderId, amount, paymentMethod, ctx);
+    const result = await this.paymentService.processPayment(
+      orderId,
+      amount,
+      paymentMethod,
+      ctx
+    );
+    // Admin payment HTTP keeps Payment entity; checkout reads secrets via PaymentService.
+    return result.payment;
   }
 }

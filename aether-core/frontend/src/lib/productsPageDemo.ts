@@ -1,10 +1,5 @@
-export interface ProductRowDemo {
-  id: string;
-  name: string;
-  price: number;
-  stock: number;
-  status: string;
-}
+import type { ProductRowDemo } from '@/lib/data/types';
+export type { ProductRowDemo } from '@/lib/data/types';
 
 export function getProductsDemoItems(): ProductRowDemo[] {
   return [

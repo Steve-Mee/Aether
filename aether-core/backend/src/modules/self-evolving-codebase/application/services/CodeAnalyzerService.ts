@@ -1,7 +1,6 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import axios from 'axios';
 
 export interface CodeProposal {
   id: string;
@@ -11,9 +10,15 @@ export interface CodeProposal {
   confidence: number;
   estimatedImpact?: string;
   rollbackPlan?: string;
-  staticChecks?: { lint: boolean; typecheck: boolean; security: boolean };
+  source: 'fixture' | 'static-analysis';
+  staticChecks?: { lint: boolean | null; typecheck: boolean; security: boolean | null };
 }
 
+/**
+ * Experimental self-evolving analyzer.
+ * Does not invent performance claims. Static checks report honest results
+ * (lint/security are null until real scanners are wired).
+ */
 export class CodeAnalyzerService {
   async scanModules(): Promise<string[]> {
     const modulesDir = path.resolve(process.cwd(), 'src/modules');
@@ -21,41 +26,47 @@ export class CodeAnalyzerService {
     return fs.readdirSync(modulesDir).filter((d) => fs.statSync(path.join(modulesDir, d)).isDirectory());
   }
 
-  async runStaticChecks(): Promise<{ lint: boolean; typecheck: boolean; security: boolean }> {
+  async runStaticChecks(): Promise<{ lint: boolean | null; typecheck: boolean; security: boolean | null }> {
     let typecheck = true;
     try {
       execSync('npx tsc --noEmit', { stdio: 'pipe', cwd: process.cwd() });
     } catch {
       typecheck = false;
     }
-    return { lint: true, typecheck, security: true };
+    // lint/security scanners are not wired — do not claim pass
+    return { lint: null, typecheck, security: null };
   }
 
   async analyzeModule(moduleName: string): Promise<CodeProposal[]> {
     const checks = await this.runStaticChecks();
-    const proposals: CodeProposal[] = [];
-
-    if (moduleName === 'aether-mail') {
-      proposals.push({
+    // No heuristic proposal fabrication — return empty unless a real analyzer is enabled
+    if (process.env.SELF_EVOLVING_FIXTURE_PROPOSALS !== 'true') {
+      return [];
+    }
+    if (moduleName !== 'aether-mail') {
+      return [];
+    }
+    return [
+      {
         id: 'mail-001',
         module: moduleName,
         type: 'PERFORMANCE',
-        description: 'Replace polling with webhook-based email processing for lower latency',
-        confidence: 0.87,
-        estimatedImpact: '+31% email processing speed',
-        rollbackPlan: 'Revert IMAP poller config; restore polling interval',
+        description:
+          'Fixture proposal only: consider webhook-based email intake instead of polling (not measured)',
+        confidence: 0,
+        estimatedImpact: 'unmeasured',
+        rollbackPlan: 'N/A — fixture; do not apply in production',
+        source: 'fixture',
         staticChecks: checks,
-      });
-    }
-
-    return proposals;
+      },
+    ];
   }
 
   async runSandboxValidation(proposalId: string): Promise<{ passed: boolean; proposalId: string; mode: string }> {
     if (process.env.SELF_EVOLVING_SANDBOX_ENABLED !== 'true') {
       const checks = await this.runStaticChecks();
-      const passed = checks.typecheck && checks.lint && checks.security;
-      return { passed, proposalId, mode: 'static-only' };
+      const passed = checks.typecheck === true;
+      return { passed, proposalId, mode: 'static-typecheck-only' };
     }
 
     try {

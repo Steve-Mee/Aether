@@ -1,7 +1,8 @@
-import { prisma } from '../../../../shared/prisma/client';
 import { requireTenantId } from '../../../../shared/tenant/tenantContext';
 import type { AgentRegistry } from '../../../../ai/intelligence/multi-agent/AgentRegistry';
-import { buildActivityFeed, resolveActivitySince } from './ActivityFeedService';
+import type { AgentRosterPort } from '../ports/AgentRosterPort';
+import type { ActivityFeedService } from './ActivityFeedService';
+import { resolveActivitySince } from './ActivityFeedService';
 
 const ACTIVE_WINDOW_MS = 15 * 60 * 1000;
 
@@ -19,7 +20,7 @@ export interface AgentRosterEntry {
 
 export interface AgentActivityResponse {
   agentKey: string;
-  activity: Awaited<ReturnType<typeof buildActivityFeed>>['items'];
+  activity: Awaited<ReturnType<ActivityFeedService['buildActivityFeed']>>['items'];
   proactiveSuggestions: Array<{
     id: string;
     title: string;
@@ -45,7 +46,11 @@ function firstSentence(text: string): string {
 }
 
 export class AgentRosterService {
-  constructor(private agentRegistry: AgentRegistry) {}
+  constructor(
+    private agentRegistry: AgentRegistry,
+    private agentRosterPort: AgentRosterPort,
+    private activityFeedService: ActivityFeedService,
+  ) {}
 
   async buildRoster(tenantId: string): Promise<AgentRosterEntry[]> {
     const tid = requireTenantId(tenantId, 'AgentRoster.buildRoster');
@@ -55,35 +60,19 @@ export class AgentRosterService {
     const definitions = this.agentRegistry.list().filter((d) => d.agentKey !== 'global-advisory');
 
     const [activeRuns, proactiveRows, explainRows, lastRuns] = await Promise.all([
-      prisma.brainAgentRun.findMany({
-        where: { tenantId: tid, updatedAt: { gte: sinceActive } },
-        select: { agentKey: true },
-        distinct: ['agentKey'],
-      }),
-      prisma.proactiveSuggestion.groupBy({
-        by: ['agentKey'],
-        where: {
-          tenantId: tid,
-          status: { in: ['active', 'snoozed'] },
-        },
-        _count: { _all: true },
-      }),
-      prisma.agentExplainabilitySnapshot.findMany({
-        where: { tenantId: tid, createdAt: { gte: since7d } },
-        select: { agentKeys: true },
-      }),
-      prisma.brainAgentRun.findMany({
-        where: { tenantId: tid, agentKey: { in: definitions.map((d) => d.agentKey) } },
-        orderBy: { updatedAt: 'desc' },
-        distinct: ['agentKey'],
-        select: { agentKey: true, updatedAt: true },
-      }),
+      this.agentRosterPort.findActiveAgentKeys(tid, sinceActive),
+      this.agentRosterPort.groupProactiveByAgent(tid),
+      this.agentRosterPort.findExplainabilityAgentKeys(tid, since7d),
+      this.agentRosterPort.findLastRunByAgents(
+        tid,
+        definitions.map((d) => d.agentKey),
+      ),
     ]);
 
-    const activeSet = new Set(activeRuns.map((r) => r.agentKey));
+    const activeSet = new Set(activeRuns);
     const proactiveByAgent = new Map<string, number>();
     for (const row of proactiveRows) {
-      if (row.agentKey) proactiveByAgent.set(row.agentKey, row._count._all);
+      if (row.agentKey) proactiveByAgent.set(row.agentKey, row.count);
     }
 
     const recentCountByAgent = new Map<string, number>();
@@ -93,7 +82,9 @@ export class AgentRosterService {
       }
     }
 
-    const lastActiveByAgent = new Map(lastRuns.map((r) => [r.agentKey, r.updatedAt.toISOString()]));
+    const lastActiveByAgent = new Map(
+      lastRuns.map((r) => [r.agentKey, r.updatedAt.toISOString()]),
+    );
 
     return definitions.map((def) => ({
       agentKey: def.agentKey,
@@ -111,40 +102,15 @@ export class AgentRosterService {
   async getAgentActivity(
     tenantId: string,
     agentKey: string,
-    days = 7
+    days = 7,
   ): Promise<AgentActivityResponse> {
     const tid = requireTenantId(tenantId, 'AgentRoster.getAgentActivity');
     const since = resolveActivitySince(days);
 
     const [activityFeed, proactiveRows, explainRows] = await Promise.all([
-      buildActivityFeed({ tenantId: tid, since, limit: 50, agentKey }),
-      prisma.proactiveSuggestion.findMany({
-        where: {
-          tenantId: tid,
-          agentKey,
-          status: { in: ['active', 'snoozed', 'executed', 'dismissed'] },
-          createdAt: { gte: since },
-        },
-        orderBy: { updatedAt: 'desc' },
-        take: 10,
-      }),
-      prisma.agentExplainabilitySnapshot.findMany({
-        where: {
-          tenantId: tid,
-          agentKeys: { has: agentKey },
-          createdAt: { gte: since },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-        select: {
-          id: true,
-          sourceType: true,
-          sourceId: true,
-          summary: true,
-          agentKeys: true,
-          createdAt: true,
-        },
-      }),
+      this.activityFeedService.buildActivityFeed({ tenantId: tid, since, limit: 50, agentKey }),
+      this.agentRosterPort.findProactiveForAgent(tid, agentKey, since, 10),
+      this.agentRosterPort.findExplainabilityForAgent(tid, agentKey, since, 10),
     ]);
 
     return {

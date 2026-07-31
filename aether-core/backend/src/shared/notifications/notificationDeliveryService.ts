@@ -1,5 +1,5 @@
 import type { MerchantNotification } from '../../modules/admin-command-bar/application/services/notifications/notificationTypes';
-import { overviewNotificationDispatcher } from '../../modules/admin-command-bar/application/services/OverviewNotificationDispatcher';
+import { getCompositionRoot } from '../../bootstrap/compositionRoot';
 import { webPushNotificationDispatcher } from './WebPushNotificationDispatcher';
 
 export interface NotificationDeliveryPort {
@@ -17,7 +17,11 @@ class NotificationDeliveryServiceImpl implements NotificationDeliveryPort {
     feedEventId: string,
     item: import('../../modules/admin-command-bar/application/services/OverviewFeedService').OverviewFeedItem,
   ): Promise<void> {
-    await overviewNotificationDispatcher.onFeedEventCreated(tenantId, feedEventId, item);
+    await getCompositionRoot().overviewNotificationDispatcher.onFeedEventCreated(
+      tenantId,
+      feedEventId,
+      item,
+    );
   }
 
   async deliverPush(

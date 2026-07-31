@@ -12,6 +12,7 @@ describe('PaymentProvider', () => {
     expect(result.success).toBe(true);
     expect(result.provider).toBe('local');
     expect(result.transactionId).toBeDefined();
+    expect(result.clientSecret).toMatch(/^local_cs_/);
   });
 
   it('stripe provider fails without secret key', async () => {

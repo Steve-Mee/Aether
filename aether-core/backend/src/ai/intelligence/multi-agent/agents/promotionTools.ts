@@ -1,9 +1,14 @@
 import type { AdminDataPort } from '../../../../modules/admin-command-bar/application/ports/AdminDataPort';
+import type { CreatePromotionUseCase } from '../../../../modules/promotions/application/use-cases/CreatePromotionUseCase';
 import { classifyBrainAction } from '../../personal-brain/tools/ActionRiskClassifier';
 import type { BrainToolExecutor } from '../../personal-brain/tools/types';
 
 export interface PromotionToolsDeps {
   adminData: AdminDataPort;
+}
+
+export interface CreatePromotionToolDeps {
+  createPromotion?: CreatePromotionUseCase;
 }
 
 export function suggestPromotionTool(deps: PromotionToolsDeps): BrainToolExecutor {
@@ -96,7 +101,7 @@ export function suggestClearancePricingTool(deps: PromotionToolsDeps): BrainTool
   };
 }
 
-export function createPromotionTool(): BrainToolExecutor {
+export function createPromotionTool(deps: CreatePromotionToolDeps = {}): BrainToolExecutor {
   return {
     definition: {
       name: 'createPromotion',
@@ -131,7 +136,31 @@ export function createPromotionTool(): BrainToolExecutor {
       };
     },
     async executeConfirmed(ctx, payload) {
-      return { success: true, result: 'Promotion campaign proposal recorded', payload };
+      const name = String(payload.name ?? '').trim();
+      if (!name) {
+        return { success: false, result: '', error: 'name is required' };
+      }
+      const discountPct = Number(payload.discountPct ?? 0);
+      const productIds = Array.isArray(payload.productIds) ? payload.productIds : [];
+      if (!deps.createPromotion) {
+        return {
+          success: true,
+          result: 'Promotion campaign proposal recorded (persist unavailable)',
+          payload,
+        };
+      }
+      const result = await deps.createPromotion.execute(ctx.tenantId, {
+        name,
+        type: 'percent',
+        value: Number.isFinite(discountPct) ? discountPct : 0,
+        status: 'draft',
+        configJson: productIds.length ? { productIds } : null,
+      });
+      return {
+        success: true,
+        result: `Promotion draft created: ${result.promotion.id}`,
+        operationalMeta: { promotionId: result.promotion.id, ...payload },
+      };
     },
   };
 }

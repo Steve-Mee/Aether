@@ -25,6 +25,46 @@ test-ci-out*.txt
 **/test-ci-output.txt
 **/_test-explain-out.txt
 
+## Local scratch / one-off helper scripts (not for GitHub)
+/_blog*.txt
+/_ci_commit*.bat
+/_job.json
+/_run_fixed_tests.bat
+/_ci_fail*.txt
+/_ci_fail_log.txt
+/_pkg_*.json
+/_be_job*.zip
+/_fe_job*.zip
+/_pw_report/
+/_parse_*.py
+/_parse_jobs.js
+/_ci_jobs.json
+/_do_commit.bat
+/_commit_msg.txt
+/_get_logs.bat
+/_get_jobs.bat
+/_fix_audit.bat
+/_extract.bat
+/_dl_a11y.bat
+/_prettier.bat
+/_fe_fail*.txt
+/_be_fail*.txt
+/_sf_fail*.txt
+/_fe_sum.txt
+/_be_sum.txt
+/_sf_sum.txt
+/_pilot_fail.txt
+/_lh_fail.txt
+/_pw_a11y/
+/_be_raw.txt
+/_decode_log.py
+/_be_job_logs/
+
+## Backend local runtime / generated artifacts
+aether-core/backend/tmp/
+aether-core/backend/uploads/
+**/storefront-artifacts/
+
 ## Environment and secrets
 **/.env
 **/.env.*

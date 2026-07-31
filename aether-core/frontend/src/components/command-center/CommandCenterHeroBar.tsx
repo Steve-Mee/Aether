@@ -6,7 +6,7 @@ import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import { t } from '@/lib/i18n';
 import { CommandBar } from '@/components/ui';
 import type { DemoIntentId, DemoSuggestion } from '@/lib/localIntentMatcher';
-import type { TodayReadyInsight } from '@/lib/todayReadyDemo';
+import type { TodayReadyInsight } from '@/lib/todayReady';
 import { useRotatingPlaceholder } from '@/hooks/useRotatingPlaceholder';
 import { useSmartCommandInput } from '@/hooks/useSmartCommandInput';
 import type { useCommandDemoFlow } from '@/hooks/useCommandDemoFlow';

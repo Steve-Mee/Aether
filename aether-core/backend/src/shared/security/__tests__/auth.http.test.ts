@@ -48,10 +48,15 @@ describeIfDb('DB-backed ApiKey HTTP auth', () => {
 
   it('accepts Prisma ApiKey with operator role for mutating route', async () => {
     const res = await request(app)
-      .post('/api/emails/process')
+      .post('/api/products')
       .set('X-Aether-Api-Key', testKey)
       .set('X-Aether-Tenant-Id', 'tenant_default')
-      .send({ from: 'db-key-test@example.com', subject: 'Auth test', body: 'Hello' });
+      .send({
+        name: 'DB Key Ok',
+        slug: `db-key-ok-${Date.now()}`,
+        price: 1,
+        stock: 1,
+      });
 
     expect(res.status).not.toBe(403);
     expect(res.status).not.toBe(401);

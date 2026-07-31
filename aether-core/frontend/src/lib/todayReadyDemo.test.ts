@@ -8,7 +8,7 @@ import {
   subtitleForInsights,
   visibleInsightIds,
   visibleInsights,
-} from './todayReadyDemo';
+} from './todayReady';
 
 describe('getInitialTodayReadyInsights', () => {
   it('starts with pricing and approvals visible, supplier hidden', () => {

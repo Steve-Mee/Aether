@@ -18,6 +18,10 @@ const CATALOG_INTENTS = new Set(['CREATE_PRODUCT', 'PRODUCT_LIST', 'PRODUCT_SEAR
 const PROMOTION_INTENTS = new Set(['PROMOTION_SUGGEST', 'CLEARANCE_PRICING', 'PROMOTION_LIST']);
 const SUPERVISOR_INTENTS = new Set(['COMPOUND_WORKFLOW', 'PLAN_AND_DELEGATE']);
 const AUTONOMY_INTENTS = new Set(['AUTONOMY_METRICS', 'AUTONOMY_TRACE', 'DECISION_REVIEW', 'AUTONOMOUS_ROUTE']);
+const STORE_BUILDER_INTENTS = new Set(['STORE_BUILD', 'STORE_ITERATE', 'STORE_PUBLISH', 'STORE_STATUS']);
+const DESIGN_INTENTS = new Set(['DESIGN_PROPOSE']);
+const COPY_SEO_INTENTS = new Set(['COPY_PROPOSE']);
+const STORE_QA_INTENTS = new Set(['STORE_QA']);
 
 export const SPECIALIST_HANDLED_INTENTS = new Set([
   'PRICE_UPDATE',
@@ -56,6 +60,13 @@ export const SPECIALIST_HANDLED_INTENTS = new Set([
   'DECISION_REVIEW',
   'AUTONOMOUS_ROUTE',
   'PLAN_AND_DELEGATE',
+  'STORE_BUILD',
+  'STORE_ITERATE',
+  'STORE_PUBLISH',
+  'STORE_STATUS',
+  'DESIGN_PROPOSE',
+  'COPY_PROPOSE',
+  'STORE_QA',
 ]);
 
 export function isMultiAgentDelegationEnabled(): boolean {
@@ -69,7 +80,7 @@ export function isMultiAgentDelegationEnabled(): boolean {
 export function getAllowedDelegationTargets(): Set<string> {
   const raw =
     process.env.MULTI_AGENT_ALLOWED_TARGETS ??
-    'mail,supplier,pricing,inventory,promotion,customer,forecast,approvals,outcomes,negotiation,catalog,autonomy,workflow_supervisor,admin';
+    'mail,supplier,pricing,inventory,promotion,customer,forecast,approvals,outcomes,negotiation,catalog,autonomy,store_builder,design,copy_seo,store_qa,workflow_supervisor,admin';
   return new Set(raw.split(',').map((s) => s.trim()).filter(Boolean));
 }
 
@@ -97,6 +108,11 @@ const PEER_PAYLOAD_SCOPE: Record<string, Record<string, readonly string[]>> = {
     pricing: ['churnSignals', 'customerSegments', 'demandSignal', 'suggestedActions', 'orderTrends'],
     mail: ['churnSignals', 'customerSegments', 'atRiskCustomers', 'suggestedActions'],
     inventory: ['demandSignal', 'orderTrends', 'growingSegments', 'suggestedActions'],
+  },
+  store_builder: {
+    design: ['brief', 'brandName', 'projectId', 'revisionId', 'path'],
+    copy_seo: ['brief', 'brandName', 'projectId', 'revisionId', 'locale', 'copy'],
+    store_qa: ['projectId', 'revisionId', 'baseRevisionId', 'targetRevisionId'],
   },
 };
 
@@ -143,6 +159,10 @@ export function resolveDelegationTarget(intent: string): string | null {
   if (PROMOTION_INTENTS.has(intent) && allowed.has('promotion')) return 'promotion';
   if (CATALOG_INTENTS.has(intent) && allowed.has('catalog')) return 'catalog';
   if (AUTONOMY_INTENTS.has(intent) && allowed.has('autonomy')) return 'autonomy';
+  if (STORE_BUILDER_INTENTS.has(intent) && allowed.has('store_builder')) return 'store_builder';
+  if (DESIGN_INTENTS.has(intent) && allowed.has('design')) return 'design';
+  if (COPY_SEO_INTENTS.has(intent) && allowed.has('copy_seo')) return 'copy_seo';
+  if (STORE_QA_INTENTS.has(intent) && allowed.has('store_qa')) return 'store_qa';
   if (SUPERVISOR_INTENTS.has(intent) && allowed.has('workflow_supervisor')) return 'workflow_supervisor';
   return null;
 }

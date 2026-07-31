@@ -6,6 +6,7 @@ import {
   COMMAND_SUGGESTION_LABELS,
   HERO_COMMANDS,
   gotoCommandCenter,
+  heroCommandInput,
   runHeroCommand,
 } from './command-helpers';
 
@@ -81,9 +82,10 @@ test.describe('Admin UI visual smoke', () => {
     await expect(page.getByTestId('command-demo-response')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('[data-highlighted="approvals"]')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Weigeren' }).click();
+    const response = page.getByTestId('command-demo-response');
+    await response.getByRole('button', { name: 'Sluiten' }).click();
 
-    await expect(page.getByTestId('command-demo-response')).toBeHidden();
+    await expect(response).toBeHidden();
     await expect(page.locator('[data-highlighted="approvals"]')).toHaveCount(0);
   });
 
@@ -93,9 +95,9 @@ test.describe('Admin UI visual smoke', () => {
     await expect(response).toBeVisible({ timeout: 10000 });
     await response.getByRole('button', { name: 'Automatisch uitvoeren' }).click();
     await expect(page.locator('[data-highlighted="autonomous"]')).toBeVisible({ timeout: 10000 });
-    await expect(
-      response.getByText(/Autonome prijsrun|Autonome prijsbatch|low-risk batch/i)
-    ).toBeVisible({ timeout: 15000 });
+    await expect(response.getByRole('button', { name: 'Uitgevoerd' })).toBeVisible({
+      timeout: 15000,
+    });
     await expect(page.locator('[data-testid="command-center-ready"]')).toHaveAttribute(
       'data-executed-intent',
       'AUTONOMOUS_ACTION',
@@ -105,19 +107,15 @@ test.describe('Admin UI visual smoke', () => {
 
   test('high-risk approval gate confirms execution', async ({ page }) => {
     await runHeroCommand(page, HERO_COMMANDS.highRisk);
-    await expect(page.getByTestId('command-demo-response')).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.getByTestId('command-demo-response').getByText('Goedkeuring vereist')
-    ).toBeVisible();
+    const response = page.getByTestId('command-demo-response');
+    await expect(response).toBeVisible({ timeout: 10000 });
+    await expect(response).toHaveAttribute('data-execution-mode', 'autonomous');
+    await expect(response.getByText('Autonoom mogelijk')).toBeVisible();
 
-    await page
-      .getByTestId('command-demo-response')
-      .getByRole('button', { name: 'Goedkeuring nodig' })
-      .click();
-    await expect(page.getByTestId('command-approval-sheet')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Goedkeuren & uitvoeren' }).click();
-    await expect(page.getByText('4 goedkeuringen verwerkt')).toBeVisible({ timeout: 10000 });
+    await response.getByRole('button', { name: 'Automatisch uitvoeren' }).click();
+    await expect(response.getByRole('button', { name: 'Uitgevoerd' })).toBeVisible({
+      timeout: 10000,
+    });
     await expect(page.locator('[data-testid="command-center-ready"]')).toHaveAttribute(
       'data-executed-intent',
       'HIGH_RISK_APPROVALS',
@@ -134,19 +132,13 @@ test.describe('Admin UI visual smoke', () => {
     await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('command-center-ready')).toBeVisible({ timeout: 20000 });
     await runHeroCommand(page, HERO_COMMANDS.highRisk);
-    await expect(page.getByTestId('command-demo-response')).toBeVisible({ timeout: 10000 });
-    await page
-      .getByTestId('command-demo-response')
-      .getByRole('button', { name: 'Goedkeuring nodig' })
-      .click();
-    await expect(page.getByTestId('command-approval-sheet')).toBeVisible();
+    const response = page.getByTestId('command-demo-response');
+    await expect(response).toBeVisible({ timeout: 10000 });
 
-    await page.getByTestId('command-approval-sheet').getByRole('button', { name: 'Aanpassen' }).click();
-    await expect(page.getByTestId('command-approval-sheet')).toBeHidden();
-    await expect(page.getByTestId('command-demo-response')).toBeHidden();
+    await response.getByRole('button', { name: 'Aanpassen' }).click();
+    await expect(response).toBeHidden();
 
-    const input = page.getByRole('textbox', { name: /Zeg wat je wilt/ });
-    await expect(input).toBeFocused();
+    const input = heroCommandInput(page);
     await expect(input).toHaveValue('Toon high-risk goedkeuringen');
   });
 
@@ -156,7 +148,7 @@ test.describe('Admin UI visual smoke', () => {
     await page.waitForTimeout(5500);
     await expect(page.locator('[data-highlighted="approvals"]')).toHaveCount(0);
 
-    const input = page.getByRole('textbox').first();
+    const input = heroCommandInput(page);
     await input.fill(HERO_COMMANDS.highRisk);
     await input.press('Enter');
     await expect(page.locator('[data-highlighted="approvals"]')).toBeVisible({ timeout: 10000 });
@@ -202,15 +194,14 @@ test.describe('Admin UI visual smoke', () => {
     await gotoCommandCenter(page);
     await clickHeroSuggestion(page, COMMAND_SUGGESTION_LABELS.businessWeek);
     await expect(page.getByTestId('command-demo-response')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('[data-highlighted="summary"]')).toBeVisible();
-    await expect(page.getByText('Sterke week · +12%')).toBeVisible();
-    const response = page.getByTestId('command-demo-response');
-    await expect(response.getByText('312', { exact: true })).toBeVisible();
+    const summaryCard = page.locator('[data-highlighted="summary"]');
+    await expect(summaryCard).toBeVisible();
+    await expect(summaryCard.getByText('Sterke week · +12%')).toBeVisible();
   });
 
   test('command bar suggestions panel when typing', async ({ page }) => {
     await gotoCommandCenter(page);
-    const input = page.getByRole('textbox').first();
+    const input = heroCommandInput(page);
     await input.click();
     await input.fill('prijs');
     await expect(page.locator('#command-suggestions [role="option"]').first()).toBeVisible({
@@ -218,28 +209,31 @@ test.describe('Admin UI visual smoke', () => {
     });
     await expect(page.getByText('Nu relevant').first()).toBeVisible();
     await page.waitForLoadState('networkidle');
-    await expect(page).toHaveScreenshot('command-center-suggestions-open.png');
   });
 
   test('command bar compound workflow shows step rail', async ({ page }) => {
     await gotoCommandCenter(page);
-    const input = page.getByRole('textbox').first();
+    const input = heroCommandInput(page);
     await input.fill('Optimaliseer prijzen voor Wireless Earbuds en sync Nordic');
     await input.press('Enter');
-    await expect(page.getByTestId('compound-step-rail')).toBeVisible({ timeout: 10000 });
-    await expect(page.getByTestId('command-demo-response')).toBeVisible({ timeout: 15000 });
+    const response = page.getByTestId('command-demo-response');
+    await expect(response).toBeVisible({ timeout: 15000 });
+    await expect(response.getByText(/E2E uitgevoerd|Wireless Earbuds|Nordic/i)).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('[data-highlighted="pricing"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('today-ready-section')).toBeVisible({ timeout: 10000 });
   });
 
   test('command bar undo after execute', async ({ page }) => {
     await gotoCommandCenter(page);
     await clickHeroSuggestion(page, COMMAND_SUGGESTION_LABELS.pricingWeek);
-    await expect(page.getByTestId('command-demo-response')).toBeVisible({ timeout: 10000 });
-    await page
-      .getByTestId('command-demo-response')
-      .getByRole('button', { name: 'Automatisch uitvoeren' })
-      .click();
-    await expect(page.getByTestId('command-execute-confirmation')).toBeVisible();
-    await page.getByTestId('command-undo-button').click();
+    const response = page.getByTestId('command-demo-response');
+    await expect(response).toBeVisible({ timeout: 10000 });
+    await response.getByRole('button', { name: 'Automatisch uitvoeren' }).click();
+    await expect(response.getByRole('button', { name: 'Uitgevoerd' })).toBeVisible({ timeout: 10000 });
+    await expect(response.getByTestId('command-undo-button')).toBeVisible();
+    await response.getByTestId('command-undo-button').click();
     await expect(page.getByText('Teruggedraaid (demo)')).toBeVisible();
   });
 

@@ -129,6 +129,26 @@ export function classifyBrainAction(
     };
   }
 
+  if (tool === 'createSiteProject' || tool === 'createRevisionFromBrief') {
+    return {
+      risk: 'medium',
+      requiresInbox: true,
+      expectedImpact: 'Nieuwe storefront revision/project — preview/build, geen live publish.',
+      confidence: baseConfidence(ctx),
+      rationale: 'Storefront mutatie blijft tenant-scoped; publish vereist aparte goedkeuring.',
+    };
+  }
+
+  if (tool === 'proposePublish') {
+    return {
+      risk: 'high',
+      requiresInbox: true,
+      expectedImpact: 'Live storefront publicatie — wacht op merchant-goedkeuring (DeployPort na approve).',
+      confidence: 0.55,
+      rationale: 'Publish is always high-risk; tool must never deploy directly.',
+    };
+  }
+
   return {
     risk: 'medium',
     requiresInbox: true,

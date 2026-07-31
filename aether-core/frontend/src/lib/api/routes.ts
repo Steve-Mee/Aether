@@ -138,8 +138,54 @@ export const apiRoutes = {
     billing: (days: number) => `/api/outcomes/billing?days=${days}`,
     billingReconcile: '/api/outcomes/billing/reconcile',
   },
-  orders: { list: '/api/orders' },
-  products: { list: '/api/products' },
+  orders: {
+    list: '/api/orders',
+    detail: (id: string) => `/api/orders/${encodeURIComponent(id)}`,
+    ship: (id: string) => `/api/orders/${encodeURIComponent(id)}/ship`,
+    refunds: (id: string) => `/api/orders/${encodeURIComponent(id)}/refunds`,
+  },
+  products: {
+    list: '/api/products',
+    detail: (id: string) => `/api/products/${encodeURIComponent(id)}`,
+    variants: (id: string) => `/api/products/${encodeURIComponent(id)}/variants`,
+    media: (id: string) => `/api/products/${encodeURIComponent(id)}/media`,
+  },
+  customers: {
+    list: '/api/customers',
+    detail: (id: string) => `/api/customers/${encodeURIComponent(id)}`,
+    orders: (id: string) => `/api/customers/${encodeURIComponent(id)}/orders`,
+  },
+  inventory: {
+    list: '/api/inventory',
+    lowStock: '/api/inventory/low-stock',
+    adjust: '/api/inventory/adjust',
+  },
+  promotions: {
+    list: '/api/promotions',
+  },
+  payments: {
+    list: '/api/payments',
+    summary: '/api/payments/summary',
+    payouts: '/api/payments/payouts',
+    reconcile: '/api/payments/reconcile',
+  },
+  website: {
+    projects: '/api/website/projects',
+    project: (projectId: string) => `/api/website/projects/${encodeURIComponent(projectId)}`,
+    revisions: (projectId: string) =>
+      `/api/website/projects/${encodeURIComponent(projectId)}/revisions`,
+    revision: (revisionId: string) => `/api/website/revisions/${encodeURIComponent(revisionId)}`,
+    revisionPages: (revisionId: string) =>
+      `/api/website/revisions/${encodeURIComponent(revisionId)}/pages`,
+    revisionBuild: (revisionId: string) =>
+      `/api/website/revisions/${encodeURIComponent(revisionId)}/build`,
+    revisionPublish: (revisionId: string) =>
+      `/api/website/revisions/${encodeURIComponent(revisionId)}/publish`,
+    preview: (revisionId: string) => `/api/website/preview/${encodeURIComponent(revisionId)}`,
+    page: (pageId: string) => `/api/website/pages/${encodeURIComponent(pageId)}`,
+    pageCopy: (pageId: string) => `/api/website/pages/${encodeURIComponent(pageId)}/copy`,
+    build: (buildId: string) => `/api/website/builds/${encodeURIComponent(buildId)}`,
+  },
   emails: {
     list: '/api/emails',
     detail: (id: string) => `/api/emails/${id}`,

@@ -6,10 +6,25 @@ async function mockActivityApi(page: import('@playwright/test').Page) {
   await page.route('**/api/**', async (route) => {
     const url = route.request().url();
     if (url.includes('/api/admin/activity')) {
+      const now = new Date().toISOString();
       await route.fulfill({
         json: {
-          items: [],
-          source: 'partial',
+          items: [
+            {
+              id: 'demo-1',
+              source: 'audit',
+              at: now,
+              actionType: 'autonomy_execute',
+              actionLabel: 'Autonome sync',
+              description: 'Voorraad en prijzen gesynchroniseerd met Shopify (142 SKU)',
+              module: 'inventory-pricing',
+              category: 'sync',
+              risk: 'low',
+              status: 'approved',
+              executor: 'aether',
+            },
+          ],
+          source: 'live',
         },
       });
       return;

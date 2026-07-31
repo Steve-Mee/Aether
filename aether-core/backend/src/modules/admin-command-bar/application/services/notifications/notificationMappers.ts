@@ -210,3 +210,36 @@ export function mapOverviewFeedItemToNotification(
 
   return null;
 }
+
+export function notificationRowToDto(
+  row: {
+    id: string;
+    kind: string;
+    category: string;
+    title: string;
+    body: string;
+    severity: string;
+    href: string | null;
+    actionLabel: string | null;
+    groupKey: string | null;
+    groupCount: number;
+    createdAt: Date;
+  },
+  read: boolean,
+): MerchantNotification {
+  return {
+    id: row.id,
+    kind: row.kind as MerchantNotification['kind'],
+    title: row.title,
+    body: row.body,
+    severity: row.severity as MerchantNotification['severity'],
+    read,
+    createdAt: row.createdAt.toISOString(),
+    href: row.href ?? undefined,
+    actionLabel: row.actionLabel ?? undefined,
+    source: 'system',
+    category: row.category as MerchantNotification['category'],
+    groupKey: row.groupKey ?? undefined,
+    groupCount: row.groupCount,
+  };
+}

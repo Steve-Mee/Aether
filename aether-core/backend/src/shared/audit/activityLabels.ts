@@ -4,6 +4,7 @@ export const ACTION_LABELS: Record<string, string> = {
   email_rolled_back: 'E-mail teruggedraaid',
   'email.auto_reply': 'Automatisch antwoord verzonden',
   action_executed: 'Goedgekeurde actie uitgevoerd',
+  website_deploy_failed: 'Website-publicatie mislukt',
   autonomy_observe: 'Observatie (inkomend bericht)',
   autonomy_decide: 'Beslissing (autonomie-kern)',
   autonomy_approve: 'Goedkeuring vereist',

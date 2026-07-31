@@ -40,7 +40,12 @@ export class PredictiveController {
       try {
         const { limit } = req.body;
         const ideas = await this.genesis.generateProductIdeas(limit || 5);
-        res.json({ status: 'experimental', ideas });
+        res.json({
+          status: 'experimental',
+          source: 'fixture',
+          message: 'Static sample ideas — not live trend analysis or LLM output',
+          ideas,
+        });
       } catch {
         res.status(500).json({ error: 'Failed to generate product ideas' });
       }

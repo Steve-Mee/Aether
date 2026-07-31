@@ -110,7 +110,7 @@ export default function AutonomyConfigPanel() {
   };
 
   return (
-    <div className="space-y-6" data-testid="autonomy-config-panel">
+    <div className="space-y-6" data-testid="settings-autonomy">
       <AutonomyPresetSelector
         preset={draft.autonomyPrefs.preset}
         onPresetChange={applyPreset}

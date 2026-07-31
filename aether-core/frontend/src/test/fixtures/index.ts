@@ -116,7 +116,7 @@ export const mockActivityFeed = {
       description: 'Voorraad en prijzen gesynchroniseerd (142 SKU)',
       module: 'inventory-pricing',
       risk: 'low',
-      status: 'autonomous',
+      status: 'approved',
       executor: 'aether',
     },
     {

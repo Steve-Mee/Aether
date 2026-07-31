@@ -37,9 +37,13 @@ export class PluginController {
 
   getAllPlugins = [
     requireViewer,
-    async (_req: Request, res: Response) => {
-      const plugins = this.pluginRegistry.getLoadedPlugins();
-      res.json({ status: 'experimental', plugins });
+    async (req: Request, res: Response) => {
+      const plugins = await this.pluginRegistry.listPlugins(req.tenantId!);
+      res.json({
+        status: 'experimental',
+        message: 'Registry persistence only — no runtime plugin sandbox/loader',
+        plugins,
+      });
     },
   ];
 

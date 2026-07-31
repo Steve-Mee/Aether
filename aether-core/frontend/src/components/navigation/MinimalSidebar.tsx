@@ -12,11 +12,60 @@ import SidebarActivityPreview from './SidebarActivityPreview';
 import { useNotifications } from '@/lib/notifications/NotificationContext';
 import { useAppShellStore } from '@/lib/stores/appShellStore';
 import { usePermission } from '@/lib/auth/usePermission';
+import type { AppNavItem } from '@/lib/navigation/routes';
 
 interface MinimalSidebarProps {
   mode: SidebarMode;
   onToggleCollapse: () => void;
   userCollapsed: boolean;
+}
+
+function NavItemRow({
+  item,
+  showLabels,
+  onPrefetch,
+  badge,
+}: {
+  item: AppNavItem;
+  showLabels: boolean;
+  onPrefetch: (path: string) => void;
+  badge?: boolean;
+}) {
+  const Icon = item.icon;
+  const label = item.labelKey ? t(item.labelKey) : item.label;
+  return (
+    <li>
+      <NavLink
+        to={item.to}
+        end={item.end}
+        title={label}
+        aria-label={label}
+        onMouseEnter={() => onPrefetch(item.to)}
+        onFocus={() => onPrefetch(item.to)}
+        className={({ isActive }) =>
+          cn(
+            'flex items-center rounded-lg text-sm transition-all duration-fast',
+            focusRing(),
+            showLabels ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5',
+            isActive
+              ? 'bg-muted/40 text-foreground'
+              : 'text-muted-foreground hover:bg-muted/25 hover:text-foreground',
+          )
+        }
+      >
+        <span className="relative shrink-0">
+          <Icon size={18} aria-hidden="true" />
+          {badge ? (
+            <span
+              className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary"
+              aria-hidden
+            />
+          ) : null}
+        </span>
+        {showLabels && <span className="truncate">{label}</span>}
+      </NavLink>
+    </li>
+  );
 }
 
 export default function MinimalSidebar({
@@ -35,6 +84,12 @@ export default function MinimalSidebar({
     prefetchPageChunk(path);
   };
   const hasActionUnread = notifications.some((n) => !n.read && n.severity === 'action');
+
+  const defaultItems = minimalNavItems.filter(
+    (i) => i.navGroup !== 'commerce' && i.navGroup !== 'website',
+  );
+  const commerceItems = minimalNavItems.filter((i) => i.navGroup === 'commerce');
+  const websiteItems = minimalNavItems.filter((i) => i.navGroup === 'website');
 
   return (
     <nav
@@ -61,48 +116,62 @@ export default function MinimalSidebar({
         )}
       </div>
 
-      <div className="flex-1 px-2 py-5 overflow-auto">
+      <div className="flex-1 px-2 py-5 overflow-auto space-y-5">
         <ul className="space-y-1">
-          {minimalNavItems.map((item) => {
-            const Icon = item.icon;
-            const label = item.labelKey ? t(item.labelKey) : item.label;
-            return (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  end={item.end}
-                  title={label}
-                  aria-label={label}
-                  onMouseEnter={() => handleNavPrefetch(item.to)}
-                  onFocus={() => handleNavPrefetch(item.to)}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center rounded-lg text-sm transition-all duration-fast',
-                      focusRing(),
-                      showLabels ? 'gap-3 px-3 py-2.5' : 'justify-center p-2.5',
-                      isActive
-                        ? 'bg-muted/40 text-foreground'
-                        : 'text-muted-foreground hover:bg-muted/25 hover:text-foreground',
-                    )
-                  }
-                >
-                  <span className="relative shrink-0">
-                    <Icon size={18} aria-hidden="true" />
-                    {(hasActionUnread &&
-                      (item.to === moduleLinks.approvals || item.to === moduleLinks.activity)) ||
-                    (pendingApprovalsCount > 0 && item.to === moduleLinks.approvals) ? (
-                      <span
-                        className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary"
-                        aria-hidden
-                      />
-                    ) : null}
-                  </span>
-                  {showLabels && <span className="truncate">{label}</span>}
-                </NavLink>
-              </li>
-            );
-          })}
+          {defaultItems.map((item) => (
+            <NavItemRow
+              key={item.to}
+              item={item}
+              showLabels={showLabels}
+              onPrefetch={handleNavPrefetch}
+              badge={
+                (hasActionUnread &&
+                  (item.to === moduleLinks.approvals || item.to === moduleLinks.activity)) ||
+                (pendingApprovalsCount > 0 && item.to === moduleLinks.approvals)
+              }
+            />
+          ))}
         </ul>
+
+        {commerceItems.length > 0 ? (
+          <div data-testid="nav-group-commerce">
+            {showLabels ? (
+              <div className="px-3 pb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                {t('nav.group.commerce')}
+              </div>
+            ) : null}
+            <ul className="space-y-1">
+              {commerceItems.map((item) => (
+                <NavItemRow
+                  key={item.to}
+                  item={item}
+                  showLabels={showLabels}
+                  onPrefetch={handleNavPrefetch}
+                />
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {websiteItems.length > 0 ? (
+          <div data-testid="nav-group-website">
+            {showLabels ? (
+              <div className="px-3 pb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                {t('nav.group.website')}
+              </div>
+            ) : null}
+            <ul className="space-y-1">
+              {websiteItems.map((item) => (
+                <NavItemRow
+                  key={item.to}
+                  item={item}
+                  showLabels={showLabels}
+                  onPrefetch={handleNavPrefetch}
+                />
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
 
       <div className="p-2 border-t border-border/40 space-y-1">

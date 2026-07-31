@@ -89,4 +89,56 @@ export class PrismaCommandLogRepository {
       createdAt: r.createdAt,
     }));
   }
+
+  async updateResult(
+    id: string,
+    data: { result: string; intent: string; confidence: number }
+  ): Promise<CommandLogEntry> {
+    const row = await prisma.command.update({
+      where: { id },
+      data: {
+        result: data.result,
+        intent: data.intent,
+        confidence: data.confidence,
+      },
+    });
+    return {
+      id: row.id,
+      command: row.command,
+      result: row.result,
+      intent: row.intent,
+      confidence: row.confidence,
+      createdAt: row.createdAt,
+    };
+  }
+
+  async updateBrainMemoryId(id: string, brainMemoryId: string): Promise<void> {
+    await prisma.command.update({
+      where: { id },
+      data: { brainMemoryId },
+    });
+  }
+
+  async findForUndo(id: string, tenantId: string) {
+    const row = await prisma.command.findFirst({ where: { id, tenantId } });
+    if (!row) return null;
+    return {
+      id: row.id,
+      tenantId: row.tenantId,
+      command: row.command,
+      intent: row.intent,
+      undoable: row.undoable,
+      revertedAt: row.revertedAt,
+      undoExpiresAt: row.undoExpiresAt,
+      brainMemoryId: row.brainMemoryId,
+      operationalMeta: row.operationalMeta,
+    };
+  }
+
+  async markReverted(id: string): Promise<void> {
+    await prisma.command.update({
+      where: { id },
+      data: { revertedAt: new Date() },
+    });
+  }
 }

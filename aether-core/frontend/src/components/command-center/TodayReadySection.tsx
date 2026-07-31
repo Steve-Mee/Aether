@@ -5,12 +5,12 @@ import { EmptyState } from '@/components/ui';
 import { t } from '@/lib/i18n';
 import { SectionLabel } from './primitives';
 import type { LinkedInsightId } from '@/lib/localIntentMatcher';
-import type { TodayReadyInsight, TodayReadyInsightId } from '@/lib/todayReadyDemo';
+import type { TodayReadyInsight, TodayReadyInsightId } from '@/lib/todayReady';
 import {
   subtitleForInsights,
   renderableInsights,
   executionModeForTodayReadyInsight,
-} from '@/lib/todayReadyDemo';
+} from '@/lib/todayReady';
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import TodayReadyInsightCard from '../insight-cards/TodayReadyInsightCard';
 

@@ -76,7 +76,7 @@ export const env = {
   isMockMode: dataSource === 'mock',
   isLiveMode: dataSource === 'live',
   suppliersDemo: isTruthy(import.meta.env.VITE_SUPPLIERS_DEMO),
-  liveDemo: !isFalsy(import.meta.env.VITE_LIVE_DEMO),
+  liveDemo: isTruthy(import.meta.env.VITE_LIVE_DEMO),
   hybridDemo: parseHybridDemo(import.meta.env.VITE_HYBRID_DEMO, import.meta.env.DEV),
   merchantDisplayName: optionalString(import.meta.env.VITE_MERCHANT_DISPLAY_NAME),
   authProvider: parseAuthProvider(import.meta.env.VITE_AUTH_PROVIDER),

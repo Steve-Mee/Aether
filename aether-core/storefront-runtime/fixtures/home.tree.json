@@ -1,0 +1,39 @@
+{
+  "type": "Page",
+  "children": [
+    {
+      "type": "Nav",
+      "props": {
+        "links": [
+          { "label": "Collectie", "href": "/products" },
+          { "label": "Over ons", "href": "/about" }
+        ]
+      }
+    },
+    {
+      "type": "Hero",
+      "props": {
+        "headline": "Handmade keramiek",
+        "subheadline": "Rustiek. Eerlijk. Lokaal.",
+        "ctaLabel": "Shop collectie",
+        "ctaHref": "/products"
+      }
+    },
+    {
+      "type": "ProductGrid",
+      "props": { "source": "featured", "limit": 8 }
+    },
+    {
+      "type": "FAQ",
+      "props": {
+        "items": [
+          { "q": "Verzendtijd?", "a": "2–4 werkdagen in NL." }
+        ]
+      }
+    },
+    {
+      "type": "Footer",
+      "props": { "text": "© Atelier Noord" }
+    }
+  ]
+}

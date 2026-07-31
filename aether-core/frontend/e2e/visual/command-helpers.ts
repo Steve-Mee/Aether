@@ -28,8 +28,13 @@ export async function gotoCommandCenter(page: Page) {
   await expect(page.getByTestId('command-center-ready')).toBeVisible({ timeout: 15000 });
 }
 
+/** Hero command input inside Command Center (not the global shell bar). */
+export function heroCommandInput(page: Page) {
+  return page.getByTestId('command-center-ready').getByRole('combobox').first();
+}
+
 export async function clickHeroSuggestion(page: Page, label: string | RegExp) {
-  const input = page.getByRole('textbox').first();
+  const input = heroCommandInput(page);
   await input.click();
   const panel = page.locator('#command-suggestions');
   await expect(panel).toBeVisible({ timeout: 15000 });
@@ -41,7 +46,7 @@ export async function clickHeroSuggestion(page: Page, label: string | RegExp) {
 
 export async function runHeroCommand(page: Page, command: string) {
   await gotoCommandCenter(page);
-  const input = page.getByRole('textbox').first();
+  const input = heroCommandInput(page);
   await input.fill(command);
   await input.press('Enter');
 }
