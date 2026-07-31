@@ -41,8 +41,13 @@ test-ci-out*.txt
 /_get_logs.bat
 /_extract.bat
 /_dl_a11y.bat
+/_prettier.bat
 /_fe_fail*.txt
 /_be_fail*.txt
+/_sf_fail*.txt
+/_fe_sum.txt
+/_be_sum.txt
+/_sf_sum.txt
 /_pilot_fail.txt
 /_lh_fail.txt
 /_pw_a11y/

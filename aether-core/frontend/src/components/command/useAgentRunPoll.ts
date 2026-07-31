@@ -41,8 +41,8 @@ export function useAgentRunPoll(result: CommandResult) {
 
   const isCheckpoint = Boolean(
     liveAgentRun?.checkpoint ??
-      brain?.checkpoint ??
-      (liveAgentRun?.status === 'awaiting_approval' || brain?.runStatus === 'awaiting_approval'),
+    brain?.checkpoint ??
+    (liveAgentRun?.status === 'awaiting_approval' || brain?.runStatus === 'awaiting_approval'),
   );
   const awaitingApprovalId = liveAgentRun?.awaitingApprovalId ?? brain?.awaitingApprovalId;
   const agentTranscript = liveAgentRun?.transcript ?? brain?.transcript;

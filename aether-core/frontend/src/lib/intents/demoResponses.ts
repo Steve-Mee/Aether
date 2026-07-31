@@ -81,7 +81,6 @@ export function getExplainTimeline(intentId: DemoIntentId): DemoExplainStep[] {
   return EXPLAIN_TIMELINES[intentId] ?? EXPLAIN_TIMELINES.UNKNOWN;
 }
 
-
 export function buildDemoResponse(
   command: string,
   intentOverride?: DemoIntentId,

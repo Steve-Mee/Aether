@@ -86,9 +86,7 @@ export default function PaymentsPage() {
           <div className="text-xs uppercase tracking-widest text-muted-foreground">
             {t('payments.paidAmount')}
           </div>
-          <div className="mt-2 text-sm font-medium">
-            {formatCurrency(summary?.paidAmount ?? 0)}
-          </div>
+          <div className="mt-2 text-sm font-medium">{formatCurrency(summary?.paidAmount ?? 0)}</div>
           <div className="text-xs text-muted-foreground mt-1">
             {summary?.paymentCount ?? 0} {t('payments.paymentCount')}
           </div>

@@ -68,13 +68,10 @@ export const websiteApi = {
   getPreviewUrl: (revisionId: string) =>
     apiFetch<PreviewUrlResponse>(apiRoutes.website.preview(revisionId)),
 
-  updatePageCopy: (
-    pageId: string,
-    input: { headline?: string; subheadline?: string }
-  ) =>
+  updatePageCopy: (pageId: string, input: { headline?: string; subheadline?: string }) =>
     apiFetch<CreateRevisionResponse & { pagePath: string; published: boolean }>(
       apiRoutes.website.pageCopy(pageId),
-      { method: 'PATCH', body: JSON.stringify(input) }
+      { method: 'PATCH', body: JSON.stringify(input) },
     ),
 };
 

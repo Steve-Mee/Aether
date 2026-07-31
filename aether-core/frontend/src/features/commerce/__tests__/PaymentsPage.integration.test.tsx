@@ -8,9 +8,8 @@ const listPayments = vi.fn();
 const listPaymentPayouts = vi.fn();
 
 vi.mock('@/features/commerce/api', async () => {
-  const actual = await vi.importActual<typeof import('@/features/commerce/api')>(
-    '@/features/commerce/api',
-  );
+  const actual =
+    await vi.importActual<typeof import('@/features/commerce/api')>('@/features/commerce/api');
   return {
     ...actual,
     commerceApi: {

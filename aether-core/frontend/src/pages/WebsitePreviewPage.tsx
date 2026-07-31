@@ -1,5 +1,11 @@
 import { Link } from 'react-router-dom';
-import { Button, EmptyState, ModuleListPageSkeleton, SegmentedControl, TextField } from '@/components/ui';
+import {
+  Button,
+  EmptyState,
+  ModuleListPageSkeleton,
+  SegmentedControl,
+  TextField,
+} from '@/components/ui';
 import ModulePageLayout from '@/components/shell/ModulePageLayout';
 import { t } from '@/lib/i18n';
 import { moduleLinks } from '@/lib/navigation/moduleLinks';

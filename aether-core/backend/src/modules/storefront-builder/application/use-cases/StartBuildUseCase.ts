@@ -61,8 +61,15 @@ export class StartBuildUseCase {
         planJson: revision.planJson,
       });
 
+      // QA the compiled output — brief-only / template plans store empty or
+      // template-key planJson; AllowlistCodegenCompiler expands pages at compile time.
       const qaResult = runStructuralBuildChecks({
-        planJson: revision.planJson,
+        planJson: {
+          pages: compiled.pages.map((p) => ({
+            path: p.path,
+            tree: p.treeJson,
+          })),
+        },
         artifactsPath: compiled.artifactsPath,
       });
       const qaReportJson = toStructuralQaReportJson(qaResult);

@@ -12,7 +12,10 @@ function upsertStep(steps: CommandStreamStep[], step: CommandStreamStep): Comman
   return [...steps, step];
 }
 
-function planUpdater(prev: CommandStreamPlan | null, event: AgentStreamEvent): CommandStreamPlan | null {
+function planUpdater(
+  prev: CommandStreamPlan | null,
+  event: AgentStreamEvent,
+): CommandStreamPlan | null {
   if (event.type !== 'step_progress' || event.planStep == null) return prev;
   return prev
     ? {
@@ -24,7 +27,11 @@ function planUpdater(prev: CommandStreamPlan | null, event: AgentStreamEvent): C
 }
 
 function buildPlan(event: AgentStreamEvent): CommandStreamPlan | null {
-  if ((event.type !== 'plan_ready' && event.type !== 'plan_revised') || !event.goal || !event.steps) {
+  if (
+    (event.type !== 'plan_ready' && event.type !== 'plan_revised') ||
+    !event.goal ||
+    !event.steps
+  ) {
     return null;
   }
   return {

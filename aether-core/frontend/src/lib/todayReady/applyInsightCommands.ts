@@ -1,10 +1,6 @@
 import type { DemoCommandResponse } from '../localIntentMatcher';
 import { syncTimeLabel } from './initialInsights';
-import {
-  promoteToFront,
-  refreshVisibleSiblings,
-  updateInsight,
-} from './insightLifecycle';
+import { promoteToFront, refreshVisibleSiblings, updateInsight } from './insightLifecycle';
 import type { TodayReadyInsight, TodayReadyInsightId } from './types';
 
 const OVERVIEW_REVEAL_ORDER: TodayReadyInsightId[] = ['pricing', 'supplier', 'approvals'];

@@ -118,7 +118,11 @@ export default function RouteContextStrip({ children }: RouteContextStripProps) 
         to={moduleLinks.websitePreview}
         label={t('nav.websitePreview')}
       />,
-      <ContextLink key="website-pages" to={moduleLinks.websitePages} label={t('nav.websitePages')} />,
+      <ContextLink
+        key="website-pages"
+        to={moduleLinks.websitePages}
+        label={t('nav.websitePages')}
+      />,
       <ContextLink key="pages-cms" to={moduleLinks.pages} label={t('nav.pages')} />,
       <ContextLink
         key="website-publish"

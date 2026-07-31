@@ -33,9 +33,7 @@ export function WebsitePagesView({ variant }: { variant: WebsitePagesVariant }) 
         ...(headline.trim() ? { headline: headline.trim() } : {}),
         ...(subheadline.trim() ? { subheadline: subheadline.trim() } : {}),
       });
-      setSaveOk(
-        t('website.pages.copySaved').replace('{version}', String(result.revision.version))
-      );
+      setSaveOk(t('website.pages.copySaved').replace('{version}', String(result.revision.version)));
       setEditingId(null);
       reload();
     } catch (err) {
@@ -89,7 +87,10 @@ export function WebsitePagesView({ variant }: { variant: WebsitePagesVariant }) 
             </p>
           ) : null}
           {saveError ? (
-            <p className="px-6 py-2 text-xs text-destructive" data-testid="website-pages-copy-error">
+            <p
+              className="px-6 py-2 text-xs text-destructive"
+              data-testid="website-pages-copy-error"
+            >
               {saveError}
             </p>
           ) : null}

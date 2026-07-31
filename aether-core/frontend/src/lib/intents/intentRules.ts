@@ -1,7 +1,13 @@
 import type { DemoIntentMatch } from './types';
 import { isCompoundCommand } from '../compoundCommandParser';
 import { INTENT_LABELS } from './metadata';
-import { INTENT_RULES, scoreRule, MIN_SCORE_THRESHOLD, normalize, specificityRank } from './intentRuleTable';
+import {
+  INTENT_RULES,
+  scoreRule,
+  MIN_SCORE_THRESHOLD,
+  normalize,
+  specificityRank,
+} from './intentRuleTable';
 
 export function detectIntent(input: string): DemoIntentMatch {
   const t = normalize(input);

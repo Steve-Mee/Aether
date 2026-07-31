@@ -13,7 +13,10 @@ export const INFORM_ONLY_INTENTS = new Set([
   'ORDER_STATUS',
 ]);
 
-export function inferRisk(confidence: number, requiresApproval?: boolean): 'low' | 'medium' | 'high' {
+export function inferRisk(
+  confidence: number,
+  requiresApproval?: boolean,
+): 'low' | 'medium' | 'high' {
   if (resultRequiresApproval(requiresApproval, confidence)) {
     return confidence >= 0.8 ? 'medium' : 'high';
   }

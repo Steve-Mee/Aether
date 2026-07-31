@@ -76,17 +76,10 @@ export default function PromotionsPage() {
           </label>
           <label className="block space-y-1 text-sm">
             <span>{t('promotions.col.value')}</span>
-            <TextField
-              type="number"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-            />
+            <TextField type="number" value={value} onChange={(e) => setValue(e.target.value)} />
           </label>
           <div className="flex gap-2">
-            <Button
-              disabled={!name.trim() || create.isPending}
-              onClick={() => create.mutate()}
-            >
+            <Button disabled={!name.trim() || create.isPending} onClick={() => create.mutate()}>
               {t('promotions.createSubmit')}
             </Button>
             <Button variant="secondary" onClick={() => setShowCreate(false)}>

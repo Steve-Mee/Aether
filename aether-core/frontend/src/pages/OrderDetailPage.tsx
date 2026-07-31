@@ -26,8 +26,7 @@ export default function OrderDetailPage() {
   const order = query.data;
 
   const ship = useMutation({
-    mutationFn: () =>
-      commerceApi.shipOrder(id, { carrier, trackingNumber: tracking }),
+    mutationFn: () => commerceApi.shipOrder(id, { carrier, trackingNumber: tracking }),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.order(id) }),
   });
 

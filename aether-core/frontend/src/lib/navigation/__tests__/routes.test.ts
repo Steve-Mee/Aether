@@ -118,7 +118,12 @@ describe('navigation routes', () => {
       expect(lazyPageMap[path], `missing lazy for ${path}`).toBeDefined();
       expect(appRoutes.some((r) => r.path === path)).toBe(true);
     }
-    expect(minimalNavItems.filter((i) => i.navGroup === 'commerce').map((i) => i.to).sort()).toEqual(
+    expect(
+      minimalNavItems
+        .filter((i) => i.navGroup === 'commerce')
+        .map((i) => i.to)
+        .sort(),
+    ).toEqual(
       ['/customers', '/inventory', '/orders', '/payments', '/products', '/promotions'].sort(),
     );
     expect(INTENT_ROUTES.INVENTORY_STATUS).toBe('/inventory');

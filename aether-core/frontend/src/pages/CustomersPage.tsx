@@ -76,7 +76,10 @@ export default function CustomersPage() {
             </thead>
             <tbody className="divide-y divide-border/40">
               {customers.map((customer) => (
-                <tr key={customer.id} className={cn(interactiveSurface(), 'hover:bg-surface-elevated/60')}>
+                <tr
+                  key={customer.id}
+                  className={cn(interactiveSurface(), 'hover:bg-surface-elevated/60')}
+                >
                   <td className="px-8 py-6 font-medium">
                     <Link to={`/customers/${customer.id}`} className="hover:underline">
                       {customer.name}

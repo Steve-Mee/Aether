@@ -188,7 +188,46 @@ describe('StartBuildUseCase', () => {
     );
   });
 
-  it('marks job failed when structural QA fails (no home page)', async () => {
+  it('happy path with empty stored planJson (Birth brief-only): QA uses compiled pages', async () => {
+    process.env.STOREFRONT_PREVIEW_HMAC_SECRET = 'test-storefront-preview-hmac-secret';
+    const emptyPlanRevision = new SiteRevision(
+      'rev_1',
+      'proj_1',
+      1,
+      { prompt: 'Birth Gate handmade ceramics', brand: { name: 'Birth Atelier' } },
+      {},
+      null,
+      null,
+      null,
+      null,
+      new Date()
+    );
+    const repo = makeRepo({
+      findRevisionById: jest.fn().mockResolvedValue(emptyPlanRevision),
+      attachCompiledArtifacts: jest.fn().mockResolvedValue(emptyPlanRevision),
+    });
+    const compiler = makeCompiler();
+    const previewHost = new LocalPreviewHostAdapter({
+      nowMs: () => 1_700_000_000_000,
+    });
+    const useCase = new StartBuildUseCase(repo, compiler, previewHost);
+
+    const job = await useCase.execute('tenant_a', 'rev_1');
+
+    expect(job.status).toBe('succeeded');
+    expect(repo.attachCompiledArtifacts).toHaveBeenCalledWith(
+      'tenant_a',
+      'rev_1',
+      expect.objectContaining({
+        qaReportJson: expect.objectContaining({
+          status: 'passed',
+          score: 0.9,
+        }),
+      })
+    );
+  });
+
+  it('marks job failed when structural QA fails (compiled pages lack home)', async () => {
     const badRevision = new SiteRevision(
       'rev_1',
       'proj_1',
@@ -208,7 +247,21 @@ describe('StartBuildUseCase', () => {
       findRevisionById: jest.fn().mockResolvedValue(badRevision),
       attachCompiledArtifacts: jest.fn().mockResolvedValue(badRevision),
     });
-    const compiler = makeCompiler();
+    const compiler = makeCompiler({
+      compile: jest.fn().mockResolvedValue({
+        artifactsPath: '/tmp/revisions/rev_1',
+        pages: [
+          {
+            path: '/about',
+            title: 'About',
+            seoJson: {},
+            treeJson: { type: 'Page', children: [] },
+            sortOrder: 0,
+          },
+        ],
+        tokensJson: {},
+      }),
+    });
     const previewHost: PreviewHostPort = { startPreview: jest.fn() };
     const useCase = new StartBuildUseCase(repo, compiler, previewHost);
 

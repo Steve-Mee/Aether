@@ -24,9 +24,8 @@ const baseProduct = {
 };
 
 vi.mock('@/features/commerce/api', async () => {
-  const actual = await vi.importActual<typeof import('@/features/commerce/api')>(
-    '@/features/commerce/api',
-  );
+  const actual =
+    await vi.importActual<typeof import('@/features/commerce/api')>('@/features/commerce/api');
   return {
     ...actual,
     commerceApi: {
@@ -91,19 +90,17 @@ describe('ProductDetailPage', () => {
 
   it('uploads media from the media tab', async () => {
     const user = userEvent.setup();
-    getProduct
-      .mockResolvedValueOnce({ ...baseProduct, media: [] })
-      .mockResolvedValueOnce({
-        ...baseProduct,
-        media: [
-          {
-            id: 'pm_1',
-            mediaAssetId: 'ma_1',
-            url: '/api/media/tenant_a/file.png',
-            mimeType: 'image/png',
-          },
-        ],
-      });
+    getProduct.mockResolvedValueOnce({ ...baseProduct, media: [] }).mockResolvedValueOnce({
+      ...baseProduct,
+      media: [
+        {
+          id: 'pm_1',
+          mediaAssetId: 'ma_1',
+          url: '/api/media/tenant_a/file.png',
+          mimeType: 'image/png',
+        },
+      ],
+    });
 
     renderWithProviders(
       <Routes>

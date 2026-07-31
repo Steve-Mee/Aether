@@ -177,9 +177,7 @@ export const httpDataAdapter: DataAdapter = {
   fetchEmailDetail: (id) => apiFetch<EmailDetail>(apiRoutes.emails.detail(id)),
 
   fetchNegotiations: async () => {
-    const res = await apiFetch<{ negotiations: NegotiationRow[] }>(
-      apiRoutes.agentic.negotiations,
-    );
+    const res = await apiFetch<{ negotiations: NegotiationRow[] }>(apiRoutes.agentic.negotiations);
     return res.negotiations ?? [];
   },
 

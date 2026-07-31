@@ -7,6 +7,7 @@ import {
   QaBelowThresholdError,
   QA_PUBLISH_THRESHOLD,
 } from '../application/use-cases/ProposePublishUseCase';
+import { BuildQaFailedError } from '../application/use-cases/StartBuildUseCase';
 import { RevisionNotFoundError } from '../application/use-cases/ListPagesUseCase';
 import {
   PageNotFoundForCopyError,
@@ -66,6 +67,14 @@ export function handleWebsiteError(res: Response, err: unknown): boolean {
     sendWebsiteError(res, 422, 'QA_BELOW_THRESHOLD', err.message, {
       qaScore: err.qaScore,
       threshold: QA_PUBLISH_THRESHOLD,
+    });
+    return true;
+  }
+  if (err instanceof BuildQaFailedError) {
+    sendWebsiteError(res, 422, 'QA_BELOW_THRESHOLD', err.message, {
+      qaScore: err.qaScore,
+      threshold: QA_PUBLISH_THRESHOLD,
+      qaReportJson: err.qaReportJson,
     });
     return true;
   }

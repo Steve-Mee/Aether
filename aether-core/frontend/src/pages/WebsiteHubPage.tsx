@@ -77,7 +77,11 @@ export default function WebsiteHubPage() {
               {create.isPending ? t('website.create.pending') : t('website.create.submit')}
             </Button>
             {create.isError ? (
-              <p className="text-sm text-destructive" data-testid="website-create-error" role="alert">
+              <p
+                className="text-sm text-destructive"
+                data-testid="website-create-error"
+                role="alert"
+              >
                 {aetherErrorMessage(create.error)}
               </p>
             ) : null}

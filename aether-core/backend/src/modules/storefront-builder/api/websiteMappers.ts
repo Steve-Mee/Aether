@@ -99,7 +99,11 @@ export function mapPageDetail(page: SitePage) {
 }
 
 export function mapBuildJobQueued(job: BuildJob) {
-  return { id: job.id, status: job.status };
+  return {
+    id: job.id,
+    status: job.status,
+    ...(job.previewUrl != null ? { previewUrl: job.previewUrl } : {}),
+  };
 }
 
 export function mapBuildJobDetail(job: BuildJob, qaReportJson: unknown = null) {

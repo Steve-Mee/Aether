@@ -1,6 +1,10 @@
 import { env } from '@/lib/config';
 import { getSuppliersDemoSnapshot } from './suppliersPageDemo';
-import type { SupplierOverviewApiResponse, SupplierOverviewStats, SuppliersViewModel } from '@/types/supplier';
+import type {
+  SupplierOverviewApiResponse,
+  SupplierOverviewStats,
+  SuppliersViewModel,
+} from '@/types/supplier';
 
 const emptyStats: SupplierOverviewStats = {
   totalMonitored: 0,

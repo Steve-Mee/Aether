@@ -719,6 +719,10 @@ components:
         status:
           type: string
           example: queued
+        previewUrl:
+          type: string
+          description: Present when build runs synchronously and succeeds (local/dev Birth path)
+          nullable: true
 
     BuildJobDetail:
       type: object

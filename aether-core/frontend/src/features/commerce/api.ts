@@ -111,7 +111,6 @@ export const commerceApi = {
       body: JSON.stringify(input),
     }).then((r) => r.promotion),
 
-
   getPaymentsSummary: () => apiFetch<PaymentsSummary>(apiRoutes.payments.summary),
 
   listPayments: () =>

@@ -107,7 +107,11 @@ export default function WebsitePublishPage() {
             ) : null}
           </section>
 
-          <div className="flex flex-wrap items-center gap-3" role="group" aria-label={t('nav.websitePublish')}>
+          <div
+            className="flex flex-wrap items-center gap-3"
+            role="group"
+            aria-label={t('nav.websitePublish')}
+          >
             <Button
               data-testid="website-publish-request"
               disabled={propose.isPending}
