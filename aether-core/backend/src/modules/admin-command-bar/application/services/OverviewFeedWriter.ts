@@ -1,7 +1,7 @@
-import { prisma } from '../../../../shared/prisma/client';
 import type { OverviewFeedEventType } from './OverviewFeedEmitter';
 import type { OverviewFeedItem, OverviewFeedKind } from './OverviewFeedService';
 import type { ActivityFeedItem } from './ActivityFeedService';
+import type { OverviewFeedPort } from '../ports/OverviewFeedPort';
 
 export interface FeedEventMeta {
   sourceType: string;
@@ -77,7 +77,12 @@ function metaFromPayload(
     sourceType,
     sourceId: itemId,
     module: typeof payload.module === 'string' ? payload.module : null,
-    riskLevel: typeof payload.riskLevel === 'string' ? payload.riskLevel : typeof payload.risk === 'string' ? payload.risk : null,
+    riskLevel:
+      typeof payload.riskLevel === 'string'
+        ? payload.riskLevel
+        : typeof payload.risk === 'string'
+          ? payload.risk
+          : null,
     executionMode: typeof payload.executionMode === 'string' ? payload.executionMode : null,
     agentKeys:
       typeof payload.agentKey === 'string'
@@ -95,19 +100,20 @@ export function buildIdempotencyKey(kind: OverviewFeedKind, itemId: string): str
   return `${kind}:${itemId}`;
 }
 
-export async function upsertFeedEvent(
-  tenantId: string,
-  eventType: OverviewFeedEventType,
-  item: OverviewFeedItem,
-  metaOverride?: Partial<FeedEventMeta>,
-): Promise<{ id: string }> {
-  const meta = { ...metaFromPayload(item.kind, item.id, item.payload), ...metaOverride };
-  const idempotencyKey = buildIdempotencyKey(item.kind, item.id);
-  const visible = eventType !== 'removed';
+export class OverviewFeedWriterService {
+  constructor(private overviewFeedPort: OverviewFeedPort) {}
 
-  const row = await prisma.overviewFeedEvent.upsert({
-    where: { idempotencyKey },
-    create: {
+  async upsertFeedEvent(
+    tenantId: string,
+    eventType: OverviewFeedEventType,
+    item: OverviewFeedItem,
+    metaOverride?: Partial<FeedEventMeta>,
+  ): Promise<{ id: string }> {
+    const meta = { ...metaFromPayload(item.kind, item.id, item.payload), ...metaOverride };
+    const idempotencyKey = buildIdempotencyKey(item.kind, item.id);
+    const visible = eventType !== 'removed';
+
+    return this.overviewFeedPort.upsertFeedEvent({
       tenantId,
       kind: item.kind,
       itemId: item.id,
@@ -123,19 +129,6 @@ export async function upsertFeedEvent(
       executionMode: meta.executionMode ?? null,
       agentKeys: meta.agentKeys ?? [],
       searchText: meta.searchText ?? null,
-    },
-    update: {
-      at: new Date(item.at),
-      eventType,
-      visible,
-      payload: item.payload as object,
-      module: meta.module ?? null,
-      riskLevel: meta.riskLevel ?? null,
-      executionMode: meta.executionMode ?? null,
-      agentKeys: meta.agentKeys ?? [],
-      searchText: meta.searchText ?? null,
-    },
-  });
-
-  return { id: row.id };
+    });
+  }
 }

@@ -36,6 +36,10 @@ describe('Command Bar brain RAG integration', () => {
     save: jest.fn().mockResolvedValue({ id: 'cmd_rag_1' }),
     findRecent: jest.fn(),
     findById: jest.fn(),
+    updateResult: jest.fn(),
+    updateBrainMemoryId: jest.fn(),
+    findForUndo: jest.fn(),
+    markReverted: jest.fn(),
   };
 
   const mockAdminData: AdminDataPort = {

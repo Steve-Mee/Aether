@@ -1,17 +1,22 @@
-jest.mock('../../../../../../shared/prisma/client', () => ({
-  prisma: {
-    merchantNotification: {
-      findFirst: jest.fn(),
-      update: jest.fn(),
-      upsert: jest.fn(),
-    },
-  },
-}));
-
-import { prisma } from '../../../../../../shared/prisma/client';
-import { applyNotificationGrouping } from '../NotificationGrouper';
+import type { NotificationPort } from '../../../ports/NotificationPort';
+import { NotificationGrouper } from '../NotificationGrouper';
 
 describe('NotificationGrouper', () => {
+  const notificationPort: jest.Mocked<NotificationPort> = {
+    listVisibleSince: jest.fn(),
+    listVisibleIdsSince: jest.fn(),
+    listByGroupKey: jest.fn(),
+    findRecentVisibleGroupMember: jest.fn(),
+    updateNotification: jest.fn(),
+    upsertNotification: jest.fn(),
+    listInboxStates: jest.fn(),
+    upsertInboxRead: jest.fn(),
+    upsertManyInboxRead: jest.fn(),
+    upsertDigestState: jest.fn(),
+    updateDigestState: jest.fn(),
+  };
+  const grouper = new NotificationGrouper(notificationPort);
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -29,20 +34,20 @@ describe('NotificationGrouper', () => {
   };
 
   it('passes through non-groupable kinds', async () => {
-    const result = await applyNotificationGrouping(
+    const result = await grouper.applyNotificationGrouping(
       't1',
       { ...baseNotification, kind: 'agent_handoff' },
       'overview_feed',
       'f1',
     );
     expect(result.hideIndividual).toBe(false);
-    expect(prisma.merchantNotification.findFirst).not.toHaveBeenCalled();
+    expect(notificationPort.findRecentVisibleGroupMember).not.toHaveBeenCalled();
   });
 
   it('starts new group when none exists', async () => {
-    (prisma.merchantNotification.findFirst as jest.Mock).mockResolvedValue(null);
+    notificationPort.findRecentVisibleGroupMember.mockResolvedValue(null);
 
-    const result = await applyNotificationGrouping(
+    const result = await grouper.applyNotificationGrouping(
       't1',
       baseNotification,
       'proactive_suggestion',
@@ -55,15 +60,21 @@ describe('NotificationGrouper', () => {
   });
 
   it('rolls up into existing group and hides individual', async () => {
-    (prisma.merchantNotification.findFirst as jest.Mock).mockResolvedValue({
+    notificationPort.findRecentVisibleGroupMember.mockResolvedValue({
       id: 'rollup-1',
-      groupCount: 1,
-      createdAt: new Date(),
+      kind: 'proactive_suggestion',
+      category: 'proactive_suggestion',
+      title: 'Rollup',
+      body: 'Body',
+      severity: 'info',
       href: '/command-center',
       actionLabel: 'Open',
+      groupKey: 'proactive:t1',
+      groupCount: 1,
+      createdAt: new Date(),
     });
 
-    const result = await applyNotificationGrouping(
+    const result = await grouper.applyNotificationGrouping(
       't1',
       baseNotification,
       'proactive_suggestion',
@@ -74,6 +85,6 @@ describe('NotificationGrouper', () => {
     expect(result.notification.id).toBe('rollup-1');
     expect(result.notification.groupCount).toBe(2);
     expect(result.notification.title).toContain('2');
-    expect(prisma.merchantNotification.update).toHaveBeenCalled();
+    expect(notificationPort.updateNotification).toHaveBeenCalled();
   });
 });

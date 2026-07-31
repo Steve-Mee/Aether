@@ -1,6 +1,4 @@
-import { prisma } from '../../../../shared/prisma/client';
-
-/** Estimated merchant minutes saved per successful NL command by intent. */
+import type { UiAdoptionMetrics, UiAdoptionMetricsPort } from '../ports/UiAdoptionMetricsPort';
 const MINUTES_PER_INTENT: Record<string, number> = {
   APPROVE_CHANGES: 5,
   PRICE_UPDATE: 8,
@@ -16,78 +14,46 @@ const MINUTES_PER_INTENT: Record<string, number> = {
 const DEFAULT_MINUTES = 3;
 const PERIOD_DAYS = 7;
 
-export interface UiAdoptionMetrics {
-  commands7d: number;
-  manualNavEvents7d: number;
-  nlActionShare7d: number;
-  timeSavedMinutes7d: number;
-  autonomousActions7d: number;
-  /** Policy-auto approvals + autonomy_execute in the last 24 hours */
-  lowRiskAutonomous24h: number;
-}
-
 function minutesForIntent(intent: string | null): number {
   if (!intent) return DEFAULT_MINUTES;
   return MINUTES_PER_INTENT[intent] ?? DEFAULT_MINUTES;
 }
 
-export async function computeUiAdoptionMetrics(tenantId: string): Promise<UiAdoptionMetrics> {
-  const since = new Date(Date.now() - PERIOD_DAYS * 86400000);
-  const since24h = new Date(Date.now() - 86400000);
+export class UiAdoptionMetricsService {
+  constructor(private metricsPort: UiAdoptionMetricsPort) {}
 
-  const [commands, navEvents, autonomyAudits, policyAuto24h, autonomyExecute24h] = await Promise.all([
-    prisma.command.findMany({
-      where: { tenantId, createdAt: { gte: since } },
-      select: { intent: true },
-    }),
-    prisma.auditLog.count({
-      where: {
-        tenantId,
-        module: 'admin-command-bar',
-        action: 'ui.navigation',
-        createdAt: { gte: since },
-      },
-    }),
-    prisma.auditLog.count({
-      where: {
-        tenantId,
-        action: { startsWith: 'autonomy_' },
-        createdAt: { gte: since },
-      },
-    }),
-    prisma.approval.count({
-      where: {
-        tenantId,
-        status: 'approved',
-        resolvedBy: 'policy-auto',
-        resolvedAt: { gte: since24h },
-      },
-    }),
-    prisma.auditLog.count({
-      where: {
-        tenantId,
-        action: 'autonomy_execute',
-        createdAt: { gte: since24h },
-      },
-    }),
-  ]);
+  async compute(tenantId: string): Promise<UiAdoptionMetrics> {
+    const since = new Date(Date.now() - PERIOD_DAYS * 86400000);
+    const since24h = new Date(Date.now() - 86400000);
 
-  const commands7d = commands.length;
-  const manualNavEvents7d = navEvents;
-  const denominator = Math.max(1, commands7d + manualNavEvents7d);
-  const nlActionShare7d = commands7d / denominator;
+    const [commands, navEvents, autonomyAudits, policyAuto24h, autonomyExecute24h] =
+      await Promise.all([
+        this.metricsPort.getCommandIntentsSince(tenantId, since),
+        this.metricsPort.countNavEventsSince(tenantId, since),
+        this.metricsPort.countAutonomyAuditsSince(tenantId, since),
+        this.metricsPort.countPolicyAutoApprovalsSince(tenantId, since24h),
+        this.metricsPort.countAutonomyExecuteSince(tenantId, since24h),
+      ]);
 
-  const timeSavedMinutes7d = commands.reduce(
-    (sum, c) => sum + minutesForIntent(c.intent),
-    0
-  );
+    const commands7d = commands.length;
+    const manualNavEvents7d = navEvents;
+    const denominator = Math.max(1, commands7d + manualNavEvents7d);
+    const nlActionShare7d = commands7d / denominator;
 
-  return {
-    commands7d,
-    manualNavEvents7d,
-    nlActionShare7d,
-    timeSavedMinutes7d,
-    autonomousActions7d: autonomyAudits,
-    lowRiskAutonomous24h: policyAuto24h + autonomyExecute24h,
-  };
+    const timeSavedMinutes7d = commands.reduce(
+      (sum, c) => sum + minutesForIntent(c.intent),
+      0
+    );
+
+    return {
+      commands7d,
+      manualNavEvents7d,
+      nlActionShare7d,
+      timeSavedMinutes7d,
+      autonomousActions7d: autonomyAudits,
+      lowRiskAutonomous24h: policyAuto24h + autonomyExecute24h,
+    };
+  }
 }
+
+export type { UiAdoptionMetrics };

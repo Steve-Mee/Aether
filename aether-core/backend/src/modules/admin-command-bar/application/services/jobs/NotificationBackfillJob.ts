@@ -1,15 +1,20 @@
-import { prisma } from '../../../../../shared/prisma/client';
-import { syncVirtualNotificationsToStore } from '../NotificationInboxService';
+import type { TenantDirectoryPort } from '../../ports/TenantDirectoryPort';
+import type { NotificationInboxService } from '../NotificationInboxService';
 import { logger } from '../../../../../shared/logging/logger';
 import { isNotificationMaterializeEnabled } from '../notifications/notificationConfig';
 
 export class NotificationBackfillJob {
+  constructor(
+    private tenantDirectory: TenantDirectoryPort,
+    private notificationInboxService: NotificationInboxService,
+  ) {}
+
   async runAll(): Promise<void> {
     if (!isNotificationMaterializeEnabled()) return;
-    const tenants = await prisma.tenantSettings.findMany({ select: { tenantId: true } });
-    for (const { tenantId } of tenants) {
+    const tenantIds = await this.tenantDirectory.listTenantIds();
+    for (const tenantId of tenantIds) {
       try {
-        const count = await syncVirtualNotificationsToStore(tenantId, 50);
+        const count = await this.notificationInboxService.syncVirtualNotificationsToStore(tenantId, 50);
         if (count > 0) {
           logger.info('notification_backfill_done', { tenantId, count });
         }
@@ -22,5 +27,3 @@ export class NotificationBackfillJob {
     }
   }
 }
-
-export const notificationBackfillJob = new NotificationBackfillJob();

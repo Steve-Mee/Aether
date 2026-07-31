@@ -37,6 +37,9 @@ Webhook routes validate via signature or shared secret — not Zod body schemas.
 - [x] `npm test` passes — no silent empty test runs in CI (`--passWithNoTests=false` on `test:ci`)
 - [x] Tenant isolation integration test in CI
 - [x] DB-backed mail→approval→rollback E2E in CI
+- [x] DB-backed storefront Birth Gate E2E in CI (`storefront-birth.e2e` — locked Appendix G path)
+- [x] DB-backed storefront create→build→publish-approval→public GET E2E in CI (`storefront-publish.e2e`)
+- [x] DB-backed storefront catalog→cart→checkout E2E in CI (`storefront-checkout.e2e`)
 - [x] CI workflow runs validate, migrate, build, lint, test with coverage threshold
 - [x] ≥60% coverage on application + API controller layers
 - [x] Architecture boundary tests in CI (`architecture.test.ts`)

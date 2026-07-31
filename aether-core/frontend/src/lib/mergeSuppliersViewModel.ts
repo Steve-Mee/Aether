@@ -1,19 +1,32 @@
 import { env } from '@/lib/config';
 import { getSuppliersDemoSnapshot } from './suppliersPageDemo';
-import type { SupplierOverviewApiResponse, SuppliersViewModel } from '@/types/supplier';
+import type { SupplierOverviewApiResponse, SupplierOverviewStats, SuppliersViewModel } from '@/types/supplier';
 
-const demoMode = env.suppliersDemo;
+const emptyStats: SupplierOverviewStats = {
+  totalMonitored: 0,
+  activeAutoSyncs: 0,
+  syncsCompletedThisMonth: 0,
+  priceDropsThisMonth: 0,
+  autonomousPriceAdjustments: 0,
+};
 
 export function mergeSuppliersViewModel(
   api: SupplierOverviewApiResponse | null,
 ): SuppliersViewModel {
-  const demo = getSuppliersDemoSnapshot();
-
-  if (demoMode || !api || api.suppliers.length === 0) {
+  if (env.suppliersDemo || env.isMockMode) {
+    const demo = getSuppliersDemoSnapshot();
     return {
       source: 'demo',
       stats: demo.stats,
       suppliers: demo.suppliers,
+    };
+  }
+
+  if (!api) {
+    return {
+      source: 'api',
+      stats: emptyStats,
+      suppliers: [],
     };
   }
 

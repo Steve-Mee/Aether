@@ -25,6 +25,12 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
     "prisma:validate": "prisma validate",
+    "openapi:generate:commerce": "node scripts/generate-commerce-openapi.mjs",
+    "openapi:generate:admin": "node scripts/generate-admin-openapi.mjs",
+    "openapi:generate:platform": "node scripts/generate-platform-openapi.mjs",
+    "openapi:enrich": "node scripts/enrich-openapi-schemas.mjs",
+    "openapi:generate": "npm run openapi:generate:commerce && npm run openapi:generate:admin && npm run openapi:generate:platform && npm run openapi:enrich",
+    "openapi:validate": "node scripts/validate-openapi.mjs",
     "brain:reembed": "ts-node scripts/reembed-brain-memory.ts",
     "brain:verify-schema": "ts-node scripts/verify-brain-schema.ts",
     "setup:env": "node ../scripts/generate-env.js",
@@ -68,6 +74,7 @@
     "redis": "^4.6.13"
   },
   "devDependencies": {
+    "@apidevtools/swagger-parser": "^12.0.0",
     "@sentry/cli": "^2.58.4",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.17",

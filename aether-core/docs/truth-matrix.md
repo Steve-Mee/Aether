@@ -16,7 +16,8 @@ Status legend: `implemented` | `partial` | `planned` | `experimental` | `scaffol
 | Supplier Intelligence v1 | implemented | Docker `supplier-worker`, `SUPPLIER_ALLOWLIST`, Playwright scrape in CI |
 | Admin Command Center v1 | partial | Parser-first NL commands with regex fallback; dashboard aggregations; command history |
 | Auth / RBAC / tenant | implemented | DB `ApiKey` + roles; tenant header must match key; viewer on read GET routes |
-| Payment fulfillment | partial | Stripe Connect + invoice drafts; Adyen Checkout experimental sandbox stub; reconciliation endpoint |
+| Payment fulfillment | partial | Stripe Connect + invoice drafts; Adyen Checkout experimental sandbox stub; admin summary/payouts shells; outcome-billing reconcile (not live PSP payouts) |
+| Promotions | partial | Prisma Promotion + GET/POST `/api/promotions`; AI `createPromotion` persists draft after approval |
 | Autonomous operations | implemented | Decision log + audit + events; viewer GET |
 | Predictive commerce | experimental | Order-history forecaster; feature-gated |
 | Self-evolving codebase | partial | Staged rollout state machine; sandbox gate; rollback endpoint |
@@ -52,6 +53,9 @@ Status legend: `implemented` | `partial` | `planned` | `experimental` | `scaffol
 | Phase 11 governed bilateral exchange + Phase 11b-lite merchant Settings UI (contracts, slug propose, packages) | partial | Bilateral exchange backend and merchant Settings UI |
 | Phase 11 operator federated deployment registry API + Settings panel | partial | Federated deployment registry API and Settings panel |
 | Phase 11 outbox relay leader, row claiming, consumer idempotency, TLS/SASL env | partial | [`event_outbox`](../backend/prisma/migrations/20260531220000_event_outbox/migration.sql) migration and Kafka configuration |
+| Storefront Builder (allowlisted AI codegen → preview → approve publish) | partial | Module + agents + Website admin UI + LocalPreview/LocalDeploy; Birth Gate [`BIRTH_GATE.md`](./BIRTH_GATE.md); locked Birth E2E [`storefront-birth.e2e.test.ts`](../backend/src/modules/storefront-builder/__tests__/storefront-birth.e2e.test.ts); vertical slice E2E [`storefront-publish.e2e.test.ts`](../backend/src/__tests__/storefront-publish.e2e.test.ts) (create→build→approve→public GET). Not “implemented”: no pilot edge deploy; no instant-live marketing claim. Schema: [`storefront-site-plan-schema.md`](./storefront-site-plan-schema.md) |
+| Public storefront API (`/api/storefront`) | partial | Feature-gated reads + cart/checkout; HTTP tests [`storefront.http.test.ts`](../backend/src/modules/storefront-builder/__tests__/storefront.http.test.ts), cart [`storefront.cart.http.test.ts`](../backend/src/modules/storefront-builder/__tests__/storefront.cart.http.test.ts); live path in Birth/publish E2E; DB checkout E2E [`storefront-checkout.e2e.test.ts`](../backend/src/__tests__/storefront-checkout.e2e.test.ts) |
+| Merchant dashboard commerce UI (product/order detail, customers, inventory, website IA) | partial | P11 pages + integration tests under `frontend/src/features/commerce/` and `frontend/src/features/website/`; IA: [`merchant-dashboard-ia.md`](./merchant-dashboard-ia.md). Not full CMS or pilot-complete polish. |
 
 ## Master Roadmap Fase 1 trace (Mail / Supplier / Admin v0.5)
 
@@ -78,4 +82,4 @@ Status legend: `implemented` | `partial` | `planned` | `experimental` | `scaffol
 
 **No green checkbox without provable evidence.** Status changes require update to `feature-status.json`, this matrix, and passing `npm run validate:dod`.
 
-Last updated: Elon-grade perfectie v0.8.1
+Last updated: 2026-07-28 — P14: Birth + checkout CI e2e evidence locked ([`storefront-birth.e2e.test.ts`](../backend/src/modules/storefront-builder/__tests__/storefront-birth.e2e.test.ts), [`storefront-checkout.e2e.test.ts`](../backend/src/__tests__/storefront-checkout.e2e.test.ts)); status remains **partial** (no pilot edge deploy; no “60s live” claim)

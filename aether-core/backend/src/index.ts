@@ -9,9 +9,7 @@ import { monitorSupplierJob } from './modules/supplier-intelligence/infrastructu
 import { monitorLowStockJob } from './modules/inventory-pricing/infrastructure/jobs/MonitorLowStockJob';
 import { proactiveBrainJob } from './ai/intelligence/proactive/ProactiveBrainJob';
 import { goalProgressJob } from './ai/intelligence/goals/jobs/GoalProgressJob';
-import { overviewFeedBackfillJob } from './modules/admin-command-bar/application/services/jobs/OverviewFeedBackfillJob';
-import { notificationDigestJob } from './modules/admin-command-bar/application/services/jobs/NotificationDigestJob';
-import { notificationBackfillJob } from './modules/admin-command-bar/application/services/jobs/NotificationBackfillJob';
+import { getCompositionRoot, processEventOutbox } from './bootstrap/compositionRoot';
 import { goalSuggestionJob } from './ai/intelligence/goals/jobs/GoalSuggestionJob';
 import { goalPatternDistillJob } from './ai/intelligence/goals/federated/jobs/GoalPatternDistillJob';
 import { proactiveEnrichmentJob } from './ai/intelligence/proactive/jobs/ProactiveEnrichmentJob';
@@ -24,7 +22,6 @@ import {
 } from './ai/intelligence/knowledge-transfer/jobs/KnowledgeContributionJob';
 import { federatedHiveJob } from './modules/zero-knowledge-hive-mind/infrastructure/jobs/FederatedHiveJobScheduler';
 import { getOperatingMetrics } from './shared/truth/operatingMetricsService';
-import { processEventOutbox, getCompositionRoot } from './bootstrap/compositionRoot';
 import { startOutboxRelayInterval } from './shared/messaging/OutboxRelayService';
 import { resolveOutboxRelayPollMs, isExternalBrokerEnabled } from './shared/messaging/messagingConfig';
 import {
@@ -34,6 +31,8 @@ import {
 import { getAgentPeerJobWorker } from './ai/intelligence/multi-agent/peer/jobs/AgentPeerJobWorker';
 import { PrismaAgentPeerJobAdapter } from './ai/intelligence/multi-agent/peer/jobs/PrismaAgentPeerJobAdapter';
 import { createAgentPatternContributionJob } from './ai/intelligence/global-knowledge/agent-patterns/AgentPatternContributionJob';
+import { storefrontOrganismJob } from './modules/storefront-builder/infrastructure/jobs/StorefrontOrganismJob';
+import { redisMemoryGovernor } from './shared/redis/RedisMemoryGovernor';
 
 const PORT = process.env.PORT || 9000;
 const DEFAULT_TENANT = process.env.AETHER_DEFAULT_TENANT ?? 'tenant_default';
@@ -116,9 +115,9 @@ async function startServer(): Promise<void> {
     monitorLowStockJob.start();
     proactiveBrainJob.start();
     goalProgressJob.start();
-    void overviewFeedBackfillJob.runOnce();
-    void notificationBackfillJob.runAll();
-    notificationDigestJob.start();
+    void getCompositionRoot().overviewFeedBackfillJob.runOnce();
+    void getCompositionRoot().notificationBackfillJob.runAll();
+    getCompositionRoot().notificationDigestJob.start();
     goalSuggestionJob.start();
     goalPatternDistillJob.start();
     proactiveEnrichmentJob.start();
@@ -133,6 +132,8 @@ async function startServer(): Promise<void> {
       getCompositionRoot().agentPatternSync
     );
     agentPatternJob.start();
+    storefrontOrganismJob.start();
+    redisMemoryGovernor.start();
     void maybeStartEcosystemJobs();
   });
 
@@ -140,6 +141,8 @@ async function startServer(): Promise<void> {
     imapPollingService.stop();
     monitorSupplierJob.stop();
     monitorLowStockJob.stop();
+    storefrontOrganismJob.stop();
+    redisMemoryGovernor.stop();
     knowledgeContributionJob.stop();
     knowledgeDistillJob.stop();
     knowledgeFederateJob.stop();

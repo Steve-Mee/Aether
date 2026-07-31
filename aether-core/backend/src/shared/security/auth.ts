@@ -88,6 +88,40 @@ function isPublicAuthPath(req: Request): boolean {
   return req.method === 'POST' && req.path === '/api/auth/login';
 }
 
+/**
+ * Public storefront API — slug-scoped; no API key.
+ * GET: site/catalog/pages; POST/PATCH/DELETE: carts + checkout (P13).
+ */
+export function isPublicStorefrontPath(req: Request): boolean {
+  const path = req.path || '';
+  const original = req.originalUrl?.split('?')[0] ?? '';
+  const candidate =
+    path.startsWith('/api/storefront')
+      ? path
+      : original.startsWith('/api/storefront')
+        ? original
+        : '';
+  if (!candidate) return false;
+
+  const method = (req.method || 'GET').toUpperCase();
+  if (method === 'GET') {
+    return (
+      candidate === '/api/storefront' || candidate.startsWith('/api/storefront/')
+    );
+  }
+
+  // Cart + checkout mutations (tenant slug in path; rate-limited at router).
+  if (method === 'POST' || method === 'PATCH' || method === 'DELETE') {
+    // /api/storefront/:slug/carts... or /api/storefront/:slug/checkout
+    return (
+      /^\/api\/storefront\/[^/]+\/carts(\/|$)/.test(candidate) ||
+      /^\/api\/storefront\/[^/]+\/checkout\/?$/.test(candidate)
+    );
+  }
+
+  return false;
+}
+
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   void (async () => {
     if (req.path === '/health') {
@@ -96,6 +130,11 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
     }
 
     if (isPublicAuthPath(req)) {
+      next();
+      return;
+    }
+
+    if (isPublicStorefrontPath(req)) {
       next();
       return;
     }

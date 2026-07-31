@@ -323,6 +323,29 @@ export function registerEventHandlers(): void {
   });
   markHandlerRegistered('outcome.recorded');
 
+  eventBus.subscribe('website.build.finished', async (event: DomainEventPayload) => {
+    const status = String(event.payload.status ?? '');
+    if (status !== 'failed') return;
+    const projectId = String(event.payload.projectId ?? '');
+    if (!projectId) return;
+    try {
+      const { applyBuildWallTrigger } = getCompositionRoot();
+      await applyBuildWallTrigger.execute(event.tenantId, projectId, {
+        status,
+        buildJobId: event.payload.buildJobId
+          ? String(event.payload.buildJobId)
+          : undefined,
+      });
+    } catch (error) {
+      logger.warn('storefront_organism_wall_handler_failed', {
+        tenantId: event.tenantId,
+        projectId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+  markHandlerRegistered('website.build.finished');
+
   registerProactiveEventHandlers();
   registerGoalEventHandlers();
 }

@@ -25,6 +25,36 @@ npm run dev
 Backend: http://localhost:9000  
 Frontend: `cd frontend && npm install && npm run dev` → http://localhost:5173
 
+## Local full-stack storefront demo (Website → preview → approve → public)
+
+Defaults keep builder / public API / deploy **off**. For a local vertical-slice demo, set in `aether-core/.env`:
+
+```bash
+STOREFRONT_BUILDER_ENABLED=true
+STOREFRONT_PUBLIC_API_ENABLED=true
+STOREFRONT_DEPLOY_ENABLED=false          # staged local deploy (CI-safe)
+STOREFRONT_PREVIEW_HMAC_SECRET=<long-random>
+# optional: STOREFRONT_ARTIFACTS_DIR, STOREFRONT_PREVIEW_PORT=4177  (Appendix G lock)
+```
+
+Then run three processes:
+
+```bash
+# 1) API
+cd aether-core/backend && npm run dev
+
+# 2) Merchant admin
+cd aether-core/frontend && npm run dev
+
+# 3) Storefront runtime (iframe + live URLs)
+cd aether-core/storefront-runtime && cp .env.example .env.local && npm install && npm run dev
+```
+
+Flow: open admin `/website` → create brief → build/preview (`localhost:4177/preview/...`) → propose publish → Approvals → approve → `GET /api/storefront/{slug}` and `http://localhost:4177/{slug}`.
+
+Security checklist: [`docs/storefront-security-checklist.md`](docs/storefront-security-checklist.md). Lighthouse budgets: [`docs/storefront-lighthouse.md`](docs/storefront-lighthouse.md).  
+OpenAPI SoT: [`storefront`](backend/openapi/storefront.yaml) · [`website`](backend/openapi/website.yaml) · [`commerce`](backend/openapi/commerce.yaml) · [`admin`](backend/openapi/admin.yaml) — `cd backend && npm run openapi:validate` (schema + route drift). Inventory: [`docs/storefront-api-contracts.md`](docs/storefront-api-contracts.md) §7. Prisma: [`backend/prisma/README.md`](backend/prisma/README.md).
+
 ## API keys (self-managed)
 
 AETHER uses **your own** API keys — not from Stripe, Google, or any external provider.

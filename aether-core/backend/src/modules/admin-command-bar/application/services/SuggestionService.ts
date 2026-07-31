@@ -1,6 +1,6 @@
 import { countPendingApprovals } from '../../../../shared/approval/approvalService';
-import { prisma } from '../../../../shared/prisma/client';
 import type { ProactiveSuggestionService } from '../../../../ai/intelligence/proactive/ProactiveSuggestionService';
+import type { SuggestionDataPort } from '../ports/SuggestionDataPort';
 
 export interface SuggestionDto {
   id: string;
@@ -25,7 +25,10 @@ export interface SuggestionsResponseDto {
 const UNDO_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export class SuggestionService {
-  constructor(private proactiveService?: ProactiveSuggestionService) {}
+  constructor(
+    private proactiveService?: ProactiveSuggestionService,
+    private suggestionData?: SuggestionDataPort
+  ) {}
 
   async getSuggestions(
     tenantId: string,
@@ -34,10 +37,8 @@ export class SuggestionService {
   ): Promise<SuggestionsResponseDto> {
     const [pendingApprovals, productCount, unreadEmails, proactiveItems] = await Promise.all([
       countPendingApprovals(tenantId),
-      prisma.product.count({ where: { tenantId } }),
-      prisma.emailMessage.count({
-        where: { tenantId, status: { in: ['received', 'escalated'] } },
-      }),
+      this.suggestionData?.countProducts(tenantId) ?? Promise.resolve(0),
+      this.suggestionData?.countUnreadEmails(tenantId) ?? Promise.resolve(0),
       this.proactiveService?.listActiveDtos(tenantId) ?? Promise.resolve([]),
     ]);
 

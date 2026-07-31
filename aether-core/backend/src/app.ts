@@ -12,9 +12,10 @@ import { setupExpressErrorHandler, shouldReportServerError } from './shared/obse
 import { sentryContextMiddleware } from './shared/observability/sentryContextMiddleware';
 import { featureGate } from './shared/features/featureFlags';
 import { logger } from './shared/logging/logger';
-import { bootstrapApplication } from './bootstrap/compositionRoot';
+import { bootstrapApplication, getCompositionRoot } from './bootstrap/compositionRoot';
 
 import productCatalogRouter from './modules/product-catalog';
+import productMediaRouter from './modules/product-catalog/mediaRouter';
 import aetherMailRouter from './modules/aether-mail';
 import supplierIntelligenceRouter from './modules/supplier-intelligence';
 import autonomousOperationsRouter from './modules/autonomous-operations';
@@ -22,6 +23,8 @@ import adminCommandBarRouter from './modules/admin-command-bar';
 import predictiveCommerceRouter from './modules/predictive-commerce';
 import selfEvolvingRouter from './modules/self-evolving-codebase';
 import orderManagementRouter from './modules/order-management';
+import customersRouter from './modules/customers';
+import promotionsRouter from './modules/promotions';
 import agenticCommerceRouter from './modules/agentic-commerce';
 import inventoryPricingRouter from './modules/inventory-pricing';
 import pluginSystemRouter from './modules/plugin-system';
@@ -34,6 +37,7 @@ import outcomesRouter from './modules/outcomes';
 import merchantAuthRouter from './modules/merchant-auth';
 import bilateralExchangeRouter from './modules/bilateral-exchange';
 import bilateralAdminRouter from './modules/bilateral-exchange/adminRouter';
+import { websiteRouter, storefrontRouter } from './modules/storefront-builder';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -65,10 +69,14 @@ export function createApp(): Express {
   });
 
   app.get('/health', (_req, res) => {
+    const { globalBrainMode } = getCompositionRoot();
     res.json({
       status: 'ok',
       version: VERSION,
       timestamp: new Date().toISOString(),
+      intelligence: {
+        globalBrain: globalBrainMode,
+      },
       modules: [
         'product-catalog',
         'aether-mail',
@@ -78,6 +86,7 @@ export function createApp(): Express {
         'predictive-commerce',
         'self-evolving-codebase',
         'order-management',
+        'promotions',
         'agentic-commerce',
         'inventory-pricing',
         'plugin-system',
@@ -87,21 +96,31 @@ export function createApp(): Express {
         'payment-fulfillment',
         'approvals',
         'outcomes',
+        'storefront-builder',
       ],
     });
   });
 
   app.use('/api/auth', merchantAuthRouter);
+  // Public storefront read API — no API key; tenant via SiteProject.slug (P04).
+  app.use(
+    '/api/storefront',
+    featureGate('storefront-public-api'),
+    storefrontRouter
+  );
   app.use(authMiddleware);
   app.use(sentryContextMiddleware);
   app.use(rateLimitMiddleware);
 
   app.use('/api/products', productCatalogRouter);
+  app.use('/api/media', productMediaRouter);
   app.use('/api/emails', aetherMailRouter);
   app.use('/api/suppliers', supplierIntelligenceRouter);
   app.use('/api/autonomous', autonomousOperationsRouter);
   app.use('/api/admin', adminCommandBarRouter);
   app.use('/api/orders', orderManagementRouter);
+  app.use('/api/customers', customersRouter);
+  app.use('/api/promotions', promotionsRouter);
   app.use('/api/inventory', inventoryPricingRouter);
   app.use('/api/plugins', pluginSystemRouter);
   app.use('/api/hive-mind', hiveMindRouter);
@@ -117,6 +136,7 @@ export function createApp(): Express {
   app.use('/api/agentic', featureGate('agentic'), agenticCommerceRouter);
   app.use('/api/physical', featureGate('physical'), physicalDigitalRouter);
   app.use('/api/co-ownership', featureGate('co-ownership'), merchantCoOwnershipRouter);
+  app.use('/api/website', featureGate('storefront-builder'), websiteRouter);
 
   setupExpressErrorHandler(app, {
     shouldHandleError(error) {

@@ -1,0 +1,1462 @@
+openapi: 3.0.3
+info:
+  title: AETHER Admin Command Bar API
+  description: |-
+    Admin API under `/api/admin/*` (auth + tenant required).
+    Wave 18: includes `/bilateral/audit` and enriched command/overview schemas.
+  version: 0.1.0
+servers:
+  - url: /api/admin
+    description: Authenticated admin command-bar API
+tags:
+  - name: Activity
+  - name: Agents
+  - name: Autonomy
+  - name: Bilateral
+  - name: Brain
+  - name: Command
+  - name: Commands
+  - name: ConnectedServices
+  - name: Dashboard
+  - name: Events
+  - name: Explain
+  - name: Federated
+  - name: Goals
+  - name: Notifications
+  - name: Observability
+  - name: OperatingMetrics
+  - name: Overview
+  - name: Policies
+  - name: ProactiveSuggestions
+  - name: Settings
+  - name: Suggestions
+  - name: Truth
+  - name: UiEvent
+  - name: Workflows
+paths:
+  /goals:
+    get:
+      tags:
+        - Goals
+      summary: GET /goals
+      operationId: get_goals
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Goals
+      summary: POST /goals
+      operationId: post_goals
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /agents:
+    get:
+      tags:
+        - Agents
+      summary: GET /agents
+      operationId: get_agents
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /command:
+    post:
+      tags:
+        - Command
+      summary: POST /command
+      operationId: post_command
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandOutcome'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteCommandRequest'
+  /explain:
+    get:
+      tags:
+        - Explain
+      summary: GET /explain
+      operationId: get_explain
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/goals/{id}':
+    delete:
+      tags:
+        - Goals
+      summary: 'DELETE /goals/{id}'
+      operationId: delete_goals_id
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    get:
+      tags:
+        - Goals
+      summary: 'GET /goals/{id}'
+      operationId: get_goals_id
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    put:
+      tags:
+        - Goals
+      summary: 'PUT /goals/{id}'
+      operationId: put_goals_id
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /activity:
+    get:
+      tags:
+        - Activity
+      summary: GET /activity
+      operationId: get_activity
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /autonomy:
+    get:
+      tags:
+        - Autonomy
+      summary: GET /autonomy
+      operationId: get_autonomy
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /commands:
+    get:
+      tags:
+        - Commands
+      summary: GET /commands
+      operationId: get_commands
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /overview:
+    get:
+      tags:
+        - Overview
+      summary: GET /overview
+      operationId: get_overview
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverviewFeedResponse'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 7
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 25
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: agentKey
+          in: query
+          schema:
+            type: string
+        - name: risk
+          in: query
+          schema:
+            type: string
+            enum:
+              - high
+              - low
+        - name: executionMode
+          in: query
+          schema:
+            type: string
+            enum:
+              - autonomous
+              - approval_required
+              - inform_only
+        - name: actionType
+          in: query
+          schema:
+            type: string
+            enum:
+              - proactive
+              - autonomous
+              - goal
+              - approval
+        - name: module
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+  /settings:
+    get:
+      tags:
+        - Settings
+      summary: GET /settings
+      operationId: get_settings
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    put:
+      tags:
+        - Settings
+      summary: PUT /settings
+      operationId: put_settings
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /ui-event:
+    post:
+      tags:
+        - UiEvent
+      summary: POST /ui-event
+      operationId: post_ui_event
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /dashboard:
+    get:
+      tags:
+        - Dashboard
+      summary: GET /dashboard
+      operationId: get_dashboard
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/lora:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/lora
+      operationId: get_brain_lora
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    put:
+      tags:
+        - Brain
+      summary: PUT /brain/lora
+      operationId: put_brain_lora
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /goals/plan:
+    post:
+      tags:
+        - Goals
+      summary: POST /goals/plan
+      operationId: post_goals_plan
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /suggestions:
+    get:
+      tags:
+        - Suggestions
+      summary: GET /suggestions
+      operationId: get_suggestions
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/workflows/{runId}':
+    get:
+      tags:
+        - Workflows
+      summary: 'GET /workflows/{runId}'
+      operationId: get_workflows_runId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/export:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/export
+      operationId: get_brain_export
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/import:
+    post:
+      tags:
+        - Brain
+      summary: POST /brain/import
+      operationId: post_brain_import
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /explain/diff:
+    get:
+      tags:
+        - Explain
+      summary: GET /explain/diff
+      operationId: get_explain_diff
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /truth-review:
+    post:
+      tags:
+        - Truth
+      summary: POST /truth-review
+      operationId: post_truth_review
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /truth-status:
+    get:
+      tags:
+        - Truth
+      summary: GET /truth-status
+      operationId: get_truth_status
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /events/stream:
+    get:
+      tags:
+        - Events
+      summary: GET /events/stream
+      operationId: get_events_stream
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: GET /notifications
+      operationId: get_notifications
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /agents/metrics:
+    get:
+      tags:
+        - Agents
+      summary: GET /agents/metrics
+      operationId: get_agents_metrics
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /autonomy/trace:
+    get:
+      tags:
+        - Autonomy
+      summary: GET /autonomy/trace
+      operationId: get_autonomy_trace
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/command/{commandId}/undo':
+    post:
+      tags:
+        - Command
+      summary: 'POST /command/{commandId}/undo'
+      operationId: post_command_commandId_undo
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /explain/export:
+    get:
+      tags:
+        - Explain
+      summary: GET /explain/export
+      operationId: get_explain_export
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /bilateral/audit:
+    get:
+      tags:
+        - Bilateral
+      summary: GET /bilateral/audit
+      operationId: get_bilateral_audit
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - audit
+                properties:
+                  audit:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BilateralAdminAuditRecord'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+      parameters:
+        - name: contractId
+          in: query
+          schema:
+            type: string
+  '/goals/{id}/refresh':
+    post:
+      tags:
+        - Goals
+      summary: 'POST /goals/{id}/refresh'
+      operationId: post_goals_id_refresh
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /goals/conflicts:
+    get:
+      tags:
+        - Goals
+      summary: GET /goals/conflicts
+      operationId: get_goals_conflicts
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/notifications/{id}':
+    delete:
+      tags:
+        - Notifications
+      summary: 'DELETE /notifications/{id}'
+      operationId: delete_notifications_id
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/agents/{agentKey}/activity':
+    get:
+      tags:
+        - Agents
+      summary: 'GET /agents/{agentKey}/activity'
+      operationId: get_agents_agentKey_activity
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /autonomy/simulate:
+    post:
+      tags:
+        - Autonomy
+      summary: POST /autonomy/simulate
+      operationId: post_autonomy_simulate
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /goals/plan/active:
+    get:
+      tags:
+        - Goals
+      summary: GET /goals/plan/active
+      operationId: get_goals_plan_active
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /goals/suggestions:
+    get:
+      tags:
+        - Goals
+      summary: GET /goals/suggestions
+      operationId: get_goals_suggestions
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /operating-metrics:
+    get:
+      tags:
+        - OperatingMetrics
+      summary: GET /operating-metrics
+      operationId: get_operating_metrics
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /overview/handoffs:
+    get:
+      tags:
+        - Overview
+      summary: GET /overview/handoffs
+      operationId: get_overview_handoffs
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /policies/approval:
+    get:
+      tags:
+        - Policies
+      summary: GET /policies/approval
+      operationId: get_policies_approval
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    put:
+      tags:
+        - Policies
+      summary: PUT /policies/approval
+      operationId: put_policies_approval
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /connected-services:
+    get:
+      tags:
+        - ConnectedServices
+      summary: GET /connected-services
+      operationId: get_connected_services
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/command/{commandId}/agent-run':
+    get:
+      tags:
+        - Command
+      summary: 'GET /command/{commandId}/agent-run'
+      operationId: get_command_commandId_agent_run
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/goals/{id}/suggestions':
+    get:
+      tags:
+        - Goals
+      summary: 'GET /goals/{id}/suggestions'
+      operationId: get_goals_id_suggestions
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/global-patches:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/global-patches
+      operationId: get_brain_global_patches
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Brain
+      summary: POST /brain/global-patches
+      operationId: post_brain_global_patches
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/memory/entries:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/memory/entries
+      operationId: get_brain_memory_entries
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/memory/summary:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/memory/summary
+      operationId: get_brain_memory_summary
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /command/tools/reject:
+    post:
+      tags:
+        - Command
+      summary: POST /command/tools/reject
+      operationId: post_command_tools_reject
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /explain/audit-export:
+    get:
+      tags:
+        - Explain
+      summary: GET /explain/audit-export
+      operationId: get_explain_audit_export
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/notifications/{id}/read':
+    patch:
+      tags:
+        - Notifications
+      summary: 'PATCH /notifications/{id}/read'
+      operationId: patch_notifications_id_read
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /observability/status:
+    get:
+      tags:
+        - Observability
+      summary: GET /observability/status
+      operationId: get_observability_status
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /command/tools/execute:
+    post:
+      tags:
+        - Command
+      summary: POST /command/tools/execute
+      operationId: post_command_tools_execute
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /federated/deployments:
+    get:
+      tags:
+        - Federated
+      summary: GET /federated/deployments
+      operationId: get_federated_deployments
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Federated
+      summary: POST /federated/deployments
+      operationId: post_federated_deployments
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /proactive-suggestions:
+    get:
+      tags:
+        - ProactiveSuggestions
+      summary: GET /proactive-suggestions
+      operationId: get_proactive_suggestions
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/brain/global-patches/{id}':
+    put:
+      tags:
+        - Brain
+      summary: 'PUT /brain/global-patches/{id}'
+      operationId: put_brain_global_patches_id
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/brain/memory/entries/{id}':
+    delete:
+      tags:
+        - Brain
+      summary: 'DELETE /brain/memory/entries/{id}'
+      operationId: delete_brain_memory_entries_id
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/federated/deployments/{deploymentId}':
+    delete:
+      tags:
+        - Federated
+      summary: 'DELETE /federated/deployments/{deploymentId}'
+      operationId: delete_federated_deployments_deploymentId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    put:
+      tags:
+        - Federated
+      summary: 'PUT /federated/deployments/{deploymentId}'
+      operationId: put_federated_deployments_deploymentId
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/memory/consolidate:
+    post:
+      tags:
+        - Brain
+      summary: POST /brain/memory/consolidate
+      operationId: post_brain_memory_consolidate
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/commands/{runId}/shared-memory':
+    get:
+      tags:
+        - Commands
+      summary: 'GET /commands/{runId}/shared-memory'
+      operationId: get_commands_runId_shared_memory
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/collective-insights:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/collective-insights
+      operationId: get_brain_collective_insights
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /observability/probe-error:
+    post:
+      tags:
+        - Observability
+      summary: POST /observability/probe-error
+      operationId: post_observability_probe_error
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/contribution-history:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/contribution-history
+      operationId: get_brain_contribution_history
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/contribution-summary:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/contribution-summary
+      operationId: get_brain_contribution_summary
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/reflections/timeline:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/reflections/timeline
+      operationId: get_brain_reflections_timeline
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/command/{commandId}/agent-run/cancel':
+    post:
+      tags:
+        - Command
+      summary: 'POST /command/{commandId}/agent-run/cancel'
+      operationId: post_command_commandId_agent_run_cancel
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/command/{commandId}/agent-run/resume':
+    post:
+      tags:
+        - Command
+      summary: 'POST /command/{commandId}/agent-run/resume'
+      operationId: post_command_commandId_agent_run_resume
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/goals/suggestions/{id}/accept':
+    post:
+      tags:
+        - Goals
+      summary: 'POST /goals/suggestions/{id}/accept'
+      operationId: post_goals_suggestions_id_accept
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/global-patches/active:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/global-patches/active
+      operationId: get_brain_global_patches_active
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/goals/suggestions/{id}/dismiss':
+    post:
+      tags:
+        - Goals
+      summary: 'POST /goals/suggestions/{id}/dismiss'
+      operationId: post_goals_suggestions_id_dismiss
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /notifications/mark-all-read:
+    post:
+      tags:
+        - Notifications
+      summary: POST /notifications/mark-all-read
+      operationId: post_notifications_mark_all_read
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/reflection-experiments:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/reflection-experiments
+      operationId: get_brain_reflection_experiments
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Brain
+      summary: POST /brain/reflection-experiments
+      operationId: post_brain_reflection_experiments
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /federated/deployments/status:
+    get:
+      tags:
+        - Federated
+      summary: GET /federated/deployments/status
+      operationId: get_federated_deployments_status
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /notifications/push/subscribe:
+    post:
+      tags:
+        - Notifications
+      summary: POST /notifications/push/subscribe
+      operationId: post_notifications_push_subscribe
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /notifications/push/vapid-key:
+    get:
+      tags:
+        - Notifications
+      summary: GET /notifications/push/vapid-key
+      operationId: get_notifications_push_vapid_key
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/global-knowledge/status:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/global-knowledge/status
+      operationId: get_brain_global_knowledge_status
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/brain/global-patches/{id}/retire':
+    post:
+      tags:
+        - Brain
+      summary: 'POST /brain/global-patches/{id}/retire'
+      operationId: post_brain_global_patches_id_retire
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/memory/clear-short-term:
+    post:
+      tags:
+        - Brain
+      summary: POST /brain/memory/clear-short-term
+      operationId: post_brain_memory_clear_short_term
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/brain/global-patches/{id}/publish':
+    post:
+      tags:
+        - Brain
+      summary: 'POST /brain/global-patches/{id}/publish'
+      operationId: post_brain_global_patches_id_publish
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /notifications/push/unsubscribe:
+    post:
+      tags:
+        - Notifications
+      summary: POST /notifications/push/unsubscribe
+      operationId: post_notifications_push_unsubscribe
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/proactive-suggestions/{id}/snooze':
+    post:
+      tags:
+        - ProactiveSuggestions
+      summary: 'POST /proactive-suggestions/{id}/snooze'
+      operationId: post_proactive_suggestions_id_snooze
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/proactive-suggestions/{id}/dismiss':
+    post:
+      tags:
+        - ProactiveSuggestions
+      summary: 'POST /proactive-suggestions/{id}/dismiss'
+      operationId: post_proactive_suggestions_id_dismiss
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/proactive-suggestions/{id}/execute':
+    post:
+      tags:
+        - ProactiveSuggestions
+      summary: 'POST /proactive-suggestions/{id}/execute'
+      operationId: post_proactive_suggestions_id_execute
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /brain/global-knowledge/sync-history:
+    get:
+      tags:
+        - Brain
+      summary: GET /brain/global-knowledge/sync-history
+      operationId: get_brain_global_knowledge_sync_history
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/brain/reflection-experiments/{id}/stop':
+    post:
+      tags:
+        - Brain
+      summary: 'POST /brain/reflection-experiments/{id}/stop'
+      operationId: post_brain_reflection_experiments_id_stop
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/brain/reflection-experiments/{id}/outcomes':
+    get:
+      tags:
+        - Brain
+      summary: 'GET /brain/reflection-experiments/{id}/outcomes'
+      operationId: get_brain_reflection_experiments_id_outcomes
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+components:
+  schemas:
+    ExecuteCommandRequest:
+      type: object
+      required:
+        - command
+      properties:
+        command:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    CommandOutcome:
+      type: object
+      required:
+        - success
+        - originalCommand
+        - parsedIntent
+        - action
+        - result
+        - confidence
+        - timestamp
+        - commandId
+        - undoable
+      properties:
+        success:
+          type: boolean
+        originalCommand:
+          type: string
+        parsedIntent:
+          type: string
+        action:
+          type: string
+        result: {}
+        confidence:
+          type: number
+        verifiedUplift: {}
+        timestamp:
+          type: string
+          format: date-time
+        commandId:
+          type: string
+        undoable:
+          type: boolean
+        undoExpiresAt:
+          type: string
+          format: date-time
+        requiresApproval:
+          type: boolean
+        riskBand:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+        brain:
+          type: object
+          additionalProperties: true
+          properties:
+            specialist:
+              type: string
+            agents:
+              type: array
+              items:
+                type: string
+            executionMode:
+              type: string
+            handoffChain:
+              type: array
+              items: {}
+            agentContributions: {}
+            actionConflicts: {}
+            synthesisSource:
+              type: string
+      additionalProperties: true
+    OverviewFeedItem:
+      type: object
+      required:
+        - kind
+        - at
+        - id
+        - cursor
+        - payload
+      properties:
+        kind:
+          type: string
+          enum:
+            - activity
+            - proactive
+            - approval
+            - goal_snapshot
+            - goal_completed
+            - agent_handoff
+        at:
+          type: string
+          format: date-time
+        id:
+          type: string
+        cursor:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+    OverviewFeedResponse:
+      type: object
+      required:
+        - items
+        - nextCursor
+        - hasMore
+        - meta
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OverviewFeedItem'
+        nextCursor:
+          type: string
+          nullable: true
+        hasMore:
+          type: boolean
+        meta:
+          type: object
+          required:
+            - pendingApprovals
+            - proactiveCount
+            - activeGoals
+          properties:
+            pendingApprovals:
+              type: integer
+            proactiveCount:
+              type: integer
+            activeGoals:
+              type: integer
+    BilateralAdminAuditRecord:
+      type: object
+      required:
+        - id
+        - contractId
+        - action
+        - actorTenantId
+        - recordCount
+        - fieldHash
+        - createdAt
+      properties:
+        id:
+          type: string
+        contractId:
+          type: string
+        action:
+          type: string
+        actorTenantId:
+          type: string
+        recordCount:
+          type: integer
+        fieldHash:
+          type: string
+        createdAt:
+          type: string
+          format: date-time

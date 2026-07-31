@@ -1,6 +1,6 @@
 {
   "version": "0.8.1",
-  "updatedAt": "2026-06-27",
+  "updatedAt": "2026-07-28",
   "claimPolicy": "No feature marked implemented without runtime evidence, automated test, and CI gate.",
   "features": {
     "product-catalog": { "status": "live", "label": "Product catalog CRUD" },
@@ -9,7 +9,8 @@
     "supplier-intelligence": { "status": "live", "label": "Supplier Intelligence v1" },
     "admin-command-bar": { "status": "partial", "label": "Admin Command Center v1" },
     "auth-rbac": { "status": "live", "label": "Auth / RBAC / tenant" },
-    "payment-fulfillment": { "status": "partial", "label": "Payment fulfillment" },
+    "payment-fulfillment": { "status": "partial", "label": "Payment fulfillment (transaction list + summary; payouts/reconcile shells; no live payout ledger)" },
+    "promotions": { "status": "partial", "label": "Promotions list/create draft + AI propose persist" },
     "autonomous-operations": { "status": "live", "label": "Autonomous operations" },
     "predictive-commerce": { "status": "experimental", "label": "Predictive commerce" },
     "self-evolving": { "status": "partial", "label": "Self-evolving codebase" },
@@ -101,6 +102,22 @@
     "kafka-production-hardening": {
       "status": "partial",
       "label": "Phase 11 outbox relay leader, row claiming, consumer idempotency, TLS/SASL env"
+    },
+    "storefront-builder": {
+      "status": "partial",
+      "label": "Storefront Builder (Site* + APIs + codegen + Website UI + LocalEdge/Cloudflare deploy + Hero copy-edit; Birth/publish E2E; not WordPress CMS)"
+    },
+    "storefront-public-api": {
+      "status": "partial",
+      "label": "Public storefront API (resolve/pages/catalog + cart/checkout; Redis RL + spill fallback; Birth + checkout E2E)"
+    },
+    "merchant-dashboard-commerce-ui": {
+      "status": "partial",
+      "label": "Merchant dashboard commerce UI (products/orders/customers/inventory/promotions + payments transactions + website hub/copy-edit; not drag-drop CMS)"
+    },
+    "inventory-pricing": {
+      "status": "partial",
+      "label": "Inventory list/low-stock/adjust (dashboard + API; not full WMS)"
     }
   },
   "phases": {

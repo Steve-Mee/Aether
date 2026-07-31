@@ -36,7 +36,7 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
 Runs in `aether-core/backend` with Postgres, Stripe mock, and Ollama services.
 
-- Integration tests (supplier, Stripe, mail, webhooks, tenant isolation, merchant auth)
+- Integration tests (supplier, Stripe, mail, storefront Birth Gate + publish + checkout, webhooks, tenant isolation, merchant auth)
 - Prisma validate, migrate, generate
 - TypeScript check and build
 - Jest coverage gate (≥60%)

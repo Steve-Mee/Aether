@@ -6,38 +6,11 @@ describe('Architecture boundary tests', () => {
   const BOOTSTRAP_ROOT = path.resolve(__dirname, '../bootstrap');
 
   /** Read-side overview/notification services pending repository extraction. */
-  const APPLICATION_PRISMA_ALLOWLIST = new Set([
-    'admin-command-bar/application/services/ActivityFeedService.ts',
-    'admin-command-bar/application/services/AgentRosterService.ts',
-    'admin-command-bar/application/services/HandoffOverviewService.ts',
-    'admin-command-bar/application/services/jobs/NotificationBackfillJob.ts',
-    'admin-command-bar/application/services/jobs/NotificationDigestJob.ts',
-    'admin-command-bar/application/services/jobs/OverviewDigestJob.ts',
-    'admin-command-bar/application/services/jobs/OverviewFeedBackfillJob.ts',
-    'admin-command-bar/application/services/NotificationInboxService.ts',
-    'admin-command-bar/application/services/NotificationReadStateService.ts',
-    'admin-command-bar/application/services/notifications/NotificationGrouper.ts',
-    'admin-command-bar/application/services/notifications/NotificationRepository.ts',
-    'admin-command-bar/application/services/notifications/NotificationWriter.ts',
-    'admin-command-bar/application/services/OverviewFeedService.ts',
-    'admin-command-bar/application/services/OverviewFeedWriter.ts',
-    'admin-command-bar/application/services/OverviewNotificationDispatcher.ts',
-    'admin-command-bar/application/services/SuggestionService.ts',
-    'admin-command-bar/application/services/UiAdoptionMetricsService.ts',
-    'admin-command-bar/application/use-cases/ExecuteNaturalLanguageCommandUseCase.ts',
-    'admin-command-bar/application/use-cases/UndoCommandUseCase.ts',
-    'bilateral-exchange/application/BilateralExchangeService.ts',
-    'bilateral-exchange/application/BilateralExportBuilder.ts',
-    'merchant-auth/application/LoginUseCase.ts',
-  ]);
+  const APPLICATION_PRISMA_ALLOWLIST = new Set<string>([]);
 
-  const CONTROLLER_PRISMA_ALLOWLIST = new Set([
-    'admin-command-bar/api/controllers/AdminController.ts',
-  ]);
+  const CONTROLLER_PRISMA_ALLOWLIST = new Set<string>([]);
 
-  const CROSS_MODULE_INFRA_ALLOWLIST = new Set([
-    'admin-command-bar/application/services/OverviewNotificationDispatcher.ts',
-  ]);
+  const CROSS_MODULE_INFRA_ALLOWLIST = new Set<string>([]);
 
   function relModulePath(file: string): string {
     return path.relative(MODULES_ROOT, file).replace(/\\/g, '/');
@@ -79,7 +52,10 @@ describe('Architecture boundary tests', () => {
       const rel = relModulePath(file);
       if (CONTROLLER_PRISMA_ALLOWLIST.has(rel)) continue;
       const content = fs.readFileSync(file, 'utf8');
-      if (/from ['"].*shared\/prisma\/client['"]/.test(content)) {
+      if (
+        /from ['"].*shared\/prisma\/client['"]/.test(content) ||
+        /from ['"]@prisma\/client['"]/.test(content)
+      ) {
         violations.push(rel);
       }
     }
@@ -96,8 +72,35 @@ describe('Architecture boundary tests', () => {
       if (/from ['"]\.\.\/\.\.\/infrastructure\//.test(content)) {
         violations.push(path.relative(MODULES_ROOT, file));
       }
+      // Also catch application/services → ../../infrastructure (one level deeper)
+      if (/from ['"]\.\.\/\.\.\/\.\.\/infrastructure\//.test(content)) {
+        violations.push(path.relative(MODULES_ROOT, file));
+      }
     }
     expect(violations).toEqual([]);
+  });
+
+  it('storefront-builder websiteRouter must not import prisma; mutations use requireOperator', () => {
+    const apiDir = path.join(MODULES_ROOT, 'storefront-builder', 'api');
+    const routerPath = path.join(apiDir, 'websiteRouter.ts');
+    const routeModules = [
+      'websiteRouter.ts',
+      'websiteProjectsRoutes.ts',
+      'websiteRevisionsRoutes.ts',
+      'websitePagesRoutes.ts',
+      'websiteBuildsPreviewRoutes.ts',
+    ];
+
+    expect(fs.existsSync(routerPath)).toBe(true);
+
+    const combined = routeModules
+      .map((file) => fs.readFileSync(path.join(apiDir, file), 'utf8'))
+      .join('\n');
+
+    expect(combined).not.toMatch(/shared\/prisma\/client/);
+    expect(combined).not.toMatch(/WebsiteController/);
+    expect(combined).toMatch(/requireOperator/);
+    expect(combined).toMatch(/requireViewer/);
   });
 
   it('composition root exists and wires bootstrap', () => {
@@ -105,7 +108,7 @@ describe('Architecture boundary tests', () => {
     expect(fs.existsSync(rootPath)).toBe(true);
     const content = fs.readFileSync(rootPath, 'utf8');
     expect(content).toContain('bootstrapApplication');
-    expect(content).toContain('adminData');
+    expect(content).toContain('wireAdmin');
   });
 
   it('no tenant_default in infrastructure persistence', () => {
@@ -131,7 +134,10 @@ describe('Architecture boundary tests', () => {
       const rel = relModulePath(file);
       if (APPLICATION_PRISMA_ALLOWLIST.has(rel)) continue;
       const content = fs.readFileSync(file, 'utf8');
-      if (/from ['"].*shared\/prisma\/client['"]/.test(content)) {
+      if (
+        /from ['"].*shared\/prisma\/client['"]/.test(content) ||
+        /from ['"]@prisma\/client['"]/.test(content)
+      ) {
         violations.push(rel);
       }
     }
@@ -157,6 +163,8 @@ describe('Architecture boundary tests', () => {
         } else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts')) {
           const rel = path.relative(srcRoot, full).replace(/\\/g, '/');
           if (rel === 'bootstrap/compositionRoot.ts') continue;
+          if (rel.startsWith('bootstrap/wiring/')) continue;
+          if (rel.startsWith('bootstrap/wiring/')) continue;
           if (rel.includes('ai/orchestrator/TaskExecutor.ts')) continue;
           const content = fs.readFileSync(full, 'utf8');
           if (/new MonitorSupplierUseCase\s*\(/.test(content)) {

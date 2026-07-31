@@ -1,0 +1,60 @@
+import { commandCenterParent, type AppRouteDefinition } from './routes.types';
+
+/** Ops / deep module routes — suppliers, emails, autonomous, negotiations, outcomes, settings. */
+export const opsRoutes: AppRouteDefinition[] = [
+  {
+    path: '/emails',
+    module: 'emails',
+    sidebarGroup: 'deep',
+    layout: 'deep',
+    parentNav: commandCenterParent,
+    skeleton: 'list',
+    breadcrumbLabelKey: 'nav.emails',
+  },
+  {
+    path: '/suppliers',
+    module: 'suppliers',
+    sidebarGroup: 'deep',
+    layout: 'deep',
+    inNav: true,
+    parentNav: commandCenterParent,
+    skeleton: 'list',
+    breadcrumbLabelKey: 'nav.suppliers',
+  },
+  {
+    path: '/autonomous',
+    module: 'autonomous',
+    sidebarGroup: 'deep',
+    layout: 'deep',
+    parentNav: commandCenterParent,
+    skeleton: 'module',
+    breadcrumbLabelKey: 'nav.autonomous',
+  },
+  {
+    path: '/negotiations',
+    module: 'negotiations',
+    sidebarGroup: 'deep',
+    layout: 'deep',
+    parentNav: commandCenterParent,
+    skeleton: 'module',
+    breadcrumbLabelKey: 'nav.negotiations',
+  },
+  {
+    path: '/outcomes',
+    module: 'outcomes',
+    sidebarGroup: 'deep',
+    layout: 'deep',
+    parentNav: commandCenterParent,
+    skeleton: 'module',
+    breadcrumbLabelKey: 'nav.outcomes',
+  },
+  {
+    path: '/settings',
+    module: 'settings',
+    sidebarGroup: 'deep',
+    layout: 'settings',
+    parentNav: commandCenterParent,
+    skeleton: 'module',
+    breadcrumbLabelKey: 'nav.settings',
+  },
+];

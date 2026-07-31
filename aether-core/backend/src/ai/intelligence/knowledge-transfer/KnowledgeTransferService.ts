@@ -8,8 +8,9 @@ import type {
 /**
  * Knowledge exchange between personal and global brain.
  *
- * TODO: Bridge to zero-knowledge-hive-mind SubmitInsightUseCase / QueryInsightsUseCase
- * for anonymized submission and privacy-budget enforcement.
+ * Without a hive-mind bridge this service does not persist or forward insights.
+ * It must never claim `accepted: true` while discarding payloads.
+ * Wire HiveMindKnowledgeTransferAdapter via IntelligenceLayerDeps for real transfer.
  */
 export class KnowledgeTransferService implements KnowledgeTransferPort {
   private enabled = process.env.INTELLIGENCE_KNOWLEDGE_TRANSFER_ENABLED === 'true';
@@ -18,7 +19,7 @@ export class KnowledgeTransferService implements KnowledgeTransferPort {
     if (!this.enabled) {
       return { updates: [], version: '0.0.0' };
     }
-    // Future: pull aggregated updates scoped for merchantId (tenant)
+    // No hive bridge in this implementation — honest empty result
     void merchantId;
     return { updates: [], version: '0.0.0' };
   }
@@ -27,12 +28,9 @@ export class KnowledgeTransferService implements KnowledgeTransferPort {
     merchantId: string,
     insights: AnonymizedInsight[]
   ): Promise<SubmitInsightsResult> {
-    if (!this.enabled) {
-      return { accepted: true, count: 0 };
-    }
-    // Future: delegate to hive-mind with ZK commitments + privacy budget
+    // Disabled or no hive bridge: do not claim acceptance while discarding
     void merchantId;
     void insights;
-    return { accepted: true, count: 0 };
+    return { accepted: false, count: 0 };
   }
 }

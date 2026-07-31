@@ -28,11 +28,13 @@ import type {
 } from '@/types/supplier';
 import type { MerchantSettings } from '@/lib/settings/merchantSettingsTypes';
 import type { ExplainTimeline } from '@/types/explainability';
-import type { OrderRowDemo } from '@/lib/ordersPageDemo';
-import type { ProductRowDemo } from '@/lib/productsPageDemo';
-import type { EmailRowDemo } from '@/lib/emailsPageDemo';
-import type { NegotiationRowDemo } from '@/lib/negotiationsPageDemo';
-import type { AutonomousDecisionRowDemo } from '@/lib/autonomousPageDemo';
+import type {
+  OrderRow,
+  ProductRow,
+  EmailRow,
+  NegotiationRow,
+  AutonomousDecisionRow,
+} from '@/lib/data/types';
 
 export interface ActivityFetchParams {
   days?: number;
@@ -100,12 +102,12 @@ export interface DataAdapter {
   markAllNotificationsRead(ids?: string[]): Promise<void>;
   dismissNotification(id: string): Promise<void>;
 
-  fetchOrders(): Promise<OrderRowDemo[]>;
-  fetchProducts(): Promise<ProductRowDemo[]>;
-  fetchEmails(): Promise<EmailRowDemo[]>;
+  fetchOrders(): Promise<OrderRow[]>;
+  fetchProducts(): Promise<ProductRow[]>;
+  fetchEmails(): Promise<EmailRow[]>;
   fetchEmailDetail(id: string): Promise<EmailDetail | null>;
-  fetchNegotiations(): Promise<NegotiationRowDemo[]>;
-  fetchAutonomousDecisions(): Promise<AutonomousDecisionRowDemo[]>;
+  fetchNegotiations(): Promise<NegotiationRow[]>;
+  fetchAutonomousDecisions(): Promise<AutonomousDecisionRow[]>;
 
   fetchDashboard(): Promise<DashboardSummary>;
   fetchSettings(): Promise<MerchantSettings>;

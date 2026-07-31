@@ -4,7 +4,7 @@ import {
   applyCommandComplete,
   getInitialTodayReadyInsights,
   visibleInsightIds,
-} from './todayReadyDemo';
+} from './todayReady';
 import {
   PROACTIVE_SUGGESTIONS,
   dismissSuggestion,

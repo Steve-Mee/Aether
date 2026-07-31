@@ -1,15 +1,6 @@
 import type { EmailDetail } from '@/lib/api';
-
-export interface EmailRowDemo {
-  id: string;
-  from: string;
-  subject: string | null;
-  status: string;
-  riskLevel: string | null;
-  category: string | null;
-  confidence: number | null;
-  createdAt: string;
-}
+import type { EmailRowDemo } from '@/lib/data/types';
+export type { EmailRowDemo } from '@/lib/data/types';
 
 const DETAILS: Record<string, EmailDetail> = {
   em_demo_1: {

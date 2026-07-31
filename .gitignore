@@ -43,11 +43,17 @@ test-ci-out*.txt
 /_dl_a11y.bat
 /_fe_fail*.txt
 /_be_fail*.txt
-/_fe_job*.zip
+/_pilot_fail.txt
+/_lh_fail.txt
 /_pw_a11y/
 /_be_raw.txt
 /_decode_log.py
 /_be_job_logs/
+
+## Backend local runtime / generated artifacts
+aether-core/backend/tmp/
+aether-core/backend/uploads/
+**/storefront-artifacts/
 
 ## Environment and secrets
 **/.env

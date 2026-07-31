@@ -80,6 +80,21 @@ check(
 );
 check('ci-ci-flag', ciYaml.includes("CI: 'true'"), 'CI missing CI=true env for DB E2E');
 check('ci-mail-e2e', /mail-approval\.e2e|mail approval E2E/i.test(ciYaml), 'CI missing explicit mail-approval E2E step');
+check(
+  'ci-storefront-birth-e2e',
+  /storefront-birth\.e2e|Storefront Birth Gate E2E/i.test(ciYaml),
+  'CI missing explicit storefront-birth E2E step (Appendix G locked path)'
+);
+check(
+  'ci-storefront-e2e',
+  /storefront-publish\.e2e|Storefront publish E2E/i.test(ciYaml),
+  'CI missing explicit storefront-publish E2E step'
+);
+check(
+  'ci-storefront-checkout-e2e',
+  /storefront-checkout\.e2e|Storefront checkout E2E/i.test(ciYaml),
+  'CI missing explicit storefront-checkout E2E step'
+);
 check('ci-test-ci', ciYaml.includes('test:ci'), 'CI missing npm run test:ci');
 check('ci-supplier-identity', /supplierIdentity|supplier scrape/i.test(ciYaml), 'CI missing supplier identity/scrape step');
 check('ci-stripe-mock', /stripe-mock|stripeIntegration/i.test(ciYaml), 'CI missing stripe-mock integration step');
@@ -88,6 +103,21 @@ check('ci-lint', ciYaml.includes('npm run lint'), 'CI missing lint step');
 
 // 4. Release gates honesty
 check('gate-mail-e2e', releaseGates.includes('mail→approval→rollback E2E in CI'), 'release-gates missing mail E2E claim');
+check(
+  'gate-storefront-birth-e2e',
+  /storefront-birth\.e2e|Birth Gate E2E/i.test(releaseGates),
+  'release-gates missing storefront Birth Gate E2E claim'
+);
+check(
+  'gate-storefront-e2e',
+  /storefront.*E2E in CI|storefront-publish\.e2e/i.test(releaseGates),
+  'release-gates missing storefront publish E2E claim'
+);
+check(
+  'gate-storefront-checkout-e2e',
+  /storefront-checkout\.e2e|catalog→cart→checkout E2E/i.test(releaseGates),
+  'release-gates missing storefront checkout E2E claim'
+);
 check('gate-viewer-rbac', /viewer.*GET|Viewer role on read/i.test(releaseGates), 'release-gates missing viewer RBAC');
 check('gate-claim-policy', /Claim policy|provable evidence/i.test(releaseGates), 'release-gates missing claim policy');
 check('gate-otel-sdk', /otelBootstrap|OpenTelemetry SDK/i.test(releaseGates), 'release-gates missing OTEL SDK claim');
@@ -302,6 +332,109 @@ check(
   'tenant-isolation-test',
   fs.existsSync(path.join(BACKEND, 'src', 'shared', 'security', '__tests__', 'tenantIsolation.test.ts')),
   'tenant isolation test file missing'
+);
+
+check(
+  'storefront-birth-e2e-test',
+  fs.existsSync(
+    path.join(
+      BACKEND,
+      'src',
+      'modules',
+      'storefront-builder',
+      '__tests__',
+      'storefront-birth.e2e.test.ts'
+    )
+  ),
+  'storefront-birth.e2e.test.ts missing at Appendix G locked path'
+);
+check(
+  'storefront-publish-e2e-test',
+  fs.existsSync(path.join(BACKEND, 'src', '__tests__', 'storefront-publish.e2e.test.ts')),
+  'storefront-publish.e2e.test.ts missing'
+);
+check(
+  'storefront-checkout-e2e-test',
+  fs.existsSync(path.join(BACKEND, 'src', '__tests__', 'storefront-checkout.e2e.test.ts')),
+  'storefront-checkout.e2e.test.ts missing'
+);
+check(
+  'feature-status-storefront-partial',
+  featureStatus.features['storefront-builder']?.status === 'partial' ||
+    featureStatus.features['storefront-builder']?.status === 'implemented' ||
+    featureStatus.features['storefront-builder']?.status === 'live',
+  'storefront-builder must be partial+ in feature-status.json once E2E exists'
+);
+check(
+  'feature-status-storefront-public-api',
+  featureStatus.features['storefront-public-api']?.status === 'partial' ||
+    featureStatus.features['storefront-public-api']?.status === 'implemented' ||
+    featureStatus.features['storefront-public-api']?.status === 'live',
+  'storefront-public-api must be partial+ in feature-status.json once E2E exists'
+);
+check(
+  'feature-status-merchant-dashboard-commerce-ui',
+  featureStatus.features['merchant-dashboard-commerce-ui']?.status === 'partial' ||
+    featureStatus.features['merchant-dashboard-commerce-ui']?.status === 'implemented' ||
+    featureStatus.features['merchant-dashboard-commerce-ui']?.status === 'live',
+  'merchant-dashboard-commerce-ui must be partial+ in feature-status.json once P11 evidenced'
+);
+check(
+  'truth-storefront-birth-e2e-evidence',
+  /storefront-birth\.e2e\.test\.ts/.test(truthMatrix),
+  'truth-matrix must cite storefront-birth.e2e.test.ts as evidence'
+);
+check(
+  'truth-storefront-e2e-evidence',
+  /storefront-publish\.e2e\.test\.ts/.test(truthMatrix),
+  'truth-matrix must cite storefront-publish.e2e.test.ts as evidence'
+);
+check(
+  'truth-storefront-checkout-e2e-evidence',
+  /storefront-checkout\.e2e\.test\.ts/.test(truthMatrix),
+  'truth-matrix must cite storefront-checkout.e2e.test.ts as evidence'
+);
+check(
+  'birth-gate-evidence',
+  fs.existsSync(path.join(DOCS, 'BIRTH_GATE.md')) &&
+    /BIRTH_GATE=PASS/.test(read(path.join(DOCS, 'BIRTH_GATE.md'))),
+  'docs/BIRTH_GATE.md missing or missing BIRTH_GATE=PASS'
+);
+check(
+  'truth-no-60s-live-store-claim',
+  !/60\s*s(ec(ond)?s?)?\s+live\s+store|live\s+store\s+in\s+60/i.test(truthMatrix) &&
+    !/60\s*s(ec(ond)?s?)?\s+live\s+store|live\s+store\s+in\s+60/i.test(
+      fs.existsSync(path.join(DOCS, 'progress-overview-2026-07.md'))
+        ? read(path.join(DOCS, 'progress-overview-2026-07.md'))
+        : ''
+    ),
+  'runtime docs must not claim “60s live store” marketing without evidence'
+);
+
+check(
+  'storefront-security-checklist',
+  fs.existsSync(path.join(DOCS, 'storefront-security-checklist.md')),
+  'docs/storefront-security-checklist.md missing (P15)'
+);
+check(
+  'storefront-lighthouse-budgets',
+  fs.existsSync(path.join(DOCS, 'storefront-lighthouse.md')),
+  'docs/storefront-lighthouse.md missing (P15)'
+);
+check(
+  'storefront-preview-token-application-layer',
+  fs.existsSync(
+    path.join(
+      BACKEND,
+      'src',
+      'modules',
+      'storefront-builder',
+      'application',
+      'services',
+      'previewToken.ts'
+    )
+  ),
+  'previewToken must live in application/services (no application→infrastructure import)'
 );
 
 check(

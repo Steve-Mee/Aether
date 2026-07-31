@@ -3,9 +3,9 @@
 **Belangrijk**: Dit is een dunne Cursor-specifieke laag.
 
 De volledige en leidend instructies voor AETHER staan in:
-→ `project-dna/aether/AGENTS.md`
+→ `project-dna/Aether/AGENTS.md`
 
-Volg altijd eerst de centrale `AGENTS.md` in de `project-dna/aether/` map.
+Volg altijd eerst de centrale `AGENTS.md` in de `project-dna/Aether/` map.
 
 ---
 
@@ -19,4 +19,4 @@ Classificeer taken, gebruik Plan Mode bij Complex of High-Impact werk, en werk m
 
 ---
 
-**Alle andere regels (principes, architectuur, agents, privacy) staan in `project-dna/aether/AGENTS.md`.**
+**Alle andere regels (principes, architectuur, agents, privacy) staan in `project-dna/Aether/AGENTS.md`.**

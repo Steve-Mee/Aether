@@ -5,6 +5,8 @@ const HIVE_CATEGORIES = ['pricing', 'conversion', 'trend', 'inventory', 'marketi
 const DEFAULT_METRICS = ['auto_apply_rate', 'conversion_rate', 'average_price'];
 
 export class HiveMindGlobalBrain implements GlobalBrainPort {
+  readonly mode = 'hive-mind' as const;
+
   constructor(private queryInsights: QueryInsightsUseCase) {}
 
   async getCollectiveInsights(

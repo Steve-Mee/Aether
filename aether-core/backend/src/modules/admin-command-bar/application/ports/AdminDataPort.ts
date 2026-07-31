@@ -25,6 +25,21 @@ export interface TopCustomerRecord {
   totalSpent: number;
 }
 
+export interface CustomerDetailRecord {
+  id: string;
+  email: string;
+  name: string;
+  firstName: string | null;
+  lastName: string | null;
+  createdAt: string;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderAt: string | null;
+  segment: CustomerSegmentKind;
+  churnRisk: boolean;
+  daysSinceLastOrder: number | null;
+}
+
 export interface OrderTrendSummary {
   recentCount: number;
   priorCount: number;
@@ -142,6 +157,8 @@ export interface AdminDataPort {
   applyRestockUpdates(tenantId: string, items: RestockUpdateItem[]): Promise<number>;
   countCustomers(tenantId: string): Promise<number>;
   getTopCustomers(tenantId: string, limit?: number): Promise<TopCustomerRecord[]>;
+  listCustomers(tenantId: string, days?: number): Promise<CustomerSegmentRecord[]>;
+  getCustomerById(tenantId: string, customerId: string): Promise<CustomerDetailRecord | null>;
   getOrderTrends(tenantId: string, days?: number): Promise<OrderTrendSummary>;
   getCustomerSegments(tenantId: string, days?: number): Promise<CustomerSegmentSummary>;
   getChurnSignals(tenantId: string, days?: number): Promise<ChurnSignalsSummary>;
@@ -153,6 +170,16 @@ export interface AdminDataPort {
     tenantId: string,
     negotiationId: string
   ): Promise<(NegotiationRecord & { offers: Array<{ price: number; status: string }> }) | null>;
+  getTenantDisplayName(tenantId: string): Promise<string | undefined>;
+  upsertPushSubscription(input: {
+    tenantId: string;
+    actorId: string;
+    endpoint: string;
+    p256dh: string;
+    auth: string;
+    userAgent?: string;
+  }): Promise<void>;
+  deletePushSubscriptionByEndpoint(endpoint: string): Promise<void>;
 }
 
 export function scopedTenant(tenantId: string | undefined, context: string): string {

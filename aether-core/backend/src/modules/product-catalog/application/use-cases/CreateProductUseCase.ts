@@ -1,4 +1,5 @@
 import { Product } from '../../domain/entities/Product';
+import { ProductDetail } from '../../domain/entities/ProductDetail';
 import { ProductRepository } from '../../domain/repositories/ProductRepository';
 import { requireTenantId } from '../../../../shared/tenant/tenantContext';
 
@@ -14,7 +15,7 @@ export class CreateProductUseCase {
       price?: number;
       stock?: number;
     }
-  ): Promise<Product> {
+  ): Promise<ProductDetail> {
     const tid = requireTenantId(tenantId, 'CreateProductUseCase.execute');
     const product = Product.create(data);
     return this.productRepository.create(product, tid, {

@@ -21,14 +21,14 @@ export class PaymentService {
     amount: number,
     paymentMethod: string,
     ctx?: { tenantId: string; idempotencyKey?: string; actorId?: string }
-  ): Promise<Payment> {
+  ): Promise<{ payment: Payment; clientSecret?: string; redirectUrl?: string }> {
     const tenantId = requireTenantId(ctx?.tenantId, 'PaymentService.processPayment');
 
     if (ctx?.idempotencyKey) {
       const existingPaymentId = await this.idempotency.findPaymentId(tenantId, ctx.idempotencyKey);
       if (existingPaymentId) {
         const payment = await this.paymentRepository.findById(existingPaymentId, tenantId);
-        if (payment) return payment;
+        if (payment) return { payment };
       }
     }
 
@@ -40,7 +40,11 @@ export class PaymentService {
       await this.idempotency.save(tenantId, ctx.idempotencyKey, saved.id);
     }
 
-    return saved;
+    return {
+      payment: saved,
+      clientSecret: result.clientSecret,
+      redirectUrl: result.redirectUrl,
+    };
   }
 
   async refund(

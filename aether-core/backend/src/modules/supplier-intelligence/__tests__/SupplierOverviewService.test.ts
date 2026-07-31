@@ -1,3 +1,4 @@
+import { PrismaSupplierOverviewAdapter } from '../infrastructure/adapters/PrismaSupplierOverviewAdapter';
 import { SupplierOverviewService } from '../application/services/SupplierOverviewService';
 
 function createMockPrisma() {
@@ -89,13 +90,19 @@ function createMockPrisma() {
     approval: {
       count: jest.fn().mockResolvedValue(2),
     },
-  } as unknown as ConstructorParameters<typeof SupplierOverviewService>[0];
+  };
+}
+
+function createService() {
+  const prisma = createMockPrisma();
+  return new SupplierOverviewService(
+    new PrismaSupplierOverviewAdapter(prisma as never)
+  );
 }
 
 describe('SupplierOverviewService', () => {
   it('aggregates overview stats, syncs, and important change flags', async () => {
-    const prisma = createMockPrisma();
-    const service = new SupplierOverviewService(prisma);
+    const service = createService();
 
     const overview = await service.getOverview('tenant_test');
     expect(overview.stats.totalMonitored).toBe(1);
@@ -111,8 +118,7 @@ describe('SupplierOverviewService', () => {
   });
 
   it('returns supplier detail with changes, products, and sync history', async () => {
-    const prisma = createMockPrisma();
-    const service = new SupplierOverviewService(prisma);
+    const service = createService();
 
     const detail = await service.getDetail('tenant_test', 'sup_1');
     expect(detail?.recentChanges.length).toBe(2);

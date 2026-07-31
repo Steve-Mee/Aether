@@ -1,7 +1,8 @@
 import {
-  buildActivityFeed,
+  ActivityFeedService,
   resolveActivitySince,
 } from '../ActivityFeedService';
+import type { ActivityFeedPort } from '../../ports/ActivityFeedPort';
 
 const mockAudits = [
   {
@@ -46,32 +47,29 @@ const mockCommands = [
   },
 ];
 
-jest.mock('../../../../../shared/prisma/client', () => ({
-  prisma: {
-    auditLog: { findMany: jest.fn() },
-    command: { findMany: jest.fn() },
-  },
-}));
-
 jest.mock('../../../../../ai/intelligence/explainability/ExplainabilityPersister', () => ({
   explainabilityPersister: {
     getSnapshot: jest.fn().mockResolvedValue(null),
   },
 }));
 
-import { prisma } from '../../../../../shared/prisma/client';
-
 describe('ActivityFeedService', () => {
+  const activityFeedPort: jest.Mocked<ActivityFeedPort> = {
+    findAuditLogs: jest.fn(),
+    findCommands: jest.fn(),
+  };
+  const service = new ActivityFeedService(activityFeedPort);
+
   beforeEach(() => {
     jest.clearAllMocks();
-    (prisma.auditLog.findMany as jest.Mock).mockResolvedValue(
-      mockAudits.filter((a) => a.action !== 'ui.navigation')
+    activityFeedPort.findAuditLogs.mockResolvedValue(
+      mockAudits.filter((a) => a.action !== 'ui.navigation'),
     );
-    (prisma.command.findMany as jest.Mock).mockResolvedValue(mockCommands);
+    activityFeedPort.findCommands.mockResolvedValue(mockCommands);
   });
 
   it('maps audit actions to feed items with risk and status', async () => {
-    const { items } = await buildActivityFeed({
+    const { items } = await service.buildActivityFeed({
       tenantId: 'tenant_a',
       since: new Date('2026-05-01'),
       limit: 50,
@@ -90,20 +88,20 @@ describe('ActivityFeedService', () => {
   });
 
   it('excludes ui.navigation by default', async () => {
-    const { items } = await buildActivityFeed({
+    const { items } = await service.buildActivityFeed({
       tenantId: 'tenant_a',
       since: new Date('2026-05-01'),
     });
     expect(items.some((i) => i.actionType === 'ui.navigation')).toBe(false);
-    expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
+    expect(activityFeedPort.findAuditLogs).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ NOT: { action: 'ui.navigation' } }),
-      })
+        excludeNavigation: true,
+      }),
     );
   });
 
   it('includes commands merged and sorted desc', async () => {
-    const { items } = await buildActivityFeed({
+    const { items } = await service.buildActivityFeed({
       tenantId: 'tenant_a',
       since: new Date('2026-05-01'),
     });

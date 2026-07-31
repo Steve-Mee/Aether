@@ -84,6 +84,12 @@ gh secret set SENTRY_BACKEND_PROJECT
 1. Execute a command or resolve an approval in staging.
 2. In Sentry, open a session or issue breadcrumbs.
 3. Confirm info-level messages: `command.executed`, `approval.resolved`, etc.
+4. Storefront / Website lifecycle (domain events + structured logs):
+   - `website.revision.created`
+   - `website.build.finished` (payload.status `succeeded`|`failed`)
+   - `website.publish.approved`
+   - `website.deploy.succeeded` | `website.deploy.failed`
+5. Confirm checkout logs use `storefront_checkout_created` **without** customer email/address (PII scrubbed).
 
 ## Incident response
 

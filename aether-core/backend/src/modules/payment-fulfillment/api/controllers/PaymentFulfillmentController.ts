@@ -4,9 +4,10 @@ import { verifyWebhookSecret } from '../../../../shared/security/auth';
 import { resolvePaymentWebhookTenant, resolveStripeWebhookTenant } from '../../../../shared/security/webhookTenantResolver';
 import { verifyStripeWebhook, createStripeConnectOnboardingLink } from '../../infrastructure/providers/PaymentProvider';
 import { getCompositionRoot } from '../../../../bootstrap/compositionRoot';
-import { requireOperator } from '../../../../shared/security/rbac';
+import { requireOperator, requireViewer } from '../../../../shared/security/rbac';
 import { writeAuditLog } from '../../../../shared/audit/auditService';
 import { validateBody } from '../../../../shared/security/validate';
+import { reconcileBillingRecords } from '../../../../shared/billing/billingService';
 
 const paymentSchema = z.object({
   orderId: z.string().min(1),
@@ -164,6 +165,89 @@ export class PaymentFulfillmentController {
     async (req: Request, res: Response) => {
       const result = await createStripeConnectOnboardingLink(req.tenantId!);
       res.json(result);
+    },
+  ];
+
+  listPayments = [
+    requireViewer,
+    async (req: Request, res: Response) => {
+      const { paymentRepository } = getCompositionRoot();
+      const payments = await paymentRepository.listByTenant(req.tenantId!);
+      res.json({
+        status: 'partial',
+        provider: process.env.PAYMENT_PROVIDER ?? 'local',
+        payments: payments.map((p) => ({
+          id: p.id,
+          orderId: p.orderId,
+          amount: p.amount,
+          currency: p.currency,
+          status: p.status,
+          paymentMethod: p.paymentMethod,
+          transactionId: p.transactionId ?? null,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+        })),
+      });
+    },
+  ];
+
+  getSummary = [
+    requireViewer,
+    async (req: Request, res: Response) => {
+      const { paymentRepository } = getCompositionRoot();
+      const payments = await paymentRepository.listByTenant(req.tenantId!);
+      const byStatus = {
+        pending: 0,
+        paid: 0,
+        failed: 0,
+        refunded: 0,
+      };
+      let paidAmount = 0;
+      for (const p of payments) {
+        if (p.status in byStatus) {
+          byStatus[p.status as keyof typeof byStatus] += 1;
+        }
+        if (p.status === 'paid') {
+          paidAmount += p.amount;
+        }
+      }
+      const connectConfigured = Boolean(
+        process.env.STRIPE_CONNECT_ACCOUNT_ID && String(process.env.STRIPE_CONNECT_ACCOUNT_ID).trim()
+      );
+      res.json({
+        status: 'partial',
+        provider: process.env.PAYMENT_PROVIDER ?? 'local',
+        connectConfigured,
+        paymentCount: payments.length,
+        byStatus,
+        paidAmount,
+        failedCount: byStatus.failed,
+        currency: 'EUR',
+      });
+    },
+  ];
+
+  listPayouts = [
+    requireViewer,
+    async (_req: Request, res: Response) => {
+      res.json({
+        status: 'partial',
+        payouts: [],
+        message: 'Payout ledger not implemented — Connect onboarding and payment rows only',
+      });
+    },
+  ];
+
+  reconcile = [
+    requireOperator,
+    async (req: Request, res: Response) => {
+      const result = await reconcileBillingRecords(req.tenantId!);
+      res.json({
+        status: 'partial',
+        kind: 'outcome_billing',
+        message: 'Reconciles outcome billing records only — not PSP/live payouts',
+        ...result,
+      });
     },
   ];
 }

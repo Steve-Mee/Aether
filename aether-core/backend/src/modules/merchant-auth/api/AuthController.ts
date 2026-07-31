@@ -10,7 +10,7 @@ import {
   revokeRefreshToken,
   rotateRefreshToken,
 } from '../../../shared/auth/refreshTokenService';
-import { loginWithEmail, sessionFromTokenPayload } from '../application/LoginUseCase';
+import { sessionFromTokenPayload, type LoginUseCase } from '../application/LoginUseCase';
 import type { UserRole } from '../../../types/express';
 
 const loginSchema = z.object({
@@ -19,7 +19,7 @@ const loginSchema = z.object({
   tenantId: z.string().min(1).max(64).optional(),
 });
 
-function buildLoginResponse(result: Awaited<ReturnType<typeof loginWithEmail>>) {
+function buildLoginResponse(result: Awaited<ReturnType<LoginUseCase['execute']>>) {
   return {
     accessToken: result.accessToken,
     expiresIn: getAccessTokenExpiresInSeconds(),
@@ -30,6 +30,8 @@ function buildLoginResponse(result: Awaited<ReturnType<typeof loginWithEmail>>) 
 }
 
 export class AuthController {
+  constructor(private loginUseCase: LoginUseCase) {}
+
   login = [
     validateBody(loginSchema),
     async (req: Request, res: Response) => {
@@ -41,7 +43,7 @@ export class AuthController {
         'tenant_default';
 
       try {
-        const result = await loginWithEmail(tenantId, body.email, body.password);
+        const result = await this.loginUseCase.execute(tenantId, body.email, body.password);
         const refresh = await issueRefreshToken(result.user.id);
         setRefreshCookie(res, refresh.token, refresh.expiresAt);
         res.json(buildLoginResponse(result));

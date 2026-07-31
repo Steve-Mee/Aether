@@ -10,7 +10,10 @@ export class RefundApprovalHandler implements ApprovalActionHandler {
 
   async execute(ctx: ApprovalExecutionContext): Promise<void> {
     const paymentId = String(ctx.payload.paymentId ?? '');
-    if (!paymentId) throw new Error('refund approval missing paymentId');
+    const refundId = ctx.payload.refundId ? String(ctx.payload.refundId) : '';
+    if (!paymentId && !refundId) {
+      throw new Error('refund approval missing paymentId or refundId');
+    }
 
     const dedupeToken = `"approvalId":"${ctx.approvalId}"`;
     const alreadyExecuted = await prisma.auditLog.findFirst({
@@ -23,12 +26,18 @@ export class RefundApprovalHandler implements ApprovalActionHandler {
     if (alreadyExecuted) return;
 
     const amount = ctx.payload.amount as number | undefined;
-    const { paymentService } = getCompositionRoot();
+    const { paymentService, orderRepository } = getCompositionRoot();
 
-    await paymentService.executeApprovedRefund(paymentId, {
-      tenantId: ctx.tenantId,
-      amount,
-    });
+    if (paymentId) {
+      await paymentService.executeApprovedRefund(paymentId, {
+        tenantId: ctx.tenantId,
+        amount,
+      });
+    }
+
+    if (refundId) {
+      await orderRepository.updateRefundStatus(refundId, ctx.tenantId, 'completed');
+    }
 
     await writeAuditLog({
       tenantId: ctx.tenantId,
@@ -37,7 +46,9 @@ export class RefundApprovalHandler implements ApprovalActionHandler {
       actor: ctx.resolvedBy,
       details: {
         approvalId: ctx.approvalId,
-        paymentId,
+        paymentId: paymentId || undefined,
+        refundId: refundId || undefined,
+        orderId: ctx.payload.orderId,
         amount,
         dedupeToken,
       },

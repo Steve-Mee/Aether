@@ -1,0 +1,1306 @@
+openapi: 3.0.3
+info:
+  title: AETHER Platform API
+  description: |-
+    Always-on platform REST under `/api/*` (auth + tenant required except auth login/refresh).
+    Wave 18: enriched bilateral, emails, suppliers, approvals; other mounts remain thin.
+    Excluded (feature-gated experimental): predictive, self-evolving, agentic, physical, co-ownership.
+  version: 0.1.0
+servers:
+  - url: /api
+    description: Authenticated platform API
+tags:
+  - name: Approvals
+  - name: Auth
+  - name: Autonomous
+  - name: Bilateral
+  - name: Emails
+  - name: HiveMind
+  - name: Media
+  - name: Outcomes
+  - name: Plugins
+  - name: Suppliers
+paths:
+  /emails:
+    get:
+      tags:
+        - Emails
+      summary: GET /emails
+      operationId: get_emails
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmailMessage'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /plugins:
+    get:
+      tags:
+        - Plugins
+      summary: GET /plugins
+      operationId: get_plugins
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Plugins
+      summary: POST /plugins
+      operationId: post_plugins
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/emails/{id}':
+    get:
+      tags:
+        - Emails
+      summary: 'GET /emails/{id}'
+      operationId: get_emails_id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailMessage'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /outcomes:
+    get:
+      tags:
+        - Outcomes
+      summary: GET /outcomes
+      operationId: get_outcomes
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /approvals:
+    get:
+      tags:
+        - Approvals
+      summary: GET /approvals
+      operationId: get_approvals
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApprovalRecord'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/media/{mediaTenantId}/{fileName}':
+    get:
+      tags:
+        - Media
+      summary: 'GET /media/{mediaTenantId}/{fileName}'
+      operationId: get_media_mediaTenantId_fileName
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /suppliers:
+    get:
+      tags:
+        - Suppliers
+      summary: GET /suppliers
+      operationId: get_suppliers
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SupplierListItem'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Suppliers
+      summary: POST /suppliers
+      operationId: post_suppliers
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: POST /auth/login
+      operationId: post_auth_login
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /autonomous:
+    get:
+      tags:
+        - Autonomous
+      summary: GET /autonomous
+      operationId: get_autonomous
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: POST /auth/logout
+      operationId: post_auth_logout
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/suppliers/{id}':
+    get:
+      tags:
+        - Suppliers
+      summary: 'GET /suppliers/{id}'
+      operationId: get_suppliers_id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierDetail'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    patch:
+      tags:
+        - Suppliers
+      summary: 'PATCH /suppliers/{id}'
+      operationId: patch_suppliers_id
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: POST /auth/refresh
+      operationId: post_auth_refresh
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /auth/session:
+    get:
+      tags:
+        - Auth
+      summary: GET /auth/session
+      operationId: get_auth_session
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /emails/metrics:
+    get:
+      tags:
+        - Emails
+      summary: GET /emails/metrics
+      operationId: get_emails_metrics
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailMetrics'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+  /emails/process:
+    post:
+      tags:
+        - Emails
+      summary: POST /emails/process
+      operationId: post_emails_process
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailMessage'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessEmailRequest'
+  /outcomes/record:
+    post:
+      tags:
+        - Outcomes
+      summary: POST /outcomes/record
+      operationId: post_outcomes_record
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /outcomes/report:
+    get:
+      tags:
+        - Outcomes
+      summary: GET /outcomes/report
+      operationId: get_outcomes_report
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /outcomes/verify:
+    post:
+      tags:
+        - Outcomes
+      summary: POST /outcomes/verify
+      operationId: post_outcomes_verify
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /emails/mailboxes:
+    get:
+      tags:
+        - Emails
+      summary: GET /emails/mailboxes
+      operationId: get_emails_mailboxes
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Emails
+      summary: POST /emails/mailboxes
+      operationId: post_emails_mailboxes
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /outcomes/billing:
+    get:
+      tags:
+        - Outcomes
+      summary: GET /outcomes/billing
+      operationId: get_outcomes_billing
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /bilateral/schemas:
+    get:
+      tags:
+        - Bilateral
+      summary: GET /bilateral/schemas
+      operationId: get_bilateral_schemas
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - schemas
+                properties:
+                  schemas:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BilateralSchema'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/emails/{id}/rollback':
+    post:
+      tags:
+        - Emails
+      summary: 'POST /emails/{id}/rollback'
+      operationId: post_emails_id_rollback
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /suppliers/changes:
+    get:
+      tags:
+        - Suppliers
+      summary: GET /suppliers/changes
+      operationId: get_suppliers_changes
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /suppliers/webhook:
+    post:
+      tags:
+        - Suppliers
+      summary: POST /suppliers/webhook
+      operationId: post_suppliers_webhook
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /bilateral/packages:
+    post:
+      tags:
+        - Bilateral
+      summary: POST /bilateral/packages
+      operationId: post_bilateral_packages
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BilateralPackage'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - contractId
+              properties:
+                contractId:
+                  type: string
+  /hive-mind/insights:
+    post:
+      tags:
+        - HiveMind
+      summary: POST /hive-mind/insights
+      operationId: post_hive_mind_insights
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/plugins/{id}/activate':
+    post:
+      tags:
+        - Plugins
+      summary: 'POST /plugins/{id}/activate'
+      operationId: post_plugins_id_activate
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /suppliers/overview:
+    get:
+      tags:
+        - Suppliers
+      summary: GET /suppliers/overview
+      operationId: get_suppliers_overview
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierOverviewResponse'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/approvals/{id}/resolve':
+    post:
+      tags:
+        - Approvals
+      summary: 'POST /approvals/{id}/resolve'
+      operationId: post_approvals_id_resolve
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveApprovalRequest'
+  /autonomous/decision:
+    post:
+      tags:
+        - Autonomous
+      summary: POST /autonomous/decision
+      operationId: post_autonomous_decision
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /bilateral/contracts:
+    get:
+      tags:
+        - Bilateral
+      summary: GET /bilateral/contracts
+      operationId: get_bilateral_contracts
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - contracts
+                properties:
+                  contracts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BilateralContract'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+    post:
+      tags:
+        - Bilateral
+      summary: POST /bilateral/contracts
+      operationId: post_bilateral_contracts
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BilateralContract'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposeContractRequest'
+  '/suppliers/{id}/monitor':
+    post:
+      tags:
+        - Suppliers
+      summary: 'POST /suppliers/{id}/monitor'
+      operationId: post_suppliers_id_monitor
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /approvals/auto-apply:
+    post:
+      tags:
+        - Approvals
+      summary: POST /approvals/auto-apply
+      operationId: post_approvals_auto_apply
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - applied
+                  - skipped
+                  - skippedIds
+                properties:
+                  applied:
+                    type: integer
+                  skipped:
+                    type: integer
+                  skippedIds:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/autonomous/decision/{id}':
+    get:
+      tags:
+        - Autonomous
+      summary: 'GET /autonomous/decision/{id}'
+      operationId: get_autonomous_decision_id
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/bilateral/contracts/{id}':
+    get:
+      tags:
+        - Bilateral
+      summary: 'GET /bilateral/contracts/{id}'
+      operationId: get_bilateral_contracts_id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BilateralContract'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/suppliers/{id}/sync-history':
+    get:
+      tags:
+        - Suppliers
+      summary: 'GET /suppliers/{id}/sync-history'
+      operationId: get_suppliers_id_sync_history
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /bilateral/packages/consume:
+    post:
+      tags:
+        - Bilateral
+      summary: POST /bilateral/packages/consume
+      operationId: post_bilateral_packages_consume
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - packageId
+                  - fields
+                properties:
+                  packageId:
+                    type: string
+                  fields:
+                    type: array
+                    items:
+                      type: string
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - packageId
+              properties:
+                packageId:
+                  type: string
+  /outcomes/billing/reconcile:
+    post:
+      tags:
+        - Outcomes
+      summary: POST /outcomes/billing/reconcile
+      operationId: post_outcomes_billing_reconcile
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/bilateral/contracts/{id}/audit':
+    get:
+      tags:
+        - Bilateral
+      summary: 'GET /bilateral/contracts/{id}/audit'
+      operationId: get_bilateral_contracts_id_audit
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - audit
+                properties:
+                  audit:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BilateralAuditDto'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/bilateral/contracts/{id}/accept':
+    post:
+      tags:
+        - Bilateral
+      summary: 'POST /bilateral/contracts/{id}/accept'
+      operationId: post_bilateral_contracts_id_accept
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BilateralContract'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/bilateral/contracts/{id}/revoke':
+    post:
+      tags:
+        - Bilateral
+      summary: 'POST /bilateral/contracts/{id}/revoke'
+      operationId: post_bilateral_contracts_id_revoke
+      responses:
+        '204':
+          description: Revoked
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /hive-mind/insights/aggregated:
+    get:
+      tags:
+        - HiveMind
+      summary: GET /hive-mind/insights/aggregated
+      operationId: get_hive_mind_insights_aggregated
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  '/bilateral/contracts/{id}/packages':
+    get:
+      tags:
+        - Bilateral
+      summary: 'GET /bilateral/contracts/{id}/packages'
+      operationId: get_bilateral_contracts_id_packages
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - packages
+                properties:
+                  packages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BilateralPackage'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+components:
+  schemas:
+    EmailMessage:
+      type: object
+      required:
+        - id
+        - from
+        - subject
+        - body
+        - status
+        - riskLevel
+        - createdAt
+      properties:
+        id:
+          type: string
+        from:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        status:
+          type: string
+        riskLevel:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        approvalId:
+          type: string
+        contextSource:
+          type: string
+        autoSent:
+          type: boolean
+    ProcessEmailRequest:
+      type: object
+      required:
+        - from
+      properties:
+        from:
+          type: string
+          format: email
+        subject:
+          type: string
+        body:
+          type: string
+        messageId:
+          type: string
+    EmailMetrics:
+      type: object
+      required:
+        - status
+        - classificationSourceNote
+        - totalProcessed
+        - classifiedCount
+        - classificationRate
+        - escalatedCount
+        - escalationRate
+        - autoRepliedCount
+        - pilotProcessedCount
+        - autoReplyRate
+        - rollbackCount
+        - rollbackRate
+        - classificationSource
+        - targetsMet
+      properties:
+        status:
+          type: string
+          enum:
+            - partial
+        classificationSourceNote:
+          type: string
+        totalProcessed:
+          type: integer
+        classifiedCount:
+          type: integer
+        classificationRate:
+          type: number
+        escalatedCount:
+          type: integer
+        escalationRate:
+          type: number
+        autoRepliedCount:
+          type: integer
+        pilotProcessedCount:
+          type: integer
+        autoReplyRate:
+          type: number
+        rollbackCount:
+          type: integer
+        rollbackRate:
+          type: number
+        classificationSource:
+          type: object
+          properties:
+            ollama:
+              type: integer
+            heuristic:
+              type: integer
+        targetsMet:
+          type: object
+          properties:
+            classificationAbove60Pct:
+              type: boolean
+            escalationBelow15Pct:
+              type: boolean
+            autoReplyAbove70Pct:
+              type: boolean
+    BilateralSchema:
+      type: object
+      required:
+        - id
+        - schemaKey
+        - fields
+        - description
+      properties:
+        id:
+          type: string
+        schemaKey:
+          type: string
+        fields:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+    BilateralContract:
+      type: object
+      required:
+        - id
+        - status
+        - role
+        - providerTenantId
+        - consumerTenantId
+        - partnerTenantId
+        - partnerName
+        - partnerSlug
+        - schemaKey
+        - schemaDescription
+        - allowedFields
+        - allowedFieldCount
+        - ttlExpiresAt
+        - consentProviderAt
+        - consentConsumerAt
+        - consentComplete
+        - revokedAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        role:
+          type: string
+          enum:
+            - provider
+            - consumer
+        providerTenantId:
+          type: string
+        consumerTenantId:
+          type: string
+        partnerTenantId:
+          type: string
+        partnerName:
+          type: string
+        partnerSlug:
+          type: string
+        schemaKey:
+          type: string
+        schemaDescription:
+          type: string
+        allowedFields:
+          type: array
+          items:
+            type: string
+        allowedFieldCount:
+          type: integer
+        ttlExpiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        consentProviderAt:
+          type: string
+          format: date-time
+          nullable: true
+        consentConsumerAt:
+          type: string
+          format: date-time
+          nullable: true
+        consentComplete:
+          type: boolean
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProposeContractRequest:
+      type: object
+      required:
+        - schemaKey
+        - allowedFields
+      properties:
+        consumerTenantId:
+          type: string
+        consumerTenantSlug:
+          type: string
+        schemaKey:
+          type: string
+        allowedFields:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        ttlExpiresAt:
+          type: string
+          format: date-time
+    BilateralPackage:
+      type: object
+      required:
+        - id
+        - packageHash
+        - expiresAt
+        - createdAt
+        - fieldCount
+        - expired
+      properties:
+        id:
+          type: string
+        packageHash:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        fieldCount:
+          type: integer
+        expired:
+          type: boolean
+    BilateralAuditDto:
+      type: object
+      required:
+        - id
+        - action
+        - fieldHash
+        - recordCount
+        - createdAt
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+        fieldHash:
+          type: string
+        recordCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    ApprovalRecord:
+      type: object
+      required:
+        - id
+        - tenantId
+        - module
+        - actionType
+        - payload
+        - status
+        - requestedBy
+        - resolvedBy
+        - createdAt
+        - resolvedAt
+      properties:
+        id:
+          type: string
+        tenantId:
+          type: string
+        module:
+          type: string
+        actionType:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+        requestedBy:
+          type: string
+          nullable: true
+        resolvedBy:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ResolveApprovalRequest:
+      type: object
+      required:
+        - approve
+      properties:
+        approve:
+          type: boolean
+    SupplierListItem:
+      type: object
+      required:
+        - id
+        - name
+        - website
+        - status
+        - autoSyncEnabled
+        - supplierType
+        - createdAt
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        website:
+          type: string
+        status:
+          type: string
+        autoSyncEnabled:
+          type: boolean
+        supplierType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    SupplierOverviewRow:
+      type: object
+      required:
+        - id
+        - name
+        - website
+        - supplierType
+        - status
+        - autoSyncEnabled
+        - productCount
+        - lastSyncAt
+        - lastAutoSyncAt
+        - recentChangeCount
+        - hasRecentPriceDrop
+        - hasRecentStockChange
+        - hasRecentImportantChange
+        - monitoringLabel
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        website:
+          type: string
+        supplierType:
+          type: string
+        status:
+          type: string
+        autoSyncEnabled:
+          type: boolean
+        productCount:
+          type: integer
+        lastSyncAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastAutoSyncAt:
+          type: string
+          format: date-time
+          nullable: true
+        recentChangeCount:
+          type: integer
+        hasRecentPriceDrop:
+          type: boolean
+        hasRecentStockChange:
+          type: boolean
+        hasRecentImportantChange:
+          type: boolean
+        monitoringLabel:
+          type: string
+          enum:
+            - active
+            - sync_on
+            - disabled
+    SupplierOverviewResponse:
+      type: object
+      required:
+        - stats
+        - suppliers
+      properties:
+        stats:
+          type: object
+          required:
+            - totalMonitored
+            - activeAutoSyncs
+            - syncsCompletedThisMonth
+            - priceDropsThisMonth
+            - autonomousPriceAdjustments
+          properties:
+            totalMonitored:
+              type: integer
+            activeAutoSyncs:
+              type: integer
+            syncsCompletedThisMonth:
+              type: integer
+            priceDropsThisMonth:
+              type: integer
+            autonomousPriceAdjustments:
+              type: integer
+        suppliers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplierOverviewRow'
+    SupplierDetail:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        website:
+          type: string
+        supplierType:
+          type: string
+        status:
+          type: string
+        autoSyncEnabled:
+          type: boolean
+        recentChanges:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        recentProducts:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        recentSyncs:
+          type: array
+          items:
+            type: object
+            additionalProperties: true

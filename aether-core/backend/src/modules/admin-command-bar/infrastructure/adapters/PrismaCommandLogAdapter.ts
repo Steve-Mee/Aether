@@ -1,4 +1,4 @@
-import { CommandLogPort, CommandLogEntry } from '../../application/ports/CommandLogPort';
+import { CommandLogPort, CommandLogEntry, CommandLogUpdateResult } from '../../application/ports/CommandLogPort';
 import { PrismaCommandLogRepository } from '../persistence/PrismaCommandLogRepository';
 
 export class PrismaCommandLogAdapter implements CommandLogPort {
@@ -14,5 +14,21 @@ export class PrismaCommandLogAdapter implements CommandLogPort {
 
   findById(id: string, tenantId: string) {
     return this.repo.findById(id, tenantId);
+  }
+
+  updateResult(id: string, data: CommandLogUpdateResult) {
+    return this.repo.updateResult(id, data);
+  }
+
+  updateBrainMemoryId(id: string, brainMemoryId: string) {
+    return this.repo.updateBrainMemoryId(id, brainMemoryId);
+  }
+
+  findForUndo(id: string, tenantId: string) {
+    return this.repo.findForUndo(id, tenantId);
+  }
+
+  markReverted(id: string) {
+    return this.repo.markReverted(id);
   }
 }

@@ -1,8 +1,9 @@
-import { prisma } from '../../../../../shared/prisma/client';
 import { getMerchantSettings } from '../../../../../shared/settings/TenantSettingsService';
-import { overviewNotificationDispatcher } from '../OverviewNotificationDispatcher';
+import type { TenantDirectoryPort } from '../../ports/TenantDirectoryPort';
+import type { NotificationPort } from '../../ports/NotificationPort';
+import type { OverviewNotificationDispatcher } from '../OverviewNotificationDispatcher';
+import type { NotificationWriterService } from '../notifications/NotificationWriter';
 import { notificationEmitter } from '../notifications/NotificationEmitter';
-import { materializeNotification } from '../notifications/NotificationWriter';
 import { logger } from '../../../../../shared/logging/logger';
 
 const HOURLY_MS = 60 * 60 * 1000;
@@ -11,6 +12,13 @@ const WEEK_MS = 7 * DAY_MS;
 
 export class NotificationDigestJob {
   private timer?: ReturnType<typeof setInterval>;
+
+  constructor(
+    private tenantDirectory: TenantDirectoryPort,
+    private notificationPort: NotificationPort,
+    private overviewNotificationDispatcher: OverviewNotificationDispatcher,
+    private notificationWriter: NotificationWriterService,
+  ) {}
 
   start(intervalMs = HOURLY_MS): void {
     if (this.timer) return;
@@ -33,8 +41,8 @@ export class NotificationDigestJob {
   }
 
   async runAll(): Promise<void> {
-    const tenants = await prisma.tenantSettings.findMany({ select: { tenantId: true } });
-    for (const { tenantId } of tenants) {
+    const tenantIds = await this.tenantDirectory.listTenantIds();
+    for (const tenantId of tenantIds) {
       try {
         await this.runForTenant(tenantId);
       } catch (err) {
@@ -51,16 +59,17 @@ export class NotificationDigestJob {
     const freq = settings.notificationPrefs.frequency;
     if (freq !== 'daily' && freq !== 'weekly') return 0;
 
-    const digestState = await prisma.notificationDigestState.upsert({
-      where: { tenantId },
-      update: {},
-      create: { tenantId, updatedAt: new Date() },
-    });
+    const digestState = await this.notificationPort.upsertDigestState(tenantId);
 
     if (!this.shouldSendDigest(freq, digestState.lastSentAt)) return 0;
 
-    const windowStart = digestState.lastWindowStart ?? new Date(Date.now() - (freq === 'daily' ? DAY_MS : WEEK_MS));
-    const sent = await overviewNotificationDispatcher.sendDigestForTenant(tenantId, windowStart);
+    const windowStart =
+      digestState.lastWindowStart ??
+      new Date(Date.now() - (freq === 'daily' ? DAY_MS : WEEK_MS));
+    const sent = await this.overviewNotificationDispatcher.sendDigestForTenant(
+      tenantId,
+      windowStart,
+    );
 
     const digestNotification = {
       id: `digest-${tenantId}-${Date.now()}`,
@@ -80,23 +89,22 @@ export class NotificationDigestJob {
     };
 
     if (settings.notificationPrefs.weeklyDigest.inApp) {
-      const stored = await materializeNotification({
+      const stored = await this.notificationWriter.materializeNotification({
         tenantId,
         notification: digestNotification,
         sourceType: 'digest',
         sourceId: freq,
         skipGrouping: true,
       });
-      if (stored) await notificationEmitter.emit(tenantId, stored, { sourceType: 'digest', sourceId: freq });
+      if (stored) {
+        await notificationEmitter.emit(tenantId, stored, { sourceType: 'digest', sourceId: freq });
+      }
     }
 
-    await prisma.notificationDigestState.update({
-      where: { tenantId },
-      data: {
-        lastSentAt: new Date(),
-        lastWindowStart: new Date(),
-        updatedAt: new Date(),
-      },
+    await this.notificationPort.updateDigestState(tenantId, {
+      lastSentAt: new Date(),
+      lastWindowStart: new Date(),
+      updatedAt: new Date(),
     });
 
     if (sent > 0) {
@@ -105,5 +113,3 @@ export class NotificationDigestJob {
     return sent;
   }
 }
-
-export const notificationDigestJob = new NotificationDigestJob();

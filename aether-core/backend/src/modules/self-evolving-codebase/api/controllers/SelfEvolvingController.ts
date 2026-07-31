@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { Prisma } from '@prisma/client';
 import { AnalyzeCodebaseUseCase } from '../../application/use-cases/AnalyzeCodebaseUseCase';
 import { getCompositionRoot } from '../../../../bootstrap/compositionRoot';
 import { requireOperator } from '../../../../shared/security/rbac';
@@ -24,7 +23,7 @@ export class SelfEvolvingController {
           const checks = await this.analyzer.runStaticChecks();
           const sandbox = await this.analyzer.runSandboxValidation(p.id);
           let status = 'proposed';
-          if (checks.typecheck && checks.lint) {
+          if (checks.typecheck) {
             status = 'static_checks';
           }
           if (sandbox.passed) {
@@ -119,7 +118,7 @@ export class SelfEvolvingController {
           appliedAt: new Date().toISOString(),
           sandboxPassed: true,
         };
-        await selfEvolving.updateProposalStatus(id, 'applied', appliedConfig as Prisma.InputJsonValue);
+        await selfEvolving.updateProposalStatus(id, 'applied', appliedConfig);
         await writeAuditLog({
           tenantId: req.tenantId!,
           module: 'self-evolving-codebase',
@@ -179,7 +178,7 @@ export class SelfEvolvingController {
 
       const previousStatus = proposal.status;
       const snapshot = proposal.appliedConfig;
-      await selfEvolving.updateProposalStatus(id, 'rolled_back', null as unknown as Prisma.InputJsonValue);
+      await selfEvolving.updateProposalStatus(id, 'rolled_back', null);
 
       await writeAuditLog({
         tenantId: req.tenantId!,

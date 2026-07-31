@@ -6,11 +6,13 @@ import { resolveMerchantExecutionModeFromResult } from '@/lib/settings/applyMerc
 import { useMerchantSettings } from '@/lib/settings/MerchantSettingsContext';
 import { parseCompoundCommand } from '@/lib/compoundCommandParser';
 import type { SuggestionBuildInput } from '@/lib/commandSuggestionContext';
+import type { CommandResult } from '@/types/command';
 import {
   buildDemoResponse,
   detectIntent,
   getCompoundStepLoadingPhases,
   getLoadingPhases,
+  intentToLinkedInsight,
   type DemoCommandResponse,
   type DemoIntentId,
   type LinkedInsightId,
@@ -30,22 +32,20 @@ export interface UseCommandDemoFlowOptions {
   onApprovalRequest?: (response: DemoCommandResponse) => void;
 }
 
-function mergeApiWithDemoUi(
+/** Minimal DemoCommandResponse shape from a live API result — no demo UI overlay. */
+function apiResultToDisplayResponse(
+  apiResult: CommandResult,
   command: string,
-  intentOverride: DemoIntentId | undefined,
-  suggestionContext: SuggestionBuildInput | null | undefined,
-  apiResult: Awaited<ReturnType<ReturnType<typeof useCommand>['executeCommand']>>,
+  intentOverride?: DemoIntentId,
 ): DemoCommandResponse {
-  const ui = buildDemoResponse(command, intentOverride, suggestionContext);
+  const intentId = intentOverride ?? detectIntent(command).id;
   return {
-    ...ui,
     ...apiResult,
-    success: apiResult.success,
-    result: apiResult.result || ui.result,
-    confidence: apiResult.confidence ?? ui.confidence,
-    commandId: apiResult.commandId ?? ui.commandId,
-    undoable: apiResult.undoable ?? ui.undoable,
-    timestamp: apiResult.timestamp ?? ui.timestamp,
+    intentId,
+    summary: apiResult.brain?.summary?.narrative ?? '',
+    highlights: [],
+    preparedHeadline: apiResult.parsedIntent || 'Resultaat',
+    linkedInsightId: intentToLinkedInsight(intentId),
   };
 }
 
@@ -133,7 +133,9 @@ export function useCommandDemoFlow({
 
       try {
         const apiResult = await executeCommand(trimmed);
-        const response = mergeApiWithDemoUi(trimmed, intentOverride, suggestionContext, apiResult);
+        const response = env.isMockMode
+          ? buildDemoResponse(trimmed, intentOverride, suggestionContext)
+          : apiResultToDisplayResponse(apiResult, trimmed, intentOverride);
         await runPhases(phases.slice(2));
         setDemoResult(response);
         onCommandComplete?.(response.linkedInsightId, response.intentId, response);

@@ -28,11 +28,13 @@ import type {
   SupplierOverviewApiResponse,
 } from '@/types/supplier';
 import type { MerchantSettings } from '@/lib/settings/merchantSettingsTypes';
-import type { OrderRowDemo } from '@/lib/ordersPageDemo';
-import type { ProductRowDemo } from '@/lib/productsPageDemo';
-import type { EmailRowDemo } from '@/lib/emailsPageDemo';
-import type { NegotiationRowDemo } from '@/lib/negotiationsPageDemo';
-import type { AutonomousDecisionRowDemo } from '@/lib/autonomousPageDemo';
+import type {
+  OrderRow,
+  ProductRow,
+  EmailRow,
+  NegotiationRow,
+  AutonomousDecisionRow,
+} from '@/lib/data/types';
 import type {
   AutonomyTraceResponse,
   DataAdapter,
@@ -166,22 +168,22 @@ export const httpDataAdapter: DataAdapter = {
   dismissNotification: (id) =>
     apiFetch<void>(apiRoutes.admin.notificationDismiss(id), { method: 'DELETE' }),
 
-  fetchOrders: () => apiFetch<OrderRowDemo[]>(apiRoutes.orders.list),
+  fetchOrders: () => apiFetch<OrderRow[]>(apiRoutes.orders.list),
 
-  fetchProducts: () => apiFetch<ProductRowDemo[]>(apiRoutes.products.list),
+  fetchProducts: () => apiFetch<ProductRow[]>(apiRoutes.products.list),
 
-  fetchEmails: () => apiFetch<EmailRowDemo[]>(apiRoutes.emails.list),
+  fetchEmails: () => apiFetch<EmailRow[]>(apiRoutes.emails.list),
 
   fetchEmailDetail: (id) => apiFetch<EmailDetail>(apiRoutes.emails.detail(id)),
 
   fetchNegotiations: async () => {
-    const res = await apiFetch<{ negotiations: NegotiationRowDemo[] }>(
+    const res = await apiFetch<{ negotiations: NegotiationRow[] }>(
       apiRoutes.agentic.negotiations,
     );
     return res.negotiations ?? [];
   },
 
-  fetchAutonomousDecisions: () => apiFetch<AutonomousDecisionRowDemo[]>(apiRoutes.autonomous.list),
+  fetchAutonomousDecisions: () => apiFetch<AutonomousDecisionRow[]>(apiRoutes.autonomous.list),
 
   fetchDashboard: () => apiFetch<DashboardSummary>(apiRoutes.admin.dashboard),
 

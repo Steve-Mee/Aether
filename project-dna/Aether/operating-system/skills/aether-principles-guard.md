@@ -10,7 +10,7 @@ description: >
 
 **Doel**: Zorgt dat alle ontwikkeling in lijn blijft met de fundamentele principes van AETHER en actief anti-patterns vermijdt.
 
-**Primaire bron**: `project-dna/aether/principles.md` + `project-dna/aether/anti-patterns.md`
+**Primaire bron**: `project-dna/Aether/principles.md` + `project-dna/Aether/anti-patterns.md`
 
 ---
 

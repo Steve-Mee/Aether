@@ -1,5 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import { InventoryRepository } from '../../domain/repositories/InventoryRepository';
+import {
+  InventoryRepository,
+  type InventoryRow,
+  type ProductNameSlug,
+} from '../../domain/repositories/InventoryRepository';
 import { Inventory } from '../../domain/entities/Inventory';
 import { PricingRule } from '../../domain/entities/PricingRule';
 import { PriceAdjustment } from '../../domain/entities/PriceAdjustment';
@@ -16,6 +20,29 @@ export class PrismaInventoryRepository implements InventoryRepository {
     return rows.map(
       (r) => new Inventory(r.id, r.productId, r.warehouseId, r.quantity, 0, new Date())
     );
+  }
+
+  async listInventoryItems(tenantId: string): Promise<InventoryRow[]> {
+    const tid = requireTenantId(tenantId, 'PrismaInventoryRepository.listInventoryItems');
+    const rows = await this.prisma.inventoryItem.findMany({
+      where: { tenantId: tid },
+      orderBy: { quantity: 'asc' },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      productId: r.productId,
+      warehouseId: r.warehouseId,
+      quantity: r.quantity,
+    }));
+  }
+
+  async listProductsByIds(tenantId: string, productIds: string[]): Promise<ProductNameSlug[]> {
+    const tid = requireTenantId(tenantId, 'PrismaInventoryRepository.listProductsByIds');
+    if (productIds.length === 0) return [];
+    return this.prisma.product.findMany({
+      where: { tenantId: tid, id: { in: productIds } },
+      select: { id: true, name: true, slug: true },
+    });
   }
 
   async updateInventory(

@@ -72,6 +72,18 @@ async function main() {
     },
   });
 
+  // Birth fixture category (tenant-unique slug) — usable for public/PDP + SiteProject slug tests.
+  const ceramics = await prisma.category.upsert({
+    where: { tenantId_slug: { tenantId: tenant.id, slug: 'keramiek' } },
+    update: { name: 'Keramiek' },
+    create: {
+      id: 'cat_keramiek_default',
+      tenantId: tenant.id,
+      name: 'Keramiek',
+      slug: 'keramiek',
+    },
+  });
+
   const productCount = await prisma.product.count({ where: { tenantId: tenant.id } });
   if (productCount === 0) {
     await prisma.product.createMany({
@@ -121,13 +133,79 @@ async function main() {
     });
   }
 
+  // Birth e2e product (Appendix H brand Atelier Noord) — MediaAsset + ProductMedia join (no images Json).
+  const PLACEHOLDER_MEDIA_URL = 'https://placehold.co/600x400';
+  const komAarde = await prisma.product.upsert({
+    where: { tenantId_slug: { tenantId: tenant.id, slug: 'kom-aarde' } },
+    update: {
+      name: 'Kom Aarde',
+      status: 'active',
+      categoryId: ceramics.id,
+      seoTitle: 'Kom Aarde | Atelier Noord',
+      seoDescription: 'Handmade keramieken kom — rustiek en lokaal.',
+    },
+    create: {
+      id: 'prod_kom_aarde_default',
+      tenantId: tenant.id,
+      name: 'Kom Aarde',
+      slug: 'kom-aarde',
+      description: 'Handmade keramieken kom — rustiek. eerlijk. lokaal.',
+      price: 38,
+      stock: 12,
+      status: 'active',
+      categoryId: ceramics.id,
+      seoTitle: 'Kom Aarde | Atelier Noord',
+      seoDescription: 'Handmade keramieken kom — rustiek en lokaal.',
+    },
+  });
+
+  const mediaAsset = await prisma.mediaAsset.upsert({
+    where: { tenantId_key: { tenantId: tenant.id, key: 'products/kom-aarde/hero.jpg' } },
+    update: {
+      url: PLACEHOLDER_MEDIA_URL,
+      mimeType: 'image/jpeg',
+    },
+    create: {
+      id: 'media_kom_aarde_hero_default',
+      tenantId: tenant.id,
+      key: 'products/kom-aarde/hero.jpg',
+      url: PLACEHOLDER_MEDIA_URL,
+      mimeType: 'image/jpeg',
+      metaJson: { width: 600, height: 400, source: 'seed' },
+    },
+  });
+
+  const productMedia = await prisma.productMedia.upsert({
+    where: {
+      productId_mediaAssetId: { productId: komAarde.id, mediaAssetId: mediaAsset.id },
+    },
+    update: { sortOrder: 0, alt: 'Kom Aarde' },
+    create: {
+      id: 'pm_kom_aarde_hero_default',
+      productId: komAarde.id,
+      mediaAssetId: mediaAsset.id,
+      sortOrder: 0,
+      alt: 'Kom Aarde',
+    },
+  });
+
   if (process.env.SEED_SUPPLIER_DEMO === 'true') {
     const { seedSupplierDemo } = await import('./seed-supplier-demo');
     await seedSupplierDemo(prisma, tenant.id);
     console.log('Supplier demo seed applied');
   }
 
-  console.log('Seed complete:', { tenantId: tenant.id });
+  console.log('Seed complete (P01 Birth fixtures):', {
+    tenantId: tenant.id,
+    categoryId: ceramics.id,
+    categorySlug: 'keramiek',
+    productId: komAarde.id,
+    productSlug: 'kom-aarde',
+    mediaAssetId: mediaAsset.id,
+    productMediaId: productMedia.id,
+    mediaUrl: PLACEHOLDER_MEDIA_URL,
+    siteProjectSlugHint: 'atelier-noord',
+  });
 }
 
 main()

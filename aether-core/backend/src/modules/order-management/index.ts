@@ -8,5 +8,7 @@ router.post('/', ...controller.createOrder);
 router.get('/', ...controller.getAllOrders);
 router.get('/:id', ...controller.getOrder);
 router.patch('/:id/status', ...controller.updateStatus);
+router.post('/:id/ship', ...controller.shipOrder);
+router.post('/:id/refunds', ...controller.createRefund);
 
 export default router;

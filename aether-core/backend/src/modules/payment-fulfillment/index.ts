@@ -4,6 +4,10 @@ import { PaymentFulfillmentController } from './api/controllers/PaymentFulfillme
 const router = Router();
 const controller = new PaymentFulfillmentController();
 
+router.get('/', ...controller.listPayments);
+router.get('/summary', ...controller.getSummary);
+router.get('/payouts', ...controller.listPayouts);
+router.post('/reconcile', ...controller.reconcile);
 router.post('/payment', ...controller.processPayment);
 router.post('/refund', ...controller.refundPayment);
 router.post('/webhook/stripe', controller.stripeWebhook);

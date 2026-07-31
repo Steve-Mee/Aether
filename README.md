@@ -4,19 +4,20 @@
 
 ## Structuur
 
-- `project-dna/aether/` → Single Source of Truth (principes, architectuur, skills, AGENTS.md)
+- `project-dna/Aether/` → Single Source of Truth (principes, architectuur, skills, AGENTS.md)
+- `aether-core/` → Runtime / deployment source of truth (see `aether-core/docs/runtime-charter.md`)
 - `.cursor/skills/` → Werkende kopieën van de belangrijkste skills voor Cursor
 - `.grok/skills/` → Dunne laag voor Grok Build
 
 ## Belangrijkste bestanden
 
-- `project-dna/aether/AGENTS.md` — Centrale instructies voor alle agents
-- `project-dna/aether/principles.md` — Kernprincipes van AETHER
-- `project-dna/aether/operating-system/skills/` — Canonieke skills
+- `project-dna/Aether/AGENTS.md` — Centrale instructies voor alle agents
+- `project-dna/Aether/principles.md` — Kernprincipes van AETHER
+- `project-dna/Aether/operating-system/skills/` — Canonieke skills
 
 ## Development
 
-Volg altijd de instructies in `project-dna/aether/AGENTS.md`.
+Volg altijd de instructies in `project-dna/Aether/AGENTS.md`.
 
 Voor Cursor: zorg dat de skills in `.cursor/skills/` up-to-date zijn met de centrale versies.
 

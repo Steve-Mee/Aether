@@ -83,7 +83,7 @@ No page or hook code changes are needed to switch modes.
 | **Offline mock** | `VITE_DATA_SOURCE=mock` | Full adapter swap — all data from `*PageDemo.ts` |
 | **Hybrid padding** | `VITE_HYBRID_DEMO` | In live mode, pad thin API responses (activity, insights) |
 | **Suppliers demo** | `VITE_SUPPLIERS_DEMO` | Force demo suppliers when API is empty |
-| **Live demo UI** | `VITE_LIVE_DEMO` | Simulated notifications every ~12–18s; seeds notification inbox in live mode |
+| **Live demo UI** | `VITE_LIVE_DEMO` | Opt-in (`true`/`1`): simulated notifications every ~12–18s; seeds notification inbox in live mode. **Default off** when unset. |
 | **Command demo** | `localIntentMatcher` | Local NL intent matching (always available) |
 
 For staging/production backend integration, disable demo layers:
@@ -101,7 +101,7 @@ VITE_SUPPLIERS_DEMO=false
 | `VITE_DATA_SOURCE` | `live` | `live` | `live` |
 | `VITE_API_URL` | empty (proxy) | explicit URL | empty or explicit |
 | `VITE_HYBRID_DEMO` | `true` | `false` | `false` |
-| `VITE_LIVE_DEMO` | `true` | `false` | `false` |
+| `VITE_LIVE_DEMO` | unset (off) | `false` | `false` |
 | `VITE_AETHER_API_KEY` | optional | required | required |
 | `VITE_SENTRY_DSN` | empty | recommended | recommended |
 | `VITE_SENTRY_ENV` | — | `staging` | `production` |

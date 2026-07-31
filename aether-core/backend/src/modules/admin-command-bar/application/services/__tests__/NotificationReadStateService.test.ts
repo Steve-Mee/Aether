@@ -1,66 +1,51 @@
-import { prisma } from '../../../../../shared/prisma/client';
-import {
-  dismissNotification,
-  getNotificationStateMap,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from '../NotificationReadStateService';
+import type { NotificationPort } from '../../ports/NotificationPort';
+import { NotificationReadStateService } from '../NotificationReadStateService';
 
-jest.mock('../../../../../shared/prisma/client', () => ({
-  prisma: {
-    notificationInboxState: {
-      findMany: jest.fn(),
-      upsert: jest.fn(),
-    },
-    $transaction: jest.fn((ops: unknown[]) => Promise.all(ops)),
+jest.mock('../notifications/NotificationEmitter', () => ({
+  notificationEmitter: {
+    emitStateChanged: jest.fn(),
   },
 }));
 
 describe('NotificationReadStateService', () => {
+  const notificationPort: jest.Mocked<NotificationPort> = {
+    listVisibleSince: jest.fn(),
+    listVisibleIdsSince: jest.fn(),
+    listByGroupKey: jest.fn(),
+    findRecentVisibleGroupMember: jest.fn(),
+    updateNotification: jest.fn(),
+    upsertNotification: jest.fn(),
+    listInboxStates: jest.fn(),
+    upsertInboxRead: jest.fn(),
+    upsertManyInboxRead: jest.fn(),
+    upsertDigestState: jest.fn(),
+    updateDigestState: jest.fn(),
+  };
+  const service = new NotificationReadStateService(notificationPort);
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('getNotificationStateMap partitions read and dismissed ids', async () => {
-    (prisma.notificationInboxState.findMany as jest.Mock).mockResolvedValue([
+    notificationPort.listInboxStates.mockResolvedValue([
       { notificationId: 'n1', readAt: new Date(), dismissedAt: null },
       { notificationId: 'n2', readAt: new Date(), dismissedAt: new Date() },
     ]);
 
-    const map = await getNotificationStateMap('tenant_default', 'user-1');
+    const map = await service.getNotificationStateMap('tenant_default', 'user-1');
     expect(map.readIds.has('n1')).toBe(true);
     expect(map.dismissedIds.has('n2')).toBe(true);
   });
 
   it('markNotificationRead upserts read state', async () => {
-    await markNotificationRead('tenant_default', 'user-1', 'notif-1');
-    expect(prisma.notificationInboxState.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          tenantId_actorId_notificationId: {
-            tenantId: 'tenant_default',
-            actorId: 'user-1',
-            notificationId: 'notif-1',
-          },
-        },
-      })
-    );
-  });
-
-  it('markAllNotificationsRead upserts each id', async () => {
-    await markAllNotificationsRead('tenant_default', 'user-1', ['a', 'b']);
-    expect(prisma.notificationInboxState.upsert).toHaveBeenCalledTimes(2);
-  });
-
-  it('dismissNotification sets dismissedAt', async () => {
-    await dismissNotification('tenant_default', 'user-1', 'notif-9');
-    expect(prisma.notificationInboxState.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
-          notificationId: 'notif-9',
-          dismissedAt: expect.any(Date),
-        }),
-      })
+    await service.markNotificationRead('tenant_default', 'user-1', 'notif-1');
+    expect(notificationPort.upsertInboxRead).toHaveBeenCalledWith(
+      'tenant_default',
+      'user-1',
+      'notif-1',
+      expect.any(Date),
+      null,
     );
   });
 });

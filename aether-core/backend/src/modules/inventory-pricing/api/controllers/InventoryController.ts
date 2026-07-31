@@ -10,6 +10,12 @@ const stockSchema = z.object({
   quantity: z.number().int(),
 });
 
+const adjustSchema = z.object({
+  productId: z.string().min(1),
+  warehouseId: z.string().optional(),
+  quantity: z.number().int(),
+});
+
 const priceSchema = z.object({
   productId: z.string().min(1),
   basePrice: z.number().nonnegative(),
@@ -17,6 +23,15 @@ const priceSchema = z.object({
 });
 
 export class InventoryController {
+  listInventory = [
+    requireViewer,
+    async (req: Request, res: Response) => {
+      const { listInventory } = getCompositionRoot();
+      const result = await listInventory.execute(req.tenantId!);
+      res.json(result);
+    },
+  ];
+
   updateStock = [
     requireOperator,
     validateBody(stockSchema),
@@ -25,6 +40,16 @@ export class InventoryController {
       const { updateInventory } = getCompositionRoot();
       await updateInventory.execute(req.tenantId!, productId, warehouseId, quantity);
       res.json({ status: 'experimental', success: true, message: 'Inventory updated' });
+    },
+  ];
+
+  adjustStock = [
+    requireOperator,
+    validateBody(adjustSchema),
+    async (req: Request, res: Response) => {
+      const { adjustInventory } = getCompositionRoot();
+      const result = await adjustInventory.execute(req.tenantId!, req.body);
+      res.json({ success: true, adjustment: result });
     },
   ];
 

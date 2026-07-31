@@ -50,6 +50,8 @@ jobs:
           echo "Preview server did not start"
           exit 1
 
+      # Intentional dual Lighthouse floor (Wave 10): admin frontend weekly gate stays at 0.60
+      # while storefront-runtime CI enforces 0.85 — different surfaces, different risk profiles.
       - name: Run Lighthouse CWV gate
         run: node scripts/lighthouse-cwv.mjs
         env:

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Package } from 'lucide-react';
 import { t } from '../lib/i18n';
 import { EmptyState, ModuleListPageSkeleton } from '@/components/ui';
@@ -28,9 +29,13 @@ export default function Orders() {
       ) : (
         <div className="rounded-2xl border border-border/40 bg-card/30 divide-y divide-border/40 overflow-hidden">
           {orders.map((order) => (
-            <div
+            <Link
               key={order.id}
-              className={cn(interactiveSurface(), 'p-6 flex justify-between hover:bg-card/50')}
+              to={`/orders/${order.id}`}
+              className={cn(
+                interactiveSurface(),
+                'p-6 flex justify-between hover:bg-card/50 block',
+              )}
             >
               <div>
                 <p className="text-body font-medium">{order.id.slice(0, 8)}…</p>
@@ -44,7 +49,7 @@ export default function Orders() {
                   {new Date(order.createdAt).toLocaleString()}
                 </p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

@@ -19,7 +19,7 @@ import {
 } from '@/components/command-center/primitives';
 import type { ActionExecutionMode } from '@/lib/actionAutonomy';
 import { cn, interactiveSurface } from '@/lib/utils';
-import type { TodayReadyInsight, TodayReadyInsightId } from '@/lib/todayReadyDemo';
+import type { TodayReadyInsight, TodayReadyInsightId } from '@/lib/todayReady';
 import InsightCardBase from './InsightCardBase';
 
 interface TodayReadyInsightCardProps {

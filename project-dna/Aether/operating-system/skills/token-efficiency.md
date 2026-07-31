@@ -10,7 +10,7 @@ description: >
 
 **Doel**: Zorgt dat AI-agents altijd de meest token-efficiënte en effectieve workflow volgen bij het bouwen van AETHER.
 
-**Primaire bron**: `project-dna/aether/AGENTS.md`
+**Primaire bron**: `project-dna/Aether/AGENTS.md`
 
 ---
 
