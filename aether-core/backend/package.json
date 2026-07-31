@@ -61,7 +61,7 @@
     "imap": "^0.8.17",
     "jsonwebtoken": "^9.0.3",
     "kafkajs": "^2.2.4",
-    "mailparser": "^3.6.7",
+    "mailparser": "^3.9.14",
     "nodemailer": "^6.9.13",
     "pdfkit": "^0.19.1",
     "prisma": "^5.22.0",
