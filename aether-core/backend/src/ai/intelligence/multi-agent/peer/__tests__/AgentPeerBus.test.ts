@@ -4,6 +4,12 @@ import { pricingAgentDefinition } from '../../agents/PricingAgent';
 import { inventoryAgentDefinition } from '../../agents/InventoryAgent';
 import { AgentPeerBus } from '../AgentPeerBus';
 
+jest.mock('../PeerHandoffAuditLog', () => ({
+  PeerHandoffAuditLog: jest.fn().mockImplementation(() => ({
+    record: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
 describe('AgentPeerBus', () => {
   const prevPeer = process.env.MULTI_AGENT_PEER_DELEGATION;
   const prevDelegation = process.env.MULTI_AGENT_DELEGATION_ENABLED;

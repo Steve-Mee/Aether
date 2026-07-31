@@ -30,6 +30,7 @@ test-ci-out*.txt
 /_ci_commit*.bat
 /_job.json
 /_run_fixed_tests.bat
+/_ci_fail*.txt
 /_ci_fail_log.txt
 /_pkg_*.json
 /_be_job*.zip
