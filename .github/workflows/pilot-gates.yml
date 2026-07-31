@@ -64,6 +64,9 @@ jobs:
       - name: Migrate database
         run: npx prisma migrate deploy
 
+      - name: Generate Prisma client
+        run: npx prisma generate
+
       - name: Pilot metrics check (DB)
         working-directory: aether-core
         run: node scripts/pilot-metrics-check.js

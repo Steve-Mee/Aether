@@ -30,8 +30,10 @@ async function main() {
     process.exit(0);
   }
 
-  process.chdir(BACKEND);
-  const { PrismaClient } = require('@prisma/client');
+  // Resolve @prisma/client from backend (script lives in aether-core/scripts/).
+  const { createRequire } = require('module');
+  const backendRequire = createRequire(path.join(BACKEND, 'package.json'));
+  const { PrismaClient } = backendRequire('@prisma/client');
   const prisma = new PrismaClient();
 
   try {
