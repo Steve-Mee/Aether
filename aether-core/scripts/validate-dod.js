@@ -153,10 +153,28 @@ for (const file of readModules) {
 }
 
 // 8. Stripe provider supports mock host for CI
-const paymentProvider = read(
+const stripePaymentProvider = read(
+  path.join(BACKEND, 'src', 'modules', 'payment-fulfillment', 'infrastructure', 'providers', 'StripePaymentProvider.ts')
+);
+const paymentProviderBarrel = read(
   path.join(BACKEND, 'src', 'modules', 'payment-fulfillment', 'infrastructure', 'providers', 'PaymentProvider.ts')
 );
-check('stripe-mock-host', paymentProvider.includes('STRIPE_API_HOST'), 'PaymentProvider missing STRIPE_API_HOST for CI mock');
+const adyenSandboxProvider = read(
+  path.join(
+    BACKEND,
+    'src',
+    'modules',
+    'payment-fulfillment',
+    'infrastructure',
+    'providers',
+    'AdyenSandboxPaymentProvider.ts'
+  )
+);
+check(
+  'stripe-mock-host',
+  stripePaymentProvider.includes('STRIPE_API_HOST'),
+  'PaymentProvider missing STRIPE_API_HOST for CI mock'
+);
 
 // 9. Endpoint-specific webhook auth
 const authSrc = read(path.join(BACKEND, 'src', 'shared', 'security', 'auth.ts'));
@@ -194,7 +212,9 @@ check('otel-index-init', read(path.join(BACKEND, 'src', 'index.ts')).includes('i
 // 13. Adyen labeled as experimental stub
 check(
   'adyen-stub-honest',
-  paymentProvider.includes('AdyenSandboxPaymentProvider') && paymentProvider.includes('adyen-sandbox'),
+  (paymentProviderBarrel.includes('AdyenSandboxPaymentProvider') ||
+    adyenSandboxProvider.includes('AdyenSandboxPaymentProvider')) &&
+    (paymentProviderBarrel.includes('adyen-sandbox') || adyenSandboxProvider.includes('adyen-sandbox')),
   'PaymentProvider must use AdyenSandboxPaymentProvider for test-mode references'
 );
 check(
