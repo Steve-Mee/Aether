@@ -12,6 +12,7 @@ import ProactiveBehaviorSection from '@/components/settings/ProactiveBehaviorSec
 import GoalPursuitSection from '@/components/settings/GoalPursuitSection';
 import NotificationsSection from '@/components/settings/NotificationsSection';
 import ConnectedServicesSection from '@/components/settings/ConnectedServicesSection';
+import ChannelSyncSection from '@/components/settings/ChannelSyncSection';
 import GeneralPreferencesSection from '@/components/settings/GeneralPreferencesSection';
 import OverviewLayoutSection from '@/components/settings/OverviewLayoutSection';
 import DataPrivacySection from '@/components/settings/DataPrivacySection';
@@ -63,7 +64,12 @@ function SectionContent({ id }: { id: SectionId }) {
     case 'notifications':
       return <NotificationsSection />;
     case 'services':
-      return <ConnectedServicesSection />;
+      return (
+        <div className="space-y-6">
+          <ChannelSyncSection />
+          <ConnectedServicesSection />
+        </div>
+      );
     case 'general':
       return <GeneralPreferencesSection />;
     case 'overview':

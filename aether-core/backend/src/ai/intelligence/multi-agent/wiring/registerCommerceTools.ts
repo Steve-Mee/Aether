@@ -27,7 +27,15 @@ import {
   suggestPromotionTool,
   suggestClearancePricingTool,
   createPromotionTool,
+  detectMarketingOpportunitiesTool,
+  suggestBundleTool,
+  suggestCampaignChannelTool,
+  analyzeReturnPatternsTool,
+  signalSupplierQualityIssuesTool,
+  suggestReturnReductionTool,
   getEmailSummaryTool,
+  getEmailContentSummaryTool,
+  draftEmailReplyTool,
   listProductsTool,
   searchCatalogProductsTool,
   proposeCreateProductTool,
@@ -38,6 +46,8 @@ import {
 } from '../agents';
 import { DemandForecaster } from '../../../../modules/predictive-commerce/application/services/DemandForecaster';
 import { demandForecastAdapter } from '../../../../modules/predictive-commerce/infrastructure/adapters/PrismaDemandForecastAdapter';
+import { PrismaEmailRepository } from '../../../../modules/aether-mail/infrastructure/persistence/PrismaEmailRepository';
+import { prisma } from '../../../../shared/prisma/client';
 import { PersonalBrainToolRegistry } from '../../personal-brain/tools/PersonalBrainToolRegistry';
 import type { PersonalBrainRegistry } from '../../personal-brain/PersonalBrainRegistry';
 import type { IntelligenceLayerDeps } from '../../resolveIntelligenceDeps';
@@ -93,12 +103,21 @@ export function registerCommerceTools(input: RegisterCommerceToolsInput): void {
     toolRegistry.register(suggestPromotionTool({ adminData }));
     toolRegistry.register(suggestClearancePricingTool({ adminData }));
     toolRegistry.register(createPromotionTool());
+    toolRegistry.register(detectMarketingOpportunitiesTool({ adminData }));
+    toolRegistry.register(suggestBundleTool({ adminData }));
+    toolRegistry.register(suggestCampaignChannelTool({ adminData }));
+    toolRegistry.register(analyzeReturnPatternsTool({ adminData }));
+    toolRegistry.register(signalSupplierQualityIssuesTool({ adminData }));
+    toolRegistry.register(suggestReturnReductionTool({ adminData }));
     afterPromotion?.();
     return;
   }
 
   if (segment === 'catalog') {
+    const emailRepository = new PrismaEmailRepository(prisma);
     toolRegistry.register(getEmailSummaryTool({ adminData }));
+    toolRegistry.register(getEmailContentSummaryTool({ adminData, emailRepository }));
+    toolRegistry.register(draftEmailReplyTool({ adminData, emailRepository }));
     toolRegistry.register(listProductsTool({ adminData }));
     toolRegistry.register(searchCatalogProductsTool({ adminData }));
     toolRegistry.register(proposeCreateProductTool({ adminData }));

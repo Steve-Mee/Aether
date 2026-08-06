@@ -4,6 +4,17 @@
 **Code:** [`backend/src/ai/intelligence/`](../backend/src/ai/intelligence/)  
 **Wiring:** [`compositionRoot.ts`](../backend/src/bootstrap/compositionRoot.ts) via `createIntelligenceLayer()`
 
+## Architecture pointers (current docs)
+
+| Topic | Doc |
+|-------|-----|
+| Runtime / deployment truth | [`runtime-charter.md`](./runtime-charter.md) |
+| Multi-agent specialists (returns, marketing, supervisor HITL) | [`multi-agent/README.md`](../backend/src/ai/intelligence/multi-agent/README.md) |
+| Knowledge transfer (anonymization, category opt-out, LoRA honesty) | [`knowledge-transfer.md`](./knowledge-transfer.md) |
+| Self-hosted install (Compose + scripts honesty) | [`self-hosted-install.md`](./self-hosted-install.md) |
+| Prompts Wave 1–7 status | [`roadmap-prompts-status.md`](./roadmap-prompts-status.md) |
+| Feature claims | [`feature-status.json`](./feature-status.json) |
+
 ## Architecture
 
 ```
@@ -49,6 +60,7 @@ GlobalKnowledgeService.syncForTenant → PersonalBrain indexKnowledge
 | `brainKnowledgeGovernanceMode: receive_only` | Block outbound contribution |
 | `brainKnowledgeGovernanceMode: contribute_only` | Block inbound sync (existing) |
 | `brainFederatedContributionEnabled: true` | Include tenant in cross-tenant `GlobalInsight` aggregation |
+| `proactivePrefs.knowledgeTransferCategories` | Per-category opt-out (`pricing` / `conversion` / `trend` / `inventory` / `marketing`) — see [`knowledge-transfer.md`](./knowledge-transfer.md) |
 
 **Triggers:** successful multi-step agent run (≥2 tools), tool approve/reject, supplier/mail auto-apply events, orchestrator `insight.submit` / `knowledge.contribute`.
 
@@ -562,7 +574,9 @@ See [`multi-agent/README.md`](../backend/src/ai/intelligence/multi-agent/README.
 | negotiation | `negotiation` | listActiveNegotiations, proposeCounterOffer |
 | catalog | `catalog` | listProducts, searchCatalogProducts, proposeCreateProduct |
 | autonomy | `autonomy` | getAutonomyMetrics, listDecisions, evaluateDecision, routeAutonomousDecision |
-| workflow_supervisor | `workflow_supervisor` | delegateToAgent, compound workflows |
+| promotion | `promotion` | suggestPromotion, detectMarketingOpportunities, suggestBundle, suggestCampaignChannel |
+| returns | `returns` | analyzeReturnPatterns, signalSupplierQualityIssues, suggestReturnReduction |
+| workflow_supervisor | `workflow_supervisor` | planGoalSubtasks, synthesizeAgentResults, requestHitlGate, delegateToAgent |
 
 ### Response metadata (extended)
 
@@ -767,11 +781,25 @@ Place at `{storagePath}/manifest.json`:
 }
 ```
 
+**Honesty:** runtime registers adapter **metadata/traits** for PersonalBrain context (`FilesystemLoRAAdapter` / admin LoRA API). Cross-tenant distribution of trained LoRA **weights** is not implemented. Details: [`knowledge-transfer.md`](./knowledge-transfer.md#lora-honesty).
+
+## Recent specialists (runtime pointer)
+
+Beyond the Phase 6 matrix below, the catalog also includes:
+
+| Agent | Key | feature-status |
+|-------|-----|----------------|
+| Returns & Quality | `returns` | `returns-quality-agent` (partial) |
+| Marketing tools on Promotion | `promotion` (+ `MARKETING_OPPORTUNITY` / bundle / campaign tools) | `marketing-promotion-agent` (partial) |
+| Lead supervisor | `workflow_supervisor` (`planGoalSubtasks`, `requestHitlGate`) | `lead-workflow-supervisor` (partial) |
+
+Full howto + tool tables: [`multi-agent/README.md`](../backend/src/ai/intelligence/multi-agent/README.md).
+
 ## Deployment tiers
 
 - **SaaS:** pgvector + shared Ollama
 - **Hybrid:** dedicated schema per tenant; optional `brainVectorBackend` per tenant
-- **Self-hosted:** `INTELLIGENCE_VECTOR_BACKEND=lancedb` uses portable JSON file store (not native `@lancedb/lancedb` v1) + export/import
+- **Self-hosted:** Compose path in [`self-hosted-install.md`](./self-hosted-install.md); `INTELLIGENCE_VECTOR_BACKEND=lancedb` uses portable JSON file store (not native `@lancedb/lancedb` v1) + export/import
 
 ## Proactive Brain (v3)
 

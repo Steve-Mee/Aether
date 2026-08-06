@@ -198,6 +198,7 @@ export function assembleCompositionRoot(
     reflectionExperimentService: intelligence.reflectionExperimentService,
     reflectionMetricsRecorder: intelligence.reflectionMetricsRecorder,
     memoryConsolidationJob: intelligence.memoryConsolidationJob,
+    strategicReflectionJob: intelligence.strategicReflectionJob,
     runMemoryGcJob: intelligence.runMemoryGcJob,
     runWorkingMemory: intelligence.runWorkingMemory,
     bilateralExchangeService,

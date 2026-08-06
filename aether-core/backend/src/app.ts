@@ -38,6 +38,7 @@ import merchantAuthRouter from './modules/merchant-auth';
 import bilateralExchangeRouter from './modules/bilateral-exchange';
 import bilateralAdminRouter from './modules/bilateral-exchange/adminRouter';
 import { websiteRouter, storefrontRouter } from './modules/storefront-builder';
+import channelSyncRouter, { channelSyncSettingsRouter } from './modules/channel-sync';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -137,6 +138,8 @@ export function createApp(): Express {
   app.use('/api/physical', featureGate('physical'), physicalDigitalRouter);
   app.use('/api/co-ownership', featureGate('co-ownership'), merchantCoOwnershipRouter);
   app.use('/api/website', featureGate('storefront-builder'), websiteRouter);
+  app.use('/api/admin/channel-sync', channelSyncSettingsRouter);
+  app.use('/api/admin/channel-connections', featureGate('channel-sync'), channelSyncRouter);
 
   setupExpressErrorHandler(app, {
     shouldHandleError(error) {

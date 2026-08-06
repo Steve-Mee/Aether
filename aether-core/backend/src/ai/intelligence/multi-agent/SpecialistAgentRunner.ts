@@ -13,6 +13,7 @@ import type {
 import type { RunWorkingMemoryPort } from './memory/RunWorkingMemoryPort';
 import { isMerchantMemoryEnabled, isRunMemoryEnabled } from './memory/runMemoryConfig';
 import { getCompositionRoot } from '../../../bootstrap/compositionRoot';
+import { isAgentPaused } from '../../../shared/settings/agentPause';
 
 export class SpecialistAgentRunner {
   constructor(
@@ -40,6 +41,13 @@ export class SpecialistAgentRunner {
     def: SpecialistAgentDefinition,
     request: SpecialistExecuteRequest
   ): Promise<SpecialistExecuteResult> {
+    if (await isAgentPaused(request.tenantId, def.agentKey)) {
+      return {
+        narrative: request.handlerResult,
+        error: `Agent ${def.agentKey} is gepauzeerd — geen autonome of gedelegeerde uitvoering`,
+      };
+    }
+
     const agentKey = def.memoryNamespace;
 
     if (this.merchantIndexer) {

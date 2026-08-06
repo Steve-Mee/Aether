@@ -80,6 +80,8 @@ export interface OverviewPrefs {
   collapsed: Partial<Record<OverviewSectionKey, boolean>>;
   sections: OverviewSectionPrefs;
   defaultPeriod: OverviewDefaultPeriod;
+  /** First-run onboarding completion (persisted in overviewPrefs JSON). */
+  onboardingCompleted?: boolean;
 }
 
 export const DEFAULT_OVERVIEW_SECTION_PREFS: OverviewSectionPrefs = {
@@ -106,6 +108,14 @@ export interface ProactiveCategoryPrefs {
   algemeen: boolean;
 }
 
+export interface KnowledgeTransferCategoryPrefs {
+  pricing?: boolean;
+  conversion?: boolean;
+  trend?: boolean;
+  inventory?: boolean;
+  marketing?: boolean;
+}
+
 export interface ProactivePrefs {
   enabled: boolean;
   visibility: ProactiveVisibility;
@@ -113,6 +123,7 @@ export interface ProactivePrefs {
   allowAutoExecute: boolean;
   snoozeDefaultHours: number;
   categories: ProactiveCategoryPrefs;
+  knowledgeTransferCategories?: KnowledgeTransferCategoryPrefs;
 }
 
 export const DEFAULT_PROACTIVE_PREFS: ProactivePrefs = {
@@ -126,6 +137,13 @@ export const DEFAULT_PROACTIVE_PREFS: ProactivePrefs = {
     leverancier: true,
     voorraad: true,
     algemeen: true,
+  },
+  knowledgeTransferCategories: {
+    pricing: true,
+    conversion: true,
+    trend: true,
+    inventory: true,
+    marketing: true,
   },
 };
 
@@ -178,6 +196,7 @@ export interface MerchantSettings {
   goalPrefs: GoalPrefs;
   overviewPrefs: OverviewPrefs;
   autonomyPrefs: AutonomyPrefs;
+  onboardingCompleted?: boolean;
 }
 
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
@@ -224,6 +243,8 @@ export const DEFAULT_MERCHANT_SETTINGS: MerchantSettings = {
     sectionOrder: [...DEFAULT_OVERVIEW_PREFS.sectionOrder],
     sections: { ...DEFAULT_OVERVIEW_SECTION_PREFS },
     collapsed: {},
+    onboardingCompleted: false,
   },
   autonomyPrefs: { ...DEFAULT_AUTONOMY_PREFS, actionCategories: { ...DEFAULT_AUTONOMY_PREFS.actionCategories } },
+  onboardingCompleted: false,
 };

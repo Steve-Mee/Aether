@@ -117,6 +117,7 @@ export function parseOverviewPrefs(raw: unknown): OverviewPrefs {
     collapsed,
     sections,
     defaultPeriod,
+    onboardingCompleted: obj.onboardingCompleted === true,
   };
 }
 
@@ -142,6 +143,18 @@ export function parseProactivePrefs(raw: unknown): ProactivePrefs {
   }
   const maxActive = Number(obj.maxActive);
   const snoozeDefaultHours = Number(obj.snoozeDefaultHours);
+  const ktRaw = obj.knowledgeTransferCategories;
+  const knowledgeTransferCategories = {
+    ...DEFAULT_PROACTIVE_PREFS.knowledgeTransferCategories,
+  };
+  if (ktRaw && typeof ktRaw === 'object') {
+    const k = ktRaw as Record<string, unknown>;
+    for (const key of ['pricing', 'conversion', 'trend', 'inventory', 'marketing'] as const) {
+      if (typeof k[key] === 'boolean') {
+        knowledgeTransferCategories[key] = k[key] as boolean;
+      }
+    }
+  }
   return {
     enabled: obj.enabled === true,
     visibility: vis,
@@ -150,6 +163,7 @@ export function parseProactivePrefs(raw: unknown): ProactivePrefs {
     snoozeDefaultHours:
       Number.isFinite(snoozeDefaultHours) && snoozeDefaultHours > 0 ? snoozeDefaultHours : 24,
     categories,
+    knowledgeTransferCategories,
   };
 }
 

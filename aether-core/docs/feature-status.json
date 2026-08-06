@@ -1,11 +1,11 @@
 {
-  "version": "0.8.1",
-  "updatedAt": "2026-07-28",
+  "version": "0.8.2",
+  "updatedAt": "2026-08-01",
   "claimPolicy": "No feature marked implemented without runtime evidence, automated test, and CI gate.",
   "features": {
     "product-catalog": { "status": "live", "label": "Product catalog CRUD" },
     "order-management": { "status": "live", "label": "Order management" },
-    "aether-mail": { "status": "partial", "label": "AETHER Mail v1 (LlmInferencePort + approval execute)" },
+    "aether-mail": { "status": "partial", "label": "AETHER Mail v1.1 (summarize + draft reply persist; approve sends via SMTP with stored draft body)" },
     "supplier-intelligence": { "status": "live", "label": "Supplier Intelligence v1" },
     "admin-command-bar": { "status": "partial", "label": "Admin Command Center v1" },
     "auth-rbac": { "status": "live", "label": "Auth / RBAC / tenant" },
@@ -47,7 +47,19 @@
     },
     "multi-agent-delegation": {
       "status": "implemented",
-      "label": "Phase 6 multi-agent specialists (pricing/supplier/inventory/mail), LLM routing, parallel orchestration, Command Bar agent badge"
+      "label": "Phase 6 multi-agent specialists (pricing/supplier/inventory/mail/returns), LLM routing, parallel orchestration, Command Bar agent badge"
+    },
+    "returns-quality-agent": {
+      "status": "partial",
+      "label": "Returns & Quality specialist (patterns, supplier quality signals, reduction proposals)"
+    },
+    "marketing-promotion-agent": {
+      "status": "partial",
+      "label": "Marketing & Promotion agent (opportunities, bundles, campaign channels, margin-aware)"
+    },
+    "lead-workflow-supervisor": {
+      "status": "partial",
+      "label": "Lead supervisor: goal subtask planning, result synthesis, HITL gate"
     },
     "inventory-restock-suggest": {
       "status": "implemented",
@@ -118,6 +130,66 @@
     "inventory-pricing": {
       "status": "partial",
       "label": "Inventory list/low-stock/adjust (dashboard + API; not full WMS)"
+    },
+    "strategic-ltm": {
+      "status": "partial",
+      "label": "Strategic LTM wired into PersonalBrainMemoryService recall (flag PERSONAL_BRAIN_STRATEGIC_MEMORY_ENABLED)"
+    },
+    "strategic-reflection": {
+      "status": "partial",
+      "label": "StrategicReflectionJob uses active GoalService goals; skips store when no goals/context (no invented progress)"
+    },
+    "knowledge-transfer-category-optout": {
+      "status": "partial",
+      "label": "KT category opt-out (Hive gate + Settings UI via proactivePrefs.knowledgeTransferCategories)"
+    },
+    "goals-aggressiveness": {
+      "status": "partial",
+      "label": "Wave 3 UX: Goals pursuit intensity/aggressiveness field (backend + frontend + schema)"
+    },
+    "proactive-suggestions-ui": {
+      "status": "partial",
+      "label": "Wave 3 UX: Proactive suggestions grouping by agent/goal + confidence visualization"
+    },
+    "command-center-agent-controls": {
+      "status": "partial",
+      "label": "Agent pause/priority via autonomyPrefs; live roster activity counts; paused agents blocked in router/runner/proactive"
+    },
+    "merchant-onboarding": {
+      "status": "partial",
+      "label": "First-run onboarding with soft redirect guard; onboardingCompleted via overviewPrefs; illustrative quick-wins copy"
+    },
+    "capability-hub": {
+      "status": "partial",
+      "label": "Capability hub with labeled demo examples; agent badges aligned to feature-status (no unverified live claims)"
+    },
+    "multi-agent-resilience": {
+      "status": "partial",
+      "label": "Wave 4: Multi-agent retry/backoff, orchestrator fallback, structured error reporting"
+    },
+    "multi-agent-performance": {
+      "status": "partial",
+      "label": "Wave 4: Routing cache, LLM call reduction, short-circuit optimizations"
+    },
+    "multi-agent-test-suite": {
+      "status": "partial",
+      "label": "Wave 4: Integration tests for collaboration handoffs, goal-pursuit scenarios, resilience"
+    },
+    "developer-docs": {
+      "status": "partial",
+      "label": "Wave 7 Docs/DX: multi-agent README, knowledge-transfer, self-hosted install, architecture pointers, roadmap-prompts-status"
+    },
+    "channel-sync": {
+      "status": "partial",
+      "label": "Wave 5: Channel Sync — pull sync to native catalog/orders, inventory push (Shopify/Woo REST), order-based metrics, Shopify OAuth with encrypted credentials, Settings UI; requires store credentials + FEATURE_CHANNEL_SYNC or tenant toggle"
+    },
+    "self-hosted-ops": {
+      "status": "partial",
+      "label": "Wave 6 Self-Hosted: Install/update scripts, backup/restore runbooks, monitoring dashboard docs (Prometheus/Grafana guide)"
+    },
+    "enterprise-sso": {
+      "status": "partial",
+      "label": "OIDC SSO (openid-client v6 PKCE); Redis-backed state sessions with in-memory fallback; SPA access-token cookie tradeoff documented"
     }
   },
   "phases": {

@@ -1,5 +1,6 @@
 import type { AdminDataPort } from '../../../modules/admin-command-bar/application/ports/AdminDataPort';
 import { getMerchantSettings } from '../../../shared/settings/TenantSettingsService';
+import { isAgentPausedFromPrefs } from '../../../shared/settings/agentPause';
 import { isProactiveBrainEnabled } from './proactiveConfig';
 import type { ProactiveFinding } from './ProactiveTriggerDefinition';
 import { ProactiveEvaluator } from './ProactiveEvaluator';
@@ -88,6 +89,10 @@ export class ProactiveSuggestionService {
     let ingested = 0;
 
     for (const finding of normalized) {
+      if (finding.agentKey && isAgentPausedFromPrefs(settings.autonomyPrefs, finding.agentKey)) {
+        continue;
+      }
+
       if (this.deps.learning) {
         const suppress = await this.deps.learning.shouldSuppress(
           tenantId,

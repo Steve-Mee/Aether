@@ -23,6 +23,11 @@ export const apiRoutes = {
     refresh: '/api/auth/refresh',
     session: '/api/auth/session',
     logout: '/api/auth/logout',
+    oidcLogin: (tenantId?: string) => {
+      const params = tenantId ? `?tenantId=${encodeURIComponent(tenantId)}` : '';
+      return `/api/auth/oidc/login${params}`;
+    },
+    oidcMetadata: '/api/auth/oidc/metadata',
   },
   approvals: {
     list: '/api/approvals',
@@ -194,6 +199,25 @@ export const apiRoutes = {
     negotiations: '/api/agentic/negotiations',
   },
   autonomous: { list: '/api/autonomous' },
+  channelSync: {
+    settings: '/api/admin/channel-sync/settings',
+    connections: '/api/admin/channel-connections',
+    connection: (id: string) => `/api/admin/channel-connections/${encodeURIComponent(id)}`,
+    test: (id: string) => `/api/admin/channel-connections/${encodeURIComponent(id)}/test`,
+    sync: (id: string) => `/api/admin/channel-connections/${encodeURIComponent(id)}/sync`,
+    metrics: (id: string, start?: string, end?: string) => {
+      const params = new URLSearchParams();
+      if (start) params.set('start', start);
+      if (end) params.set('end', end);
+      const q = params.toString();
+      return `/api/admin/channel-connections/${encodeURIComponent(id)}/metrics${q ? `?${q}` : ''}`;
+    },
+    inventory: (id: string) => `/api/admin/channel-connections/${encodeURIComponent(id)}/inventory`,
+    oauthUrl: (id: string, redirectUri: string) =>
+      `/api/admin/channel-connections/${encodeURIComponent(id)}/oauth/url?redirectUri=${encodeURIComponent(redirectUri)}`,
+    oauthCallback: (id: string) =>
+      `/api/admin/channel-connections/${encodeURIComponent(id)}/oauth/callback`,
+  },
   bilateral: {
     schemas: '/api/bilateral/schemas',
     contracts: '/api/bilateral/contracts',

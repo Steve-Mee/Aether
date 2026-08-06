@@ -27,6 +27,12 @@ function mapApiToProactive(
   item: ApiProactiveSuggestion,
   settings?: ReturnType<typeof useMerchantSettings>['settings'],
 ): ProactiveSuggestion {
+  const priority = Number(item.priority ?? 0);
+  const confidence =
+    typeof (item as { confidence?: number }).confidence === 'number'
+      ? (item as { confidence: number }).confidence
+      : Math.min(0.95, Math.max(0.35, 0.4 + priority / 20));
+
   const base: ProactiveSuggestion = {
     id: item.id,
     title: item.label,
@@ -37,6 +43,9 @@ function mapApiToProactive(
     linkedInsightId: null,
     executionMode: item.executionMode ?? 'inform_only',
     hasExplainability: item.hasExplainability ?? env.isLiveMode,
+    priority: Number.isFinite(priority) ? priority : undefined,
+    confidence,
+    agentKey: item.agentKey,
   };
   if (!settings) return base;
   return {

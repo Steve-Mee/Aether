@@ -121,6 +121,11 @@ See **[CONTRIBUTING.md](../CONTRIBUTING.md)** for branch protection rules, local
 - [Truth Matrix](./docs/truth-matrix.md) — feature status vs code
 - [Release Gates](./docs/release-gates.md) — ship criteria (no green checkbox without CI proof)
 - [Roadmap Alignment](./docs/roadmap-alignment.md)
+- [Intelligence Layer](./docs/intelligence-layer.md) — brain architecture + doc pointers
+- [Multi-agent README](./backend/src/ai/intelligence/multi-agent/README.md) — specialists, howto, returns/marketing/supervisor
+- [Knowledge Transfer](./docs/knowledge-transfer.md) — anonymization, category opt-out, LoRA honesty
+- [Self-hosted install](./docs/self-hosted-install.md) — Compose + scripts (honest gaps)
+- [Prompts Wave 1–7 status](./docs/roadmap-prompts-status.md)
 - [Contributing](../CONTRIBUTING.md) — CI workflow and merge requirements
 
 Run `npm run validate:dod` from `backend/` before release — CI enforces this automatically.  

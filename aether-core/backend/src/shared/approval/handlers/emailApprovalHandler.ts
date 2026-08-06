@@ -29,10 +29,15 @@ export class EmailApprovalHandler implements ApprovalActionHandler {
     if (!row) throw new Error(`Email not found: ${emailId}`);
 
     const category = String(ctx.payload.category ?? row.category ?? 'simple_question');
-    const draftReply = emailPolicyService.buildAutoReply(category);
+    const draftReply =
+      String(ctx.payload.body ?? '').trim() ||
+      String(row.draftReply ?? '').trim() ||
+      emailPolicyService.buildAutoReply(category);
+    const subject =
+      String(ctx.payload.subject ?? '').trim() || `Re: ${row.subject ?? 'Your inquiry'}`;
     const sendResult = await smtpMailSender.send({
       to: row.from,
-      subject: `Re: ${row.subject ?? 'Your inquiry'}`,
+      subject,
       body: draftReply,
     });
 

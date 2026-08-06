@@ -98,6 +98,7 @@ export const settingsPatchSchema = z.object({
   brainCrossTenantAgentPatternsEnabled: z.boolean().optional(),
   brainFederatedExecutionContribute: z.boolean().optional(),
   brainBilateralExchangeEnabled: z.boolean().optional(),
+  onboardingCompleted: z.boolean().optional(),
   proactivePrefs: z
     .object({
       enabled: z.boolean().optional(),
@@ -111,6 +112,15 @@ export const settingsPatchSchema = z.object({
           leverancier: z.boolean().optional(),
           voorraad: z.boolean().optional(),
           algemeen: z.boolean().optional(),
+        })
+        .optional(),
+      knowledgeTransferCategories: z
+        .object({
+          pricing: z.boolean().optional(),
+          conversion: z.boolean().optional(),
+          trend: z.boolean().optional(),
+          inventory: z.boolean().optional(),
+          marketing: z.boolean().optional(),
         })
         .optional(),
     })
@@ -158,6 +168,7 @@ export const settingsPatchSchema = z.object({
             'supplier',
             'inventory',
             'promotion',
+            'returns',
             'mail',
             'negotiation',
             'customer',

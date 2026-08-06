@@ -15,6 +15,10 @@ export interface ProactiveSuggestion {
   linkedInsightId: LinkedInsightId;
   executionMode: ActionExecutionMode;
   hasExplainability?: boolean;
+  priority?: number;
+  confidence?: number;
+  agentKey?: string;
+  goalId?: string;
 }
 
 const STORAGE_KEY = 'aether_proactive_suggestions';

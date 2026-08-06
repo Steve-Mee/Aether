@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Spinner } from '@/components/ui';
 import AetherBrandMark from '@/components/shell/AetherBrandMark';
 import { env } from '@/lib/config';
 import { DEMO_PERSONAS, getDefaultSignInEmail } from '@/lib/auth/adapters/stubAuthAdapter';
 import { useAuth } from '@/lib/auth/AuthProvider';
+import { authApi } from '@/lib/auth/authApi';
 import { t } from '@/lib/i18n';
 import { cn, focusRing } from '@/lib/utils';
 
@@ -15,8 +16,18 @@ export default function LoginPage() {
   const [email, setEmail] = useState(isJwt ? 'admin@aether.local' : getDefaultSignInEmail());
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [oidcEnabled, setOidcEnabled] = useState(false);
 
   const fromPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+
+  useEffect(() => {
+    if (isJwt) {
+      authApi
+        .oidcMetadata()
+        .then((metadata) => setOidcEnabled(metadata.enabled))
+        .catch(() => setOidcEnabled(false));
+    }
+  }, [isJwt]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,6 +37,15 @@ export default function LoginPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleOidcLogin() {
+    const tenantId = env.tenantId;
+    const backendUrl = env.apiUrl ?? 'http://localhost:9000';
+    const oidcUrl = tenantId
+      ? `${backendUrl}/api/auth/oidc/login?tenantId=${encodeURIComponent(tenantId)}`
+      : `${backendUrl}/api/auth/oidc/login`;
+    window.location.href = oidcUrl;
   }
 
   const busy = loading || submitting;
@@ -162,6 +182,34 @@ export default function LoginPage() {
             {t('auth.login.submit')}
           </button>
         </form>
+
+        {isJwt && oidcEnabled && (
+          <div className="mt-4">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border/40" />
+              </div>
+              <div className="relative flex justify-center text-caption">
+                <span className="bg-background px-2 text-muted-foreground">
+                  {t('auth.login.orSso')}
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleOidcLogin}
+              disabled={busy}
+              className={cn(
+                'mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg border border-border/40 bg-background px-4 py-2.5',
+                'text-sm font-medium text-foreground hover:bg-muted/20 transition-colors',
+                'disabled:opacity-60 disabled:pointer-events-none',
+                focusRing(),
+              )}
+            >
+              {t('auth.login.ssoButton')}
+            </button>
+          </div>
+        )}
 
         <p className="text-caption text-caption-accessible text-center mt-6">
           {isJwt ? t('auth.login.jwtHint') : t('auth.login.stubHint')}

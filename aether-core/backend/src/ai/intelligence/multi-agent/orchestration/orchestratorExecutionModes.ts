@@ -11,6 +11,11 @@ import type {
 } from '../types';
 import { executeSpecialistCore } from './orchestratorSpecialistExecution';
 import type { OrchestratorDeps } from './orchestratorDeps';
+import {
+  buildDegradedNarrative,
+  evaluateParallelExecution,
+  getOrchestratorFallbackStrategy,
+} from '../resilience/orchestratorFallback';
 
 export async function executeParallel(
   deps: OrchestratorDeps,
@@ -46,6 +51,15 @@ export async function executeParallel(
     });
   }
 
+  const strategy = getOrchestratorFallbackStrategy();
+  const evaluation = evaluateParallelExecution(result, strategy);
+  if (evaluation.shouldDegrade || (!evaluation.success && strategy.degradeGracefully)) {
+    return {
+      ...result,
+      mergedNarrative: buildDegradedNarrative(result, evaluation),
+    };
+  }
+
   return result;
 }
 
@@ -56,6 +70,8 @@ export async function executeSequential(
 ): Promise<SpecialistExecuteResult[]> {
   const results: SpecialistExecuteResult[] = [];
   let chainContext: string[] = [];
+  let consecutiveFailures = 0;
+  const maxConsecutiveFailures = 2;
 
   if (requests.length > 0) {
     emitStreamEvent(requests[0].onEvent, {
@@ -68,6 +84,20 @@ export async function executeSequential(
   for (const req of requests) {
     if (req.abortSignal?.aborted) {
       break;
+    }
+
+    if (consecutiveFailures >= maxConsecutiveFailures) {
+      emitStreamEvent(req.onEvent, {
+        type: 'agent_completed',
+        agentKey: req.agentKey,
+        executionMode: 'sequential',
+        error: 'Skipped due to consecutive failures',
+      });
+      results.push({
+        narrative: '',
+        error: `Skipped: ${consecutiveFailures} consecutive failures in chain`,
+      });
+      continue;
     }
 
     emitStreamEvent(req.onEvent, {
@@ -97,10 +127,14 @@ export async function executeSequential(
     if (req.abortSignal?.aborted) {
       break;
     }
-    if (result.narrative) {
-      chainContext = [...chainContext, result.narrative];
-    } else if (result.error) {
-      chainContext = [...chainContext, `[${req.agentKey} error] ${result.error}`];
+    if (result.error) {
+      consecutiveFailures++;
+      chainContext = [...chainContext, `[${req.agentKey} error] ${result.error} — continuing with degraded context`];
+    } else {
+      consecutiveFailures = 0;
+      if (result.narrative) {
+        chainContext = [...chainContext, result.narrative];
+      }
     }
   }
 
