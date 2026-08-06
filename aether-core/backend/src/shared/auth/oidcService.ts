@@ -50,7 +50,14 @@ async function loadOpenIdClient() {
   return import('openid-client');
 }
 
+function assertOidcEnabled(): void {
+  if (!isOidcEnabled()) {
+    throw new Error('OIDC SSO not enabled');
+  }
+}
+
 export async function getOidcConfiguration(): Promise<OidcConfiguration> {
+  assertOidcEnabled();
   if (cachedConfig) return cachedConfig;
 
   const oidc = await loadOpenIdClient();
@@ -69,6 +76,7 @@ export function clearOidcConfigurationCache(): void {
 }
 
 export async function createOidcAuthRequest(): Promise<OidcAuthRequest> {
+  assertOidcEnabled();
   const oidc = await loadOpenIdClient();
   const oidcConfig = getOidcConfig();
   const configuration = await getOidcConfiguration();
@@ -99,6 +107,7 @@ export async function exchangeOidcCode(
   currentUrl: URL,
   expected: { state: string; nonce: string; codeVerifier: string }
 ): Promise<{ accessToken?: string; userInfo: OidcUserInfo }> {
+  assertOidcEnabled();
   const oidc = await loadOpenIdClient();
   const configuration = await getOidcConfiguration();
 

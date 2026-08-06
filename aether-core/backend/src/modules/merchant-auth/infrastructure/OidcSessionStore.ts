@@ -31,9 +31,16 @@ function pruneFallbackSessions(): void {
   }
 }
 
-setInterval(() => pruneFallbackSessions(), 10 * 60 * 1000);
+let pruneTimer: ReturnType<typeof setInterval> | undefined;
+
+function ensurePruneTimer(): void {
+  if (pruneTimer !== undefined) return;
+  pruneTimer = setInterval(() => pruneFallbackSessions(), 10 * 60 * 1000);
+  pruneTimer.unref();
+}
 
 export async function storeOidcSession(state: string, session: OidcSession): Promise<void> {
+  ensurePruneTimer();
   const client = await getRedisClient();
   if (client) {
     try {
