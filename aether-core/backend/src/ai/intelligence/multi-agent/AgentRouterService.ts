@@ -208,16 +208,8 @@ export class AgentRouterService {
       return this.attachGraphDefinition(weighted, input.command);
     };
 
-    const intentMatch = this.registry.resolveByIntent(input.intent);
-    if (intentMatch && (input.confidence ?? 1) >= 0.8) {
-      return await finalize({
-        mode: 'single',
-        agents: [{ agentKey: intentMatch.agentKey, intent: input.intent }],
-        routingSource: 'intent',
-        routingReason: `intent:${input.intent}`,
-      });
-    }
-
+    // Multi-domain collaboration / keywords take precedence over a single intent match
+    // (e.g. EMAIL_SUMMARY + "inventory status en email samenvatting" → parallel mail+inventory).
     const collaborationChain = resolveCollaborationChain(
       input.command,
       input.intent,
