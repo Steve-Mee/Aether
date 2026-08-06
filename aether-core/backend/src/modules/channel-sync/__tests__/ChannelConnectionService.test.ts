@@ -4,6 +4,7 @@ import type {
   ChannelConnectionRepository,
 } from '../domain/repositories/ChannelConnectionRepository';
 import type { ChannelProvider, ChannelConnectionConfig } from '../domain/types';
+import { channelSyncAdapterFactory } from '../infrastructure/adapters/ChannelSyncAdapterFactory';
 
 describe('ChannelConnectionService', () => {
   let service: ChannelConnectionService;
@@ -19,7 +20,7 @@ describe('ChannelConnectionService', () => {
       delete: jest.fn(),
     } as jest.Mocked<ChannelConnectionRepository>;
 
-    service = new ChannelConnectionService(mockRepository);
+    service = new ChannelConnectionService(mockRepository, channelSyncAdapterFactory);
   });
 
   describe('listConnections', () => {

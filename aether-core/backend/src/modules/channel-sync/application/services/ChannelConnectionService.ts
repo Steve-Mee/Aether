@@ -3,12 +3,17 @@ import type {
   ChannelConnectionRepository,
 } from '../../domain/repositories/ChannelConnectionRepository';
 import type { ChannelProvider, ChannelConnectionConfig } from '../../domain/types';
-import { ShopifyChannelAdapter } from '../../infrastructure/adapters/ShopifyChannelAdapter';
-import { WooCommerceChannelAdapter } from '../../infrastructure/adapters/WooCommerceChannelAdapter';
 import type { ChannelSyncPort } from '../ports/ChannelSyncPort';
+import type {
+  ChannelSyncPortFactory,
+  ChannelConfigResolver,
+} from '../ports/ChannelSyncPortFactory';
 
 export class ChannelConnectionService {
-  constructor(private repository: ChannelConnectionRepository) {}
+  constructor(
+    private repository: ChannelConnectionRepository,
+    private adapterFactory: ChannelSyncPortFactory
+  ) {}
 
   async listConnections(tenantId: string): Promise<ChannelConnection[]> {
     return this.repository.findByTenant(tenantId);
@@ -70,18 +75,8 @@ export class ChannelConnectionService {
     };
   }
 
-  getAdapter(
-    provider: ChannelProvider,
-    getConfig: (tenantId: string) => Promise<ChannelConnectionConfig | null>
-  ): ChannelSyncPort {
-    switch (provider) {
-      case 'shopify':
-        return new ShopifyChannelAdapter(getConfig);
-      case 'woocommerce':
-        return new WooCommerceChannelAdapter(getConfig);
-      default:
-        throw new Error(`Unsupported channel provider: ${provider}`);
-    }
+  getAdapter(provider: ChannelProvider, getConfig: ChannelConfigResolver): ChannelSyncPort {
+    return this.adapterFactory.create(provider, getConfig);
   }
 
   async getAdapterForTenant(

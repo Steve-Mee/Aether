@@ -4,6 +4,10 @@ export { ShopifyChannelAdapter } from './infrastructure/adapters/ShopifyChannelA
 export { WooCommerceChannelAdapter } from './infrastructure/adapters/WooCommerceChannelAdapter';
 export type { ChannelSyncPort, ChannelOAuthPort } from './application/ports/ChannelSyncPort';
 export type {
+  ChannelSyncPortFactory,
+  ChannelConfigResolver,
+} from './application/ports/ChannelSyncPortFactory';
+export type {
   ChannelProduct,
   ChannelOrder,
   ChannelInventoryUpdate,

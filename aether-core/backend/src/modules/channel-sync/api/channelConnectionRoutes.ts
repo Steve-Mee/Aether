@@ -1,24 +1,11 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { ChannelConnectionService } from '../application/services/ChannelConnectionService';
-import { SyncConnectionUseCase } from '../application/use-cases/SyncConnectionUseCase';
-import { PrismaChannelConnectionRepository } from '../infrastructure/persistence/PrismaChannelConnectionRepository';
-import { PrismaChannelCatalogAdapter } from '../infrastructure/persistence/PrismaChannelCatalogAdapter';
-import { ShopifyChannelAdapter } from '../infrastructure/adapters/ShopifyChannelAdapter';
-import { prisma } from '../../../shared/prisma/client';
-import { isFeatureEnabled } from '../../../shared/features/featureFlags';
+import type { ChannelOAuthPort } from '../application/ports/ChannelSyncPort';
 import type { ChannelInventoryUpdate, ChannelProvider } from '../domain/types';
+import { channelConnectionService as service, syncConnectionUseCase as syncUseCase } from '../wiring';
+import { isFeatureEnabled } from '../../../shared/features/featureFlags';
 
 const router = Router();
-const repository = new PrismaChannelConnectionRepository(prisma);
-const catalogAdapter = new PrismaChannelCatalogAdapter(prisma);
-const service = new ChannelConnectionService(repository);
-const syncUseCase = new SyncConnectionUseCase(
-  repository,
-  service,
-  catalogAdapter,
-  catalogAdapter
-);
 
 async function requireChannelSync(req: Request, res: Response): Promise<string | null> {
   const tenantId = req.tenantId;
@@ -268,7 +255,7 @@ router.get('/:id/oauth/url', async (req: Request, res: Response) => {
     const adapter = service.getAdapter('shopify', async (tid) => {
       if (tid !== tenantId) return null;
       return connection.config;
-    }) as ShopifyChannelAdapter;
+    }) as ChannelOAuthPort;
 
     const url = await adapter.getAuthUrl({
       tenantId,
@@ -310,7 +297,7 @@ router.post('/:id/oauth/callback', async (req: Request, res: Response) => {
     const adapter = service.getAdapter('shopify', async (tid) => {
       if (tid !== tenantId) return null;
       return connection.config;
-    }) as ShopifyChannelAdapter;
+    }) as ChannelOAuthPort;
 
     const tokenResult = await adapter.exchangeCodeForToken({
       tenantId,

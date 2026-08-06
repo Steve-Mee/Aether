@@ -111,6 +111,7 @@ async function mockSuppliersApi(page: import('@playwright/test').Page) {
           status: 'live',
           settings: {
             autonomyLevel: 'medium',
+            onboardingCompleted: true,
             notificationPrefs: {
               autonomousLowRisk: { inApp: true, email: false },
               highRiskApproval: { inApp: true, email: true },

@@ -4,7 +4,13 @@ import {
   type MerchantSettings,
 } from '@/lib/settings/merchantSettingsTypes';
 
-let mockSettings: MerchantSettings = { ...DEFAULT_MERCHANT_SETTINGS };
+/** Demo/mock adapter: skip first-run onboarding gate (production default remains false). */
+const DEMO_MERCHANT_SETTINGS: MerchantSettings = {
+  ...DEFAULT_MERCHANT_SETTINGS,
+  onboardingCompleted: true,
+};
+
+let mockSettings: MerchantSettings = { ...DEMO_MERCHANT_SETTINGS };
 
 export function getSettingsDemo(): MerchantSettings {
   return { ...mockSettings };
@@ -16,7 +22,7 @@ export function patchSettingsDemo(patch: Partial<MerchantSettings>): MerchantSet
 }
 
 export function resetSettingsDemo(): void {
-  mockSettings = { ...DEFAULT_MERCHANT_SETTINGS };
+  mockSettings = { ...DEMO_MERCHANT_SETTINGS };
 }
 
 export function getConnectedServicesDemo(): ConnectedService[] {
