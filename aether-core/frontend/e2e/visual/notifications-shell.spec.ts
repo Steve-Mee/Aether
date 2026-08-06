@@ -41,7 +41,10 @@ test.describe('Notifications shell', () => {
     await expect(groupedRow).toBeVisible({ timeout: 10000 });
     await groupedRow.click();
 
-    await expect(popover.getByText('Terugbetaling € 89,50')).toBeVisible({ timeout: 10000 });
-    await expect(popover.getByText('Prijsbulk wijziging')).toBeVisible();
+    // exact:true — parent group summary also contains this substring
+    await expect(popover.getByText('Terugbetaling € 89,50', { exact: true })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(popover.getByText('Prijsbulk wijziging', { exact: true })).toBeVisible();
   });
 });
