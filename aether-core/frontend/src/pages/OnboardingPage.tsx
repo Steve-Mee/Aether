@@ -186,7 +186,10 @@ function GoalsStep() {
       </div>
       <div className="grid md:grid-cols-3 gap-4">
         {exampleGoals.map((goal, idx) => (
-          <Card key={idx} className="rounded-2xl border-primary/20 hover:border-primary/40 transition-colors">
+          <Card
+            key={idx}
+            className="rounded-2xl border-primary/20 hover:border-primary/40 transition-colors"
+          >
             <CardContent className="p-6">
               <div className="flex items-start gap-3 mb-4">
                 <Target size={20} className="text-primary mt-1 flex-shrink-0" />
@@ -198,9 +201,7 @@ function GoalsStep() {
           </Card>
         ))}
       </div>
-      <p className="text-center text-sm text-muted-foreground mt-6">
-        {t('onboarding.goals.hint')}
-      </p>
+      <p className="text-center text-sm text-muted-foreground mt-6">{t('onboarding.goals.hint')}</p>
     </div>
   );
 }

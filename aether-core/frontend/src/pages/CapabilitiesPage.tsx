@@ -37,10 +37,7 @@ const AGENT_CAPABILITIES: AgentCapability[] = [
       t('capabilities.agents.mail.strength2'),
       t('capabilities.agents.mail.strength3'),
     ],
-    goalTypes: [
-      t('capabilities.agents.mail.goal1'),
-      t('capabilities.agents.mail.goal2'),
-    ],
+    goalTypes: [t('capabilities.agents.mail.goal1'), t('capabilities.agents.mail.goal2')],
     featureStatusKey: 'aether-mail',
     status: FEATURE_STATUS_BADGE['aether-mail'],
   },
@@ -54,10 +51,7 @@ const AGENT_CAPABILITIES: AgentCapability[] = [
       t('capabilities.agents.supplier.strength2'),
       t('capabilities.agents.supplier.strength3'),
     ],
-    goalTypes: [
-      t('capabilities.agents.supplier.goal1'),
-      t('capabilities.agents.supplier.goal2'),
-    ],
+    goalTypes: [t('capabilities.agents.supplier.goal1'), t('capabilities.agents.supplier.goal2')],
     featureStatusKey: 'supplier-intelligence',
     status: FEATURE_STATUS_BADGE['supplier-intelligence'],
   },
@@ -71,10 +65,7 @@ const AGENT_CAPABILITIES: AgentCapability[] = [
       t('capabilities.agents.pricing.strength2'),
       t('capabilities.agents.pricing.strength3'),
     ],
-    goalTypes: [
-      t('capabilities.agents.pricing.goal1'),
-      t('capabilities.agents.pricing.goal2'),
-    ],
+    goalTypes: [t('capabilities.agents.pricing.goal1'), t('capabilities.agents.pricing.goal2')],
     featureStatusKey: 'admin-command-bar',
     status: FEATURE_STATUS_BADGE['admin-command-bar'],
   },
@@ -88,10 +79,7 @@ const AGENT_CAPABILITIES: AgentCapability[] = [
       t('capabilities.agents.inventory.strength2'),
       t('capabilities.agents.inventory.strength3'),
     ],
-    goalTypes: [
-      t('capabilities.agents.inventory.goal1'),
-      t('capabilities.agents.inventory.goal2'),
-    ],
+    goalTypes: [t('capabilities.agents.inventory.goal1'), t('capabilities.agents.inventory.goal2')],
     featureStatusKey: 'inventory-pricing',
     status: FEATURE_STATUS_BADGE['inventory-pricing'],
   },
@@ -105,10 +93,7 @@ const AGENT_CAPABILITIES: AgentCapability[] = [
       t('capabilities.agents.promotion.strength2'),
       t('capabilities.agents.promotion.strength3'),
     ],
-    goalTypes: [
-      t('capabilities.agents.promotion.goal1'),
-      t('capabilities.agents.promotion.goal2'),
-    ],
+    goalTypes: [t('capabilities.agents.promotion.goal1'), t('capabilities.agents.promotion.goal2')],
     featureStatusKey: 'marketing-promotion-agent',
     status: FEATURE_STATUS_BADGE['marketing-promotion-agent'],
   },
@@ -116,7 +101,8 @@ const AGENT_CAPABILITIES: AgentCapability[] = [
     id: 'returns',
     name: 'Returns & Quality',
     icon: <Package size={24} />,
-    description: 'Analyseert retourpatronen, signaleert leverancierskwaliteit en stelt reductieacties voor.',
+    description:
+      'Analyseert retourpatronen, signaleert leverancierskwaliteit en stelt reductieacties voor.',
     strengths: ['Retourpatronen', 'Kwaliteitssignalen', 'Reductie-suggesties'],
     goalTypes: ['Retourpercentage verlagen', 'Leverancierskwaliteit verbeteren'],
     featureStatusKey: 'returns-quality-agent',
@@ -161,11 +147,14 @@ const DEMO_EXAMPLES: DemoExample[] = [
 ];
 
 export default function CapabilitiesPage() {
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'efficiency' | 'revenue' | 'cost-reduction'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<
+    'all' | 'efficiency' | 'revenue' | 'cost-reduction'
+  >('all');
 
-  const filteredExamples = selectedCategory === 'all' 
-    ? DEMO_EXAMPLES 
-    : DEMO_EXAMPLES.filter(ex => ex.category === selectedCategory);
+  const filteredExamples =
+    selectedCategory === 'all'
+      ? DEMO_EXAMPLES
+      : DEMO_EXAMPLES.filter((ex) => ex.category === selectedCategory);
 
   return (
     <ModulePageLayout
@@ -186,7 +175,10 @@ export default function CapabilitiesPage() {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {AGENT_CAPABILITIES.map((agent) => (
-              <Card key={agent.id} className="rounded-2xl border-border/50 hover:border-primary/30 transition-all hover:shadow-md">
+              <Card
+                key={agent.id}
+                className="rounded-2xl border-border/50 hover:border-primary/30 transition-all hover:shadow-md"
+              >
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
@@ -200,7 +192,7 @@ export default function CapabilitiesPage() {
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground">{agent.description}</p>
-                  
+
                   <div>
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                       {t('capabilities.agents.strengths')}
@@ -244,7 +236,7 @@ export default function CapabilitiesPage() {
               </Badge>
               <span>{t('capabilities.examples.demoDisclaimer')}</span>
             </div>
-            
+
             {/* Category Filter */}
             <div className="flex gap-2">
               {(['all', 'efficiency', 'revenue', 'cost-reduction'] as const).map((cat) => (
@@ -300,11 +292,17 @@ export default function CapabilitiesPage() {
               <h3 className="text-xl font-bold mb-2">{t('capabilities.cta.title')}</h3>
               <p className="text-muted-foreground mb-4">{t('capabilities.cta.subtitle')}</p>
               <div className="flex justify-center gap-3">
-                <a href="/goals" className="inline-flex items-center px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors">
+                <a
+                  href="/goals"
+                  className="inline-flex items-center px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                >
                   <Target size={18} className="mr-2" />
                   {t('capabilities.cta.setGoal')}
                 </a>
-                <a href="/command-center" className="inline-flex items-center px-6 py-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors">
+                <a
+                  href="/command-center"
+                  className="inline-flex items-center px-6 py-3 rounded-xl bg-muted hover:bg-muted/80 transition-colors"
+                >
                   {t('capabilities.cta.explore')}
                 </a>
               </div>
@@ -324,7 +322,9 @@ function StatusBadge({ status }: { status: 'live' | 'partial' | 'experimental' }
   };
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${variants[status]}`}>
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${variants[status]}`}
+    >
       {t(`capabilities.status.${status}`)}
     </span>
   );

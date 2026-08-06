@@ -74,7 +74,12 @@ function ConnectionRow({
               {t('settings.channelSync.oauth')}
             </Button>
           )}
-          <Button variant="secondary" size="sm" disabled={busy} onClick={() => onTest(connection.id)}>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy}
+            onClick={() => onTest(connection.id)}
+          >
             {t('settings.channelSync.test')}
           </Button>
           <Button variant="primary" size="sm" disabled={busy} onClick={() => onSync(connection.id)}>
@@ -173,7 +178,7 @@ export default function ChannelSyncSection() {
       showCalmToast({
         title: result.connected
           ? t('settings.channelSync.testOk')
-          : result.error ?? t('settings.channelSync.testFail'),
+          : (result.error ?? t('settings.channelSync.testFail')),
       });
     },
   });
@@ -243,7 +248,9 @@ export default function ChannelSyncSection() {
     <Card variant="elevated" padding="lg" data-testid="settings-channel-sync">
       <div className="flex items-center gap-2 mb-6">
         <Store size={18} className="text-muted-foreground" aria-hidden />
-        <h2 className="text-title font-semibold text-foreground">{t('settings.channelSync.title')}</h2>
+        <h2 className="text-title font-semibold text-foreground">
+          {t('settings.channelSync.title')}
+        </h2>
       </div>
 
       <AsyncBoundary
@@ -255,18 +262,14 @@ export default function ChannelSyncSection() {
         <SettingRow
           label={t('settings.channelSync.enable')}
           description={
-            envLocked
-              ? t('settings.channelSync.envOverride')
-              : t('settings.channelSync.enableHint')
+            envLocked ? t('settings.channelSync.envOverride') : t('settings.channelSync.enableHint')
           }
         >
           <Button
             variant={settingsQuery.data?.tenantEnabled ? 'primary' : 'secondary'}
             size="sm"
             disabled={envLocked || toggleMutation.isPending}
-            onClick={() =>
-              toggleMutation.mutate(!settingsQuery.data?.tenantEnabled)
-            }
+            onClick={() => toggleMutation.mutate(!settingsQuery.data?.tenantEnabled)}
           >
             {settingsQuery.data?.tenantEnabled
               ? t('settings.channelSync.enabled')
@@ -275,13 +278,17 @@ export default function ChannelSyncSection() {
         </SettingRow>
 
         {!enabled && (
-          <p className="text-caption text-muted-foreground mt-4">{t('settings.channelSync.gated')}</p>
+          <p className="text-caption text-muted-foreground mt-4">
+            {t('settings.channelSync.gated')}
+          </p>
         )}
 
         {enabled && (
           <div className="mt-8 space-y-6">
             <div>
-              <h3 className="text-body font-medium mb-3">{t('settings.channelSync.addConnection')}</h3>
+              <h3 className="text-body font-medium mb-3">
+                {t('settings.channelSync.addConnection')}
+              </h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-caption">
                   {t('settings.channelSync.provider')}
@@ -367,7 +374,9 @@ export default function ChannelSyncSection() {
               skeleton={<SettingsSectionSkeleton />}
             >
               {connections.length === 0 ? (
-                <p className="text-caption text-muted-foreground">{t('settings.channelSync.empty')}</p>
+                <p className="text-caption text-muted-foreground">
+                  {t('settings.channelSync.empty')}
+                </p>
               ) : (
                 <ul className="space-y-3">
                   {connections.map((c) => (

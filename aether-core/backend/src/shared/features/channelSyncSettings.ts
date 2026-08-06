@@ -1,5 +1,5 @@
-import { prisma } from '../../../shared/prisma/client';
-import { isFeatureEnabled } from '../featureFlags';
+import { prisma } from '../prisma/client';
+import { isFeatureEnabled } from './featureFlags';
 
 function readEnvFlag(feature: string): boolean | undefined {
   const envKey = `FEATURE_${feature.toUpperCase().replace(/-/g, '_')}`;

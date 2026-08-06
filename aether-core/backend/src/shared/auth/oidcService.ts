@@ -108,10 +108,15 @@ export async function exchangeOidcCode(
     expectedNonce: expected.nonce,
   });
 
+  const claimsRaw = tokens.claims;
   const claimBag =
-    typeof tokens.claims === 'function' ? tokens.claims() : (tokens.claims ?? null);
+    typeof claimsRaw === 'function'
+      ? claimsRaw()
+      : claimsRaw && typeof claimsRaw === 'object'
+        ? claimsRaw
+        : undefined;
 
-  let sub = claimBag?.sub as string | undefined;
+  let sub = typeof claimBag?.sub === 'string' ? claimBag.sub : undefined;
   let email = typeof claimBag?.email === 'string' ? claimBag.email : undefined;
   let name = typeof claimBag?.name === 'string' ? claimBag.name : undefined;
   let preferredUsername =

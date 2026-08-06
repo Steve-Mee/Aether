@@ -97,7 +97,8 @@ export default function AgentControlsSection({
                   </div>
                   <div className="flex items-center gap-2">
                     <StatChip className="text-xs">
-                      {t('commandCenter.agents.priority')}: {PRIORITY_LABELS[agent.priority] || agent.priority}
+                      {t('commandCenter.agents.priority')}:{' '}
+                      {PRIORITY_LABELS[agent.priority] || agent.priority}
                     </StatChip>
                     <StatChip className="text-xs">
                       {agent.activityCount24h} {t('commandCenter.agents.actionsToday')}
@@ -112,7 +113,9 @@ export default function AgentControlsSection({
                         <select
                           className="w-full rounded-lg border border-border/40 bg-background px-3 py-1.5 text-sm"
                           value={agent.priority}
-                          onChange={(e) => void onSetPriority(agent.agentKey, Number(e.target.value))}
+                          onChange={(e) =>
+                            void onSetPriority(agent.agentKey, Number(e.target.value))
+                          }
                         >
                           {[1, 3, 5, 7, 9].map((p) => (
                             <option key={p} value={p}>

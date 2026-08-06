@@ -82,8 +82,7 @@ export const env = {
   liveDemo: isTruthy(import.meta.env.VITE_LIVE_DEMO),
   /** Demo feed padding: only with VITE_HYBRID_DEMO or VITE_LIVE_DEMO (never implicit in DEV). */
   hybridDemo:
-    parseHybridDemo(import.meta.env.VITE_HYBRID_DEMO) ||
-    isTruthy(import.meta.env.VITE_LIVE_DEMO),
+    parseHybridDemo(import.meta.env.VITE_HYBRID_DEMO) || isTruthy(import.meta.env.VITE_LIVE_DEMO),
   merchantDisplayName: optionalString(import.meta.env.VITE_MERCHANT_DISPLAY_NAME),
   authProvider: parseAuthProvider(import.meta.env.VITE_AUTH_PROVIDER),
   authAutoLogin: isTruthy(import.meta.env.VITE_AUTH_AUTO_LOGIN),

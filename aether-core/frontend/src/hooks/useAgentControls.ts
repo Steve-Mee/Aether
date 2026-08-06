@@ -31,7 +31,7 @@ export function useAgentControls() {
     queryKey: queryKeys.agents(),
     queryFn: async () => {
       const res = await apiFetch<{ agents?: AgentRosterRow[] } | AgentRosterRow[]>(
-        apiRoutes.admin.agents
+        apiRoutes.admin.agents,
       );
       if (Array.isArray(res)) return res;
       return res.agents ?? [];
@@ -71,7 +71,9 @@ export function useAgentControls() {
   const mostActiveKey = useMemo(() => {
     const withActivity = agents.filter((a) => a.activityCount24h > 0);
     if (withActivity.length === 0) return null;
-    return [...withActivity].sort((a, b) => b.activityCount24h - a.activityCount24h)[0]?.agentKey ?? null;
+    return (
+      [...withActivity].sort((a, b) => b.activityCount24h - a.activityCount24h)[0]?.agentKey ?? null
+    );
   }, [agents]);
 
   const togglePause = useCallback(

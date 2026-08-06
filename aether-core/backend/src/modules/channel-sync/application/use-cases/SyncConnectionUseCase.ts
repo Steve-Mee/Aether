@@ -98,7 +98,9 @@ export class SyncConnectionUseCase {
       lastSyncAt: syncedAt,
       lastSyncStatus: status,
       config: {
+        ...connection.config,
         syncOptions: {
+          ...connection.config.syncOptions,
           lastSyncAt: syncedAt,
         },
       },

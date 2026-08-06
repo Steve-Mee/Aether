@@ -84,6 +84,6 @@ export const channelSyncApi = {
       {
         method: 'POST',
         body: JSON.stringify({ code, redirectUri }),
-      }
+      },
     ),
 };

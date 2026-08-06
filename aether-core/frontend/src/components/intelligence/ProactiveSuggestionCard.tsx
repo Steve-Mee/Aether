@@ -132,9 +132,7 @@ export default function ProactiveSuggestionCard({
                 </StatChip>
               )}
               {suggestion.agentKey && (
-                <StatChip className="text-xs text-muted-foreground">
-                  {suggestion.agentKey}
-                </StatChip>
+                <StatChip className="text-xs text-muted-foreground">{suggestion.agentKey}</StatChip>
               )}
             </div>
             <ProactiveActionBar
