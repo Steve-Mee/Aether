@@ -108,7 +108,7 @@ export default function ProactiveSuggestionsSection({
                 <h3 className="text-sm font-semibold text-foreground/80">
                   {categoryLabels[category] || category}
                 </h3>
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="muted" className="text-xs">
                   {items.length}
                 </Badge>
               </div>

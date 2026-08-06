@@ -20,8 +20,8 @@ describe('mergeActivityFeed', () => {
           module: 'admin',
           source: 'audit',
           risk: 'low',
-          status: 'completed',
-          executor: 'system',
+          status: 'approved',
+          executor: 'aether',
         },
       ],
     };

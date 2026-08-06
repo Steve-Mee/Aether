@@ -221,7 +221,7 @@ export default function CapabilitiesPage() {
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {agent.goalTypes.map((goal, idx) => (
-                        <Badge key={idx} variant="secondary" className="text-xs">
+                        <Badge key={idx} variant="outline" className="text-xs">
                           <Target size={12} className="mr-1" />
                           {goal}
                         </Badge>
@@ -277,7 +277,7 @@ export default function CapabilitiesPage() {
 
                   <div className="flex flex-wrap gap-2">
                     {example.agents.map((agent, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
+                      <Badge key={idx} variant="outline" className="text-xs">
                         <Bot size={12} className="mr-1" />
                         {agent}
                       </Badge>

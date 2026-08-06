@@ -4,7 +4,7 @@ export const COMMAND_CENTER_PATH = '/command-center';
 
 export type SidebarMode = 'expanded' | 'compact' | 'rail';
 
-export type RouteLayout = 'overview' | 'deep' | 'settings';
+export type RouteLayout = 'overview' | 'deep' | 'settings' | 'full';
 
 export type RouteSkeleton = 'command-center' | 'module' | 'list';
 
@@ -30,6 +30,8 @@ export type RouteModule =
   | 'agents'
   | 'aether-overview'
   | 'website'
+  | 'onboarding'
+  | 'capabilities'
   | 'other';
 
 export type NavGroup = 'default' | 'commerce' | 'website';

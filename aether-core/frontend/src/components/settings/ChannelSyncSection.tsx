@@ -125,7 +125,7 @@ export default function ChannelSyncSection() {
 
   const createMutation = useMutation({
     mutationFn: () => {
-      const credentials =
+      const credentials: Record<string, string> =
         provider === 'shopify'
           ? { accessToken: accessToken.trim() }
           : { apiKey: apiKey.trim(), apiSecret: apiSecret.trim() };
@@ -208,7 +208,7 @@ export default function ChannelSyncSection() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.channelConnections() });
       showCalmToast({ title: t('settings.channelSync.oauthDone') });
     } catch (err) {
-      showCalmToast({ title: aetherErrorMessage(err) });
+      showCalmToast({ title: aetherErrorMessage(err) ?? t('settings.channelSync.testFail') });
     }
   }, [queryClient]);
 

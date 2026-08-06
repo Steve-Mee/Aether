@@ -84,7 +84,7 @@ export default function AgentControlsSection({
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-sm">{agent.displayName}</h3>
                     {agent.isPaused && (
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="muted" className="text-xs">
                         {t('commandCenter.agents.paused')}
                       </Badge>
                     )}
@@ -137,7 +137,7 @@ export default function AgentControlsSection({
                       : t('commandCenter.agents.expand')}
                   </Button>
                   <Button
-                    variant={agent.isPaused ? 'default' : 'ghost'}
+                    variant={agent.isPaused ? 'primary' : 'ghost'}
                     size="sm"
                     onClick={() => void onTogglePause(agent.agentKey)}
                   >
