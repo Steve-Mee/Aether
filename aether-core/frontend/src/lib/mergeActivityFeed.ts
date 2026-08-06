@@ -117,14 +117,15 @@ export function mergeActivityFeed(params: {
   merged.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
 
   let source: ActivityFeedSource = 'demo';
-  if (liveItems.length >= MIN_LIVE_FOR_HYBRID) source = 'live';
-  else if (liveItems.length > 0 || demoUsed > 0) source = 'hybrid';
+  if (liveItems.length > 0 && demoUsed === 0) source = 'live';
+  else if (liveItems.length > 0 && demoUsed > 0) source = 'hybrid';
+  else if (demoUsed > 0) source = 'demo';
 
   return {
     items: merged,
     source,
     liveCount: liveItems.length,
-    demoCount: demoUsed + (liveItems.length < MIN_LIVE_FOR_HYBRID ? demoBase.length : 0),
+    demoCount: demoUsed,
   };
 }
 

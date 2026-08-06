@@ -1,5 +1,6 @@
 export { AuthProvider, useAuth, useCurrentUser, useCurrentTenant } from './AuthProvider';
 export { ProtectedRoute } from './ProtectedRoute';
+export { RequireOnboardingComplete } from './RequireOnboardingComplete';
 export { GuestOnlyRoute } from './GuestOnlyRoute';
 export { RequirePermission } from './RequirePermission';
 export { AuthLoadingScreen } from './AuthLoadingScreen';

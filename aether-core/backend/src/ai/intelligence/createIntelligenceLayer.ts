@@ -38,6 +38,7 @@ import { KnowledgeDistillationService } from './global-knowledge/distillation/Kn
 import { CrossTenantSubmitPipeline } from './global-knowledge/federated/FederatedQueryUseCase';
 import type { KnowledgeTransferPort } from './knowledge-transfer/KnowledgeTransferPort';
 import { createMemoryConsolidationJob } from './personal-brain/memory/jobs/MemoryConsolidationJob';
+import { createStrategicReflectionJob } from './personal-brain/reflection/jobs/StrategicReflectionJob';
 import type { PersonalBrainToolRegistry } from './personal-brain/tools/PersonalBrainToolRegistry';
 import type { BrainAdaptiveLearningService } from './command-brain/BrainAdaptiveLearningService';
 import type { BrainAgentLoop } from './command-brain/BrainAgentLoop';
@@ -92,6 +93,7 @@ export interface IntelligenceLayer {
   planMemoryService?: PlanMemoryService;
   personalBrainMemory: PersonalBrainMemoryService;
   memoryConsolidationJob: ReturnType<typeof createMemoryConsolidationJob>;
+  strategicReflectionJob: ReturnType<typeof createStrategicReflectionJob>;
   agentSupervisor?: AgentSupervisorPort;
   multiAgentResultAggregator?: MultiAgentResultAggregator;
   agentRegistry?: AgentRegistry;
@@ -167,6 +169,7 @@ export function createIntelligenceLayer(
   const brainMemoryService = new BrainMemoryService(personalBrainRegistry, vectorStore, embedding);
   let personalBrainMemory = new PersonalBrainMemoryService(personalBrainRegistry);
   const memoryConsolidationJob = createMemoryConsolidationJob(() => personalBrainMemory);
+  const strategicReflectionJob = createStrategicReflectionJob(() => personalBrainMemory);
   const brainResponseService = new BrainResponseService();
 
   let commandBrainService: CommandBrainService | undefined;
@@ -255,6 +258,7 @@ export function createIntelligenceLayer(
     planMemoryService,
     personalBrainMemory,
     memoryConsolidationJob,
+    strategicReflectionJob,
     agentSupervisor,
     multiAgentResultAggregator,
     agentRegistry,

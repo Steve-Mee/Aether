@@ -46,9 +46,10 @@ describe('resolveApiUrl', () => {
 });
 
 describe('parseHybridDemo', () => {
-  it('defaults to isDev when unset', () => {
-    expect(parseHybridDemo(undefined, true)).toBe(true);
+  it('defaults to false even in DEV when unset', () => {
+    expect(parseHybridDemo(undefined, true)).toBe(false);
     expect(parseHybridDemo(undefined, false)).toBe(false);
+    expect(parseHybridDemo('', true)).toBe(false);
   });
 
   it('respects explicit false', () => {

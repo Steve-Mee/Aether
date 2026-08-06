@@ -22,6 +22,10 @@ export interface ProactiveSuggestionCardData {
   category: ProactiveCategory | string;
   executionMode: ActionExecutionMode;
   hasExplainability?: boolean;
+  priority?: number;
+  confidence?: number;
+  agentKey?: string;
+  goalId?: string;
 }
 
 interface ProactiveSuggestionCardProps {
@@ -104,9 +108,33 @@ export default function ProactiveSuggestionCard({
             >
               {suggestion.title}
             </p>
-            {suggestion.impactHint && (
-              <StatChip className="text-caption-accessible">{suggestion.impactHint}</StatChip>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {suggestion.impactHint && (
+                <StatChip className="text-caption-accessible">{suggestion.impactHint}</StatChip>
+              )}
+              {suggestion.priority != null && suggestion.priority >= 7 && (
+                <StatChip className="text-xs text-primary-readable bg-primary/10">
+                  {t('proactive.priority.high')}
+                </StatChip>
+              )}
+              {suggestion.confidence != null && (
+                <StatChip
+                  className={cn(
+                    'text-xs',
+                    suggestion.confidence >= 0.8
+                      ? 'text-success bg-success/10'
+                      : suggestion.confidence >= 0.5
+                        ? 'text-warning bg-warning/10'
+                        : 'text-muted-foreground bg-muted/20',
+                  )}
+                >
+                  {Math.round(suggestion.confidence * 100)}% {t('proactive.confidence')}
+                </StatChip>
+              )}
+              {suggestion.agentKey && (
+                <StatChip className="text-xs text-muted-foreground">{suggestion.agentKey}</StatChip>
+              )}
+            </div>
             <ProactiveActionBar
               suggestionId={suggestion.id}
               title={suggestion.title}

@@ -29,6 +29,7 @@ interface AuthContextValue {
   authError: string | null;
   signIn: (input: SignInInput) => Promise<void>;
   signOut: () => Promise<void>;
+  checkSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -108,6 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [adapter]);
 
+  const checkSession = useCallback(async () => {
+    try {
+      const restored = await adapter.restoreSession();
+      setSession(restored);
+    } catch {
+      setSession(null);
+    }
+  }, [adapter]);
+
   useEffect(() => {
     if (env.authProvider !== 'jwt') {
       setOnUnauthorized(null);
@@ -141,8 +151,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authError,
       signIn,
       signOut,
+      checkSession,
     }),
-    [session, loading, authError, signIn, signOut],
+    [session, loading, authError, signIn, signOut, checkSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

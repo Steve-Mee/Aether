@@ -16,6 +16,8 @@ import { ShortTermMemoryStore } from './ShortTermMemoryStore';
 import { runRecallForCommand } from './memoryRecallPipeline';
 import { pruneInteractionVectors, pruneLongTerm } from './memoryPruneOps';
 import { recordOutcome } from './memoryRecordOps';
+import { StrategicMemoryService } from './StrategicMemoryService';
+import { StrategicReflectionService } from '../reflection/StrategicReflectionService';
 import type {
   ExperienceReflectionRecordInput,
   MemoryKind,
@@ -34,6 +36,8 @@ export class PersonalBrainMemoryService implements MemoryPort {
   experienceReflection: ExperienceReflectionService;
   reflectionHandoff?: ReflectionHandoffService;
   summarization: MemorySummarizationService;
+  strategicMemory: StrategicMemoryService;
+  strategicReflection: StrategicReflectionService;
 
   constructor(
     private personalBrains: PersonalBrainRegistry,
@@ -54,6 +58,11 @@ export class PersonalBrainMemoryService implements MemoryPort {
       this.shortTerm,
       this.longTerm
     );
+    this.strategicMemory = new StrategicMemoryService(this.longTerm);
+    this.strategicReflection = new StrategicReflectionService(
+      this.longTerm,
+      this.strategicMemory
+    );
   }
 
   async recallForCommand(
@@ -68,6 +77,7 @@ export class PersonalBrainMemoryService implements MemoryPort {
         conversation: this.conversation,
         planMemory: this.planMemory,
         adaptiveLearning: this.adaptiveLearning,
+        strategicMemory: this.strategicMemory,
       },
       tenantId,
       command,

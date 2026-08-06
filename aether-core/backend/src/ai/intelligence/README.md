@@ -18,4 +18,6 @@ Every vector query and agent state read/write requires an explicit `tenantId`. N
 
 Dependencies are composed in `bootstrap/compositionRoot.ts` via `createIntelligenceLayer()`.
 
-See [`aether-core/docs/intelligence-layer.md`](../../../../docs/intelligence-layer.md) for architecture and deployment tiers.
+See [`aether-core/docs/intelligence-layer.md`](../../../../docs/intelligence-layer.md) for architecture and deployment tiers.  
+Knowledge transfer runtime: [`docs/knowledge-transfer.md`](../../../../docs/knowledge-transfer.md).  
+Multi-agent howto: [`multi-agent/README.md`](./multi-agent/README.md).

@@ -1,7 +1,13 @@
 import { RespondToOfferUseCase } from '../../modules/agentic-commerce/application/use-cases/RespondToOfferUseCase';
 import { NegotiationSessionOrchestrator } from '../../ai/intelligence/multi-agent/negotiation/NegotiationSessionOrchestrator';
 import { proposeCounterOfferTool } from '../../ai/intelligence/multi-agent/agents/negotiationTools';
-import { createPromotionTool } from '../../ai/intelligence/multi-agent/agents/promotionTools';
+import {
+  createPromotionTool,
+  suggestPromotionTool,
+  suggestClearancePricingTool,
+  suggestBundleTool,
+  suggestCampaignChannelTool,
+} from '../../ai/intelligence/multi-agent/agents/promotionTools';
 import {
   StartNegotiationUseCase,
   GetNegotiationUseCase,
@@ -33,10 +39,15 @@ export function wireCommerce(ctx: BootstrapContext, intel: IntelligenceWiring): 
   );
 
   if (intelligence.toolRegistry) {
+    const promotionDeps = { adminData: ctx.adminData, createPromotion: ctx.createPromotion };
     intelligence.toolRegistry.register(
       proposeCounterOfferTool({ adminData: ctx.adminData, respondToOffer: respondToOfferUseCase })
     );
-    intelligence.toolRegistry.register(createPromotionTool({ createPromotion: ctx.createPromotion }));
+    intelligence.toolRegistry.register(suggestPromotionTool(promotionDeps));
+    intelligence.toolRegistry.register(suggestClearancePricingTool(promotionDeps));
+    intelligence.toolRegistry.register(suggestBundleTool(promotionDeps));
+    intelligence.toolRegistry.register(suggestCampaignChannelTool(promotionDeps));
+    intelligence.toolRegistry.register(createPromotionTool(promotionDeps));
   }
 
   const negotiationSessionOrchestrator = intelligence.runWorkingMemory

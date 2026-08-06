@@ -37,11 +37,14 @@ export function resolveApiUrl(baseUrl: unknown, apiUrl: unknown): string {
   return optionalString(baseUrl) ?? optionalString(apiUrl) ?? '';
 }
 
-export function parseHybridDemo(value: unknown, isDev: boolean): boolean {
-  if (value === undefined || value === '') return isDev;
+/**
+ * Hybrid demo padding is OFF by default (including DEV).
+ * Enable only with explicit VITE_HYBRID_DEMO=true|1 (or VITE_LIVE_DEMO at call site).
+ */
+export function parseHybridDemo(value: unknown, _isDev?: boolean): boolean {
   if (isFalsy(value)) return false;
   if (isTruthy(value)) return true;
-  return isDev;
+  return false;
 }
 
 export function parseAuthProvider(value: unknown): 'stub' | 'jwt' {
@@ -77,7 +80,9 @@ export const env = {
   isLiveMode: dataSource === 'live',
   suppliersDemo: isTruthy(import.meta.env.VITE_SUPPLIERS_DEMO),
   liveDemo: isTruthy(import.meta.env.VITE_LIVE_DEMO),
-  hybridDemo: parseHybridDemo(import.meta.env.VITE_HYBRID_DEMO, import.meta.env.DEV),
+  /** Demo feed padding: only with VITE_HYBRID_DEMO or VITE_LIVE_DEMO (never implicit in DEV). */
+  hybridDemo:
+    parseHybridDemo(import.meta.env.VITE_HYBRID_DEMO) || isTruthy(import.meta.env.VITE_LIVE_DEMO),
   merchantDisplayName: optionalString(import.meta.env.VITE_MERCHANT_DISPLAY_NAME),
   authProvider: parseAuthProvider(import.meta.env.VITE_AUTH_PROVIDER),
   authAutoLogin: isTruthy(import.meta.env.VITE_AUTH_AUTO_LOGIN),

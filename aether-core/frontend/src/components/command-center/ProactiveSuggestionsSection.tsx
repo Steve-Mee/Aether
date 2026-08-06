@@ -1,7 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import React from 'react';
-import { EmptyState } from '@/components/ui';
+import { Badge, EmptyState } from '@/components/ui';
 import { useCommand } from '@/lib/CommandContext';
 import { env } from '@/lib/config/env';
 import type { DemoIntentId } from '@/lib/localIntentMatcher';
@@ -56,6 +56,24 @@ export default function ProactiveSuggestionsSection({
     [dismiss, execute, onSelect],
   );
 
+  const groupedByCategory = useMemo(() => {
+    const groups: Record<string, ProactiveSuggestion[]> = {};
+    suggestions.forEach((s) => {
+      const key = s.category || 'other';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(s);
+    });
+    return groups;
+  }, [suggestions]);
+
+  const categoryLabels: Record<string, string> = {
+    prijs: 'Prijsoptimalisatie',
+    leverancier: 'Leveranciers',
+    orders: 'Orders',
+    marge: 'Marge',
+    other: 'Algemeen',
+  };
+
   return (
     <section className="mb-8 w-full" aria-labelledby="proactive-suggestions-heading">
       <SectionLabel
@@ -83,25 +101,36 @@ export default function ProactiveSuggestionsSection({
           className="py-10"
         />
       ) : (
-        <div
-          className="grid grid-cols-1 gap-4 md:grid-cols-2"
-          data-testid="proactive-suggestions-list"
-        >
-          {suggestions.map((suggestion) => (
-            <ProactiveSuggestionCard
-              key={suggestion.id}
-              suggestion={suggestion}
-              layout="grid"
-              executing={executingId === suggestion.id}
-              streaming={streaming}
-              showExplain={showExplain}
-              showAutoExecute={settings.proactivePrefs.allowAutoExecute}
-              onExecute={() => handleSelect(suggestion)}
-              onExplain={() => setExplainTarget(suggestion)}
-              onDismiss={() => dismiss(suggestion.id)}
-              onSnooze={() => snooze(suggestion.id)}
-              onAutoExecute={() => handleAutoExecute(suggestion)}
-            />
+        <div className="space-y-6" data-testid="proactive-suggestions-list">
+          {Object.entries(groupedByCategory).map(([category, items]) => (
+            <div key={category} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground/80">
+                  {categoryLabels[category] || category}
+                </h3>
+                <Badge variant="muted" className="text-xs">
+                  {items.length}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {items.map((suggestion) => (
+                  <ProactiveSuggestionCard
+                    key={suggestion.id}
+                    suggestion={suggestion}
+                    layout="grid"
+                    executing={executingId === suggestion.id}
+                    streaming={streaming}
+                    showExplain={showExplain}
+                    showAutoExecute={settings.proactivePrefs.allowAutoExecute}
+                    onExecute={() => handleSelect(suggestion)}
+                    onExplain={() => setExplainTarget(suggestion)}
+                    onDismiss={() => dismiss(suggestion.id)}
+                    onSnooze={() => snooze(suggestion.id)}
+                    onAutoExecute={() => handleAutoExecute(suggestion)}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

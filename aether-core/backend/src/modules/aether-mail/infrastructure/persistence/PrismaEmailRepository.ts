@@ -29,6 +29,23 @@ export class PrismaEmailRepository implements EmailRepository {
     return email ? this.toDomain(email) : null;
   }
 
+  async findRecent(
+    tenantId: string,
+    statuses: string[],
+    limit: number
+  ): Promise<EmailMessage[]> {
+    const tid = requireTenantId(tenantId, 'PrismaEmailRepository.findRecent');
+    const emails = await this.prisma.emailMessage.findMany({
+      where: {
+        tenantId: tid,
+        status: { in: statuses },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return emails.map((e) => this.toDomain(e));
+  }
+
   async create(
     email: EmailMessage,
     meta: { tenantId: string; category?: string; confidence?: number; messageId?: string }

@@ -46,6 +46,8 @@ export const lazyPageImportMap: Record<string, PageImportFn> = {
   '/negotiations': () => import('@/pages/Negotiations'),
   '/outcomes': () => import('@/pages/Outcomes'),
   '/settings': () => import('@/pages/Settings'),
+  '/onboarding': () => import('@/pages/OnboardingPage'),
+  '/capabilities': () => import('@/pages/CapabilitiesPage'),
 };
 
 /** Lazy page imports — add new modules here only. */

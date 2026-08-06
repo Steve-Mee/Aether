@@ -38,12 +38,24 @@ export const PRICING_INVENTORY_PROMO_RULES: CollaborationRule[] = [
   {
     id: 'promotion-to-pricing',
     trigger: {
-      intents: ['PROMOTION_SUGGEST', 'CLEARANCE_PRICING'],
+      intents: ['PROMOTION_SUGGEST', 'CLEARANCE_PRICING', 'BUNDLE_SUGGEST', 'CAMPAIGN_SUGGEST'],
       commandPattern: PRICING_KEYWORD_PATTERN,
     },
     chain: [
       { agentKey: 'promotion', intent: 'PROMOTION_SUGGEST' },
       { agentKey: 'pricing', intent: 'PRICING_OPTIMIZE' },
+    ],
+    mode: 'sequential',
+  },
+  {
+    id: 'marketing-to-inventory',
+    trigger: {
+      intents: ['MARKETING_OPPORTUNITY', 'BUNDLE_SUGGEST', 'CAMPAIGN_SUGGEST'],
+      commandPattern: INVENTORY_KEYWORD_PATTERN,
+    },
+    chain: [
+      { agentKey: 'promotion', intent: 'MARKETING_OPPORTUNITY' },
+      { agentKey: 'inventory', intent: 'INVENTORY_STATUS' },
     ],
     mode: 'sequential',
   },

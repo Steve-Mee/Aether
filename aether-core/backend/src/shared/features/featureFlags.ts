@@ -10,12 +10,14 @@ const DEFAULT_FLAGS: Record<string, boolean> = {
   'storefront-builder': false,
   /** Public storefront read API (P04). Also: STOREFRONT_PUBLIC_API_ENABLED / FEATURE_STOREFRONT_PUBLIC_API */
   'storefront-public-api': false,
+  'channel-sync': false,
 };
 
 /** Contract error codes for gated features (contracts §6). */
 const FEATURE_DISABLED_CODES: Record<string, string> = {
   'storefront-builder': 'WEBSITE_DISABLED',
   'storefront-public-api': 'STOREFRONT_PUBLIC_DISABLED',
+  'channel-sync': 'CHANNEL_SYNC_DISABLED',
 };
 
 /** Extra env aliases beyond FEATURE_<KEY> (playbook §C). */

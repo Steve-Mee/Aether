@@ -1578,3 +1578,61 @@ model RedisSpill {
   @@index([expiresAt])
   @@index([priority])
 }
+
+/// Channel Sync: External webshop connections (Shopify, WooCommerce).
+model ChannelConnection {
+  id               String    @id @default(cuid())
+  tenantId         String
+  provider         String
+  displayName      String
+  storeUrl         String
+  /// Encrypted credentials (accessToken, apiKey, apiSecret, etc.)
+  credentialsEnc   String
+  webhookSecret    String?
+  syncProducts     Boolean   @default(true)
+  syncOrders       Boolean   @default(true)
+  syncInventory    Boolean   @default(false)
+  syncInterval     Int       @default(3600)
+  lastSyncAt       DateTime?
+  lastSyncStatus   String?
+  enabled          Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  syncLogs ChannelSyncLog[]
+
+  @@unique([tenantId, provider, storeUrl])
+  @@index([tenantId, enabled])
+}
+
+/// Maps external channel entity IDs to native catalog/order IDs.
+model ChannelExternalRef {
+  id           String   @id @default(cuid())
+  tenantId     String
+  connectionId String
+  entityType   String
+  externalId   String
+  nativeId     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([connectionId, entityType, externalId])
+  @@index([tenantId, entityType, nativeId])
+}
+
+/// Audit log for channel sync operations.
+model ChannelSyncLog {
+  id           String   @id @default(cuid())
+  connectionId String
+  tenantId     String
+  syncType     String
+  status       String
+  itemsCount   Int      @default(0)
+  errorMessage String?
+  syncedAt     DateTime @default(now())
+
+  connection ChannelConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId, syncedAt])
+  @@index([tenantId, syncedAt])
+}

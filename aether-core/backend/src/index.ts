@@ -127,6 +127,7 @@ async function startServer(): Promise<void> {
     knowledgeDistillJob.start();
     knowledgeFederateJob.start();
     getCompositionRoot().memoryConsolidationJob.start();
+    getCompositionRoot().strategicReflectionJob.start();
     getCompositionRoot().runMemoryGcJob?.start();
     const agentPatternJob = createAgentPatternContributionJob(
       getCompositionRoot().agentPatternSync
@@ -147,6 +148,7 @@ async function startServer(): Promise<void> {
     knowledgeDistillJob.stop();
     knowledgeFederateJob.stop();
     getCompositionRoot().memoryConsolidationJob.stop();
+    getCompositionRoot().strategicReflectionJob.stop();
     getCompositionRoot().runMemoryGcJob?.stop();
     federatedHiveJob.stop();
     server.close(async () => {

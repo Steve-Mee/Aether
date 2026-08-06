@@ -3,6 +3,13 @@ import type { AgentRegistry } from './AgentRegistry';
 import type { SpecialistAgentRunner } from './SpecialistAgentRunner';
 import { wrapAgentEvent } from './agentStreamWrap';
 import { getMaxParallelAgents, runWithConcurrency } from './parallelConfig';
+import {
+  getRetryConfig,
+  isIdempotentOperation,
+  isRetryEnabled,
+  withRetry,
+} from './resilience/retryConfig';
+import { captureMultiAgentError } from './resilience/errorReporting';
 import type { AgentBranchResult, ParallelSpecialistRequest, ParallelSpecialistResult } from './types';
 
 function skippedBranch(agentKey: string, reason: string): AgentBranchResult {
@@ -76,23 +83,38 @@ export class ParallelCoordinator {
       }
 
       try {
-        const result = await this.specialistRunner.runWithDefinition(def, {
-          tenantId: request.tenantId,
-          agentKey: agentSpec.agentKey,
-          intent: agentSpec.intent,
-          command: request.command,
-          contextSnippets: agentSpec.contextSnippets ?? [],
-          handlerResult: `Parallel sub-task: ${agentSpec.intent}`,
-          parentRunId: request.parentRunId,
-          actorId: request.actorId,
-          collectiveSnippets: request.collectiveSnippets,
-          memoryPromptBlock: request.memoryPromptBlock,
-          deferToTools: request.deferToTools,
-          adaptiveLearningEnabled: request.adaptiveLearningEnabled,
-          onEvent: wrapAgentEvent(request.onEvent, agentSpec.agentKey),
-          abortSignal: request.abortSignal,
-          explainabilityCollector: request.explainabilityCollector,
-        });
+        const retryConfig = getRetryConfig();
+        const isIdempotent = isIdempotentOperation(agentSpec.agentKey, false);
+        const shouldRetry = isRetryEnabled() && isIdempotent;
+
+        const executeAgent = async () =>
+          this.specialistRunner.runWithDefinition(def, {
+            tenantId: request.tenantId,
+            agentKey: agentSpec.agentKey,
+            intent: agentSpec.intent,
+            command: request.command,
+            contextSnippets: agentSpec.contextSnippets ?? [],
+            handlerResult: `Parallel sub-task: ${agentSpec.intent}`,
+            parentRunId: request.parentRunId,
+            actorId: request.actorId,
+            collectiveSnippets: request.collectiveSnippets,
+            memoryPromptBlock: request.memoryPromptBlock,
+            deferToTools: request.deferToTools,
+            adaptiveLearningEnabled: request.adaptiveLearningEnabled,
+            onEvent: wrapAgentEvent(request.onEvent, agentSpec.agentKey),
+            abortSignal: request.abortSignal,
+            explainabilityCollector: request.explainabilityCollector,
+          });
+
+        const result = shouldRetry
+          ? await withRetry(executeAgent, retryConfig, isIdempotent, (attempt, error) => {
+              emitStreamEvent(request.onEvent, {
+                type: 'agent_started',
+                agentKey: agentSpec.agentKey,
+                executionMode: 'parallel',
+              });
+            })
+          : await executeAgent();
 
         if (request.abortSignal?.aborted) {
           const error = 'cancelled';
@@ -124,6 +146,16 @@ export class ParallelCoordinator {
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Parallel agent failed';
+        const error = err instanceof Error ? err : new Error(message);
+        
+        captureMultiAgentError(error, {
+          agentKey: agentSpec.agentKey,
+          intent: agentSpec.intent,
+          executionMode: 'parallel',
+          tenantId: request.tenantId,
+          parentRunId: request.parentRunId,
+        });
+
         emitStreamEvent(request.onEvent, {
           type: 'agent_completed',
           agentKey: agentSpec.agentKey,

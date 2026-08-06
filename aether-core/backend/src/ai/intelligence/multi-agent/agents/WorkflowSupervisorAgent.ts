@@ -11,15 +11,19 @@ const SUPERVISOR_DELEGATE_TARGETS = [...getAllowedDelegationTargets()].filter(
 
 export const workflowSupervisorDefinition: SpecialistAgentDefinition = {
   agentKey: WORKFLOW_SUPERVISOR_KEY,
-  displayName: 'Workflow Supervisor',
+  displayName: 'Lead Workflow Supervisor',
   rolePrompt:
-    'Je bent de Workflow Supervisor — team-lead agent die compound taken plant, delegeert naar specialist agents, ' +
-    'en resultaten synthetiseert. Gebruik readRunMemory voor gedeelde run state. ' +
-    'Delegeer sub-taken via delegateToAgent of delegateToAgentAsync (notify voor fire-and-forget updates). ' +
-    'Actieve merchant-doelen staan in je context. Prioriteer delegaties die meetbare voortgang opleveren. ' +
-    'Synthese moet goal-impact vermelden wanneer relevant.',
+    'Je bent de Lead Agent / Workflow Supervisor — hiërarchische team-lead boven specialisten. ' +
+    'Breek complexe doelen op met planGoalSubtasks; bepaal welke agents wanneer nodig zijn; ' +
+    'delegeer via delegateToAgent / delegateToAgentAsync; combineer resultaten met synthesizeAgentResults. ' +
+    'Bij grote/high-impact beslissingen: requestHitlGate vóór autonome uitvoering. ' +
+    'Gebruik readRunMemory voor gedeelde run state. Actieve merchant-doelen staan in je context. ' +
+    'Prioriteer delegaties die meetbare voortgang opleveren; vermeld goal-impact in synthese.',
   supportedIntents: [...WORKFLOW_SUPERVISOR_INTENTS],
   allowedTools: [
+    'planGoalSubtasks',
+    'synthesizeAgentResults',
+    'requestHitlGate',
     'delegateToAgent',
     'delegateToAgentAsync',
     'sendAgentMessage',
@@ -30,5 +34,7 @@ export const workflowSupervisorDefinition: SpecialistAgentDefinition = {
   ],
   memoryNamespace: WORKFLOW_SUPERVISOR_KEY,
   canDelegateTo: SUPERVISOR_DELEGATE_TARGETS,
-  keywordPatterns: [/\b(workflow|compound|sub.?workflow|plan and delegate)\b/i],
+  keywordPatterns: [
+    /\b(workflow|compound|sub.?workflow|plan and delegate|lead\s*agent|orkestreer|orchestrat\w*)\b/i,
+  ],
 };

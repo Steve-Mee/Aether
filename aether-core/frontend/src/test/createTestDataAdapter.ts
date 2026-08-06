@@ -4,9 +4,12 @@ import type { ApprovalItem } from '@/types/approval';
 import type { CommandResult } from '@/types/command';
 import { buildCommandResult } from './factories/command';
 import { buildHighRiskApproval, buildLowRiskApproval } from './factories/approval';
+import { mockActivityFeed } from './fixtures';
+import type { ActivityItem } from '@/types/activity';
 
 export interface TestAdapterOptions {
   approvals?: ApprovalItem[];
+  activityItems?: ActivityItem[];
   executeCommand?: (command: string) => Promise<CommandResult>;
   resolveFails?: boolean;
   executeFails?: boolean;
@@ -32,7 +35,10 @@ export function createTestDataAdapter(options: TestAdapterOptions = {}): DataAda
 
   return {
     ...mockDataAdapter,
-    fetchActivity: async () => ({ items: [], source: 'live' as const }),
+    fetchActivity: async () => ({
+      items: options.activityItems ?? (mockActivityFeed.items as ActivityItem[]),
+      source: 'live' as const,
+    }),
     fetchApprovals: async () => [...approvals],
     resolveApproval: async (id) => {
       if (options.resolveFails) {

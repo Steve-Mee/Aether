@@ -40,6 +40,7 @@ export type AutonomyAgentKey =
   | 'supplier'
   | 'inventory'
   | 'promotion'
+  | 'returns'
   | 'mail'
   | 'negotiation'
   | 'customer'
@@ -53,6 +54,7 @@ export const AUTONOMY_AGENT_KEYS: AutonomyAgentKey[] = [
   'supplier',
   'inventory',
   'promotion',
+  'returns',
   'mail',
   'negotiation',
   'customer',

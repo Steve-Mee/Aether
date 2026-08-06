@@ -8,9 +8,11 @@ import HomeWelcomeHeader from '@/components/home/HomeWelcomeHeader';
 import CommandCenterApprovalSheet from './command-center/CommandCenterApprovalSheet';
 import CommandCenterHeroBar from './command-center/CommandCenterHeroBar';
 import ProactiveSuggestionsSection from './command-center/ProactiveSuggestionsSection';
+import AgentControlsSection from './command-center/AgentControlsSection';
 import GoalsHomeWidget from './goals/GoalsHomeWidget';
 import TodayReadySection from './command-center/TodayReadySection';
 import { useCommandCenterShell } from '@/features/command-center/hooks/useCommandCenterShell';
+import { useAgentControls } from '@/hooks/useAgentControls';
 
 export default function CommandCenterShell() {
   const {
@@ -46,6 +48,8 @@ export default function CommandCenterShell() {
     handleApprovalReject,
   } = useCommandCenterShell();
 
+  const { agents, togglePause, setPriority } = useAgentControls();
+
   if (loading) {
     return <HomeLandingSkeleton />;
   }
@@ -66,6 +70,12 @@ export default function CommandCenterShell() {
         <HomeTodaySummary viewModel={homeViewModel} />
 
         <GoalsHomeWidget />
+
+        <AgentControlsSection
+          agents={agents}
+          onTogglePause={togglePause}
+          onSetPriority={setPriority}
+        />
 
         <ProactiveSuggestionsSection onSelect={handleProactiveSelect} />
 

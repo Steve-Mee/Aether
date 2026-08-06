@@ -103,6 +103,7 @@ function rowToSettings(row: {
       ? governanceMode
       : 'full_loop';
 
+  const overviewPrefs = parseOverviewPrefs(row.overviewPrefs);
   return {
     autonomyLevel,
     autoApproveLowRisk: row.autoApproveLowRisk,
@@ -132,8 +133,9 @@ function rowToSettings(row: {
     proactivePrefs: parseProactivePrefs(row.proactivePrefs),
     explainabilityPrefs: parseExplainabilityPrefs(row.explainabilityPrefs),
     goalPrefs: parseGoalPrefs(row.goalPrefs),
-    overviewPrefs: parseOverviewPrefs(row.overviewPrefs),
+    overviewPrefs,
     autonomyPrefs: parseAutonomyPrefs(row.autonomyPrefs),
+    onboardingCompleted: overviewPrefs.onboardingCompleted === true,
   };
 }
 
@@ -259,6 +261,17 @@ export async function updateMerchantSettings(
         ...current.proactivePrefs.categories,
         ...(patch.proactivePrefs.categories ?? {}),
       },
+      knowledgeTransferCategories: {
+        ...current.proactivePrefs.knowledgeTransferCategories,
+        ...(patch.proactivePrefs.knowledgeTransferCategories ?? {}),
+      },
+    });
+  }
+  if (patch.onboardingCompleted !== undefined) {
+    const current = await getMerchantSettings(tenantId);
+    data.overviewPrefs = toJsonOverviewPrefs({
+      ...current.overviewPrefs,
+      onboardingCompleted: patch.onboardingCompleted === true,
     });
   }
   if (patch.explainabilityPrefs !== undefined) {

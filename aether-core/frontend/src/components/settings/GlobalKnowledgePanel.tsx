@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, SettingRow } from '@/components/ui';
 import { apiFetch, apiRoutes } from '@/lib/api';
 import { t } from '@/lib/i18n';
+import KnowledgeTransferCategoriesSection from '@/components/settings/KnowledgeTransferCategoriesSection';
 
 interface GlobalKnowledgeStatus {
   catalogVersion: string;
@@ -91,6 +92,10 @@ export default function GlobalKnowledgePanel() {
           )}
         </div>
       )}
+
+      <div className="mb-6 border-t border-border/30 pt-4">
+        <KnowledgeTransferCategoriesSection />
+      </div>
 
       {patches.length > 0 && (
         <div>

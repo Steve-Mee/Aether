@@ -2,14 +2,18 @@
 
 Specialist agents extend the Command Brain via `AgentRegistry` + `AgentOrchestrator` + `SpecialistAgentRunner`.
 
+Wiring entry: `wireMultiAgent.ts` → `registerCommerceTools` + `wireOrchestrationStack`.
+
 ## Add a new specialist agent
 
-1. **Define the agent** in `agents/MyAgent.ts` — set `agentKey`, `supportedIntents`, `allowedTools`, `rolePrompt`, and optional `canDelegateTo`.
-2. **Register tools** — add domain tools via `PersonalBrainToolRegistry.register()` in `createIntelligenceLayer.ts`, or reuse existing brain tools.
-3. **Add to catalog** — export from `agents/index.ts` and include in `DEFAULT_SPECIALIST_AGENTS`.
-4. **Route intents** — add intent mapping in `delegationConfig.ts` if needed (registry `supportedIntents` is primary).
-5. **Collaboration (optional)** — add rules in `AgentCollaborationPolicy.ts` for cross-agent handoffs.
-6. **Peer delegation (optional)** — add target to `canDelegateTo` and include `delegateToAgent` in `allowedTools`.
+1. **Define the agent** in `agents/MyAgent.ts` — set `agentKey`, `supportedIntents`, `allowedTools`, `rolePrompt`, `keywordPatterns`, and optional `canDelegateTo`.
+2. **Implement tools** — domain tools as `BrainToolExecutor` factories (e.g. `agents/returnsTools.ts`).
+3. **Register tools** — wire via `wiring/registerCommerceTools.ts` (commerce) and/or `wiring/wireOrchestrationStack.ts` (orchestration tools such as supervisor/HITL). Reuse existing brain tools when possible.
+4. **Add to catalog** — export from `agents/index.ts` and include in `DEFAULT_SPECIALIST_AGENTS`.
+5. **Route intents** — map intents in `delegationConfig.ts` (`SPECIALIST_HANDLED_INTENTS`, `resolveDelegationTarget`) and ensure `MULTI_AGENT_ALLOWED_TARGETS` includes the new key (default already lists most specialists).
+6. **Collaboration (optional)** — add rules under `collaboration/*.ts` and export them from `collaborationRules.ts` (`DEFAULT_RULES`). Policy resolution stays in `AgentCollaborationPolicy.ts`.
+7. **Peer payload scope (optional)** — add `PEER_PAYLOAD_SCOPE` entries in `delegationConfig.ts` for structured `contextPayload` keys.
+8. **Peer delegation (optional)** — add targets to `canDelegateTo` and include `delegateToAgent` / `sendAgentMessage` in `allowedTools`.
 
 ## Runtime flow
 
@@ -24,39 +28,16 @@ Command Bar → AgentRouterService.routePlan
 
 ## Agent collaboration
 
-Handoff rules live in `AgentCollaborationPolicy.ts`:
+Rule definitions live in `collaboration/*.ts` and are assembled in `collaborationRules.ts`. Resolution (prepend / multi-keyword / priority) stays in `AgentCollaborationPolicy.ts`.
 
-| Rule | Trigger | Chain |
-|------|---------|-------|
-| `pricing-needs-supplier` | `PRICE_UPDATE` / `PRICING_OPTIMIZE` + supplier keywords | supplier prepend |
-| `pricing-needs-inventory` | `PRICING_OPTIMIZE` / `LOW_MARGIN_REPORT` + inventory keywords | inventory prepend |
-| `supplier-to-pricing` | supplier intent + pricing keywords | supplier → pricing |
-| `inventory-to-pricing` | inventory intent + pricing keywords | inventory → pricing |
-| `cross-domain-inventory-pricing` | inventory + pricing keywords | inventory → pricing |
-| `cross-domain-single` | supplier + pricing keywords | supplier → pricing |
-| `parallel-intel-triple` | supplier + inventory + pricing keywords (read-only) | supplier ∥ inventory ∥ pricing |
-| `parallel-intel-supplier-pricing` | supplier + pricing keywords (read-only) | supplier ∥ pricing |
-| `parallel-intel-inventory-mail` | inventory + mail keywords (read-only) | inventory ∥ mail |
-| `parallel-intel-customer-inventory` | customer + inventory keywords (read-only) | customer ∥ inventory |
-| `customer-to-pricing` | customer intent + pricing keywords | customer → pricing |
-| `customer-to-mail` | customer intent + mail keywords | customer → mail |
-| `customer-to-inventory-demand` | customer intent + inventory keywords | customer → inventory |
-| `cross-domain-customer-pricing` | customer + pricing keywords | customer → pricing |
-| `cross-domain-customer-mail` | customer + mail keywords | customer → mail |
-| `cross-domain-customer-inventory` | customer + inventory keywords | customer → inventory |
-| `parallel-intel-forecast-customer` | forecast + customer keywords (read-only) | forecast ∥ customer |
-| `forecast-to-inventory` | forecast intent + inventory keywords | forecast → inventory |
-| `forecast-to-pricing` | forecast intent + pricing keywords | forecast → pricing |
-| `cross-domain-forecast-pricing` | forecast + pricing keywords | forecast → pricing |
-| `cross-domain-order-inventory` | order status + inventory keywords | customer → inventory |
-| `outcomes-to-pricing` | outcomes intent + pricing keywords | outcomes → pricing |
-| `cross-domain-outcomes-pricing` | outcomes + pricing keywords | outcomes → pricing |
-| `negotiation-to-pricing` | negotiation intent + pricing keywords | negotiation → pricing |
-| `cross-domain-negotiation-pricing` | negotiation + pricing keywords | negotiation → pricing |
-| `catalog-to-pricing` | catalog intent + pricing keywords | catalog → pricing |
-| `catalog-to-inventory` | CREATE_PRODUCT + inventory keywords | catalog → inventory |
-| `cross-domain-catalog-pricing` | catalog + pricing keywords | catalog → pricing |
-| `autonomy-to-approvals` | autonomy/decision + approval keywords | autonomy → approvals |
+| Domain file | Example rules |
+|-------------|----------------|
+| `pricingInventoryPromoRules.ts` | `pricing-needs-supplier`, `inventory-to-pricing`, `low-stock-to-promotion`, `promotion-to-pricing`, `marketing-to-inventory` |
+| `returnsQualityRules.ts` | `returns-to-supplier`, `returns-to-inventory`, `cross-domain-returns-supplier` |
+| `customerChainRules.ts` | `customer-to-pricing`, `customer-to-mail`, `customer-to-inventory-demand` |
+| `forecastOutcomesRules.ts` | `forecast-to-inventory`, `outcomes-to-pricing` |
+| `catalogNegotiationRules.ts` | `catalog-to-pricing`, `negotiation-to-pricing` |
+| `parallelIntelRules.ts` | read-only parallel triples / pairs (supplier ∥ inventory ∥ pricing, …) |
 
 `ExecutionModeClassifier` chooses `parallel` vs `sequential` for multi-keyword plans when all intents are read-only.
 
@@ -147,7 +128,7 @@ New collaboration rules: `low-stock-to-pricing`, `pricing-to-inventory-check`.
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `MULTI_AGENT_DELEGATION_ENABLED` | off in prod | Enable specialist routing |
-| `MULTI_AGENT_ALLOWED_TARGETS` | `mail,supplier,pricing,inventory,customer,forecast,approvals,outcomes,negotiation,catalog,autonomy,admin` | Allowed agent keys |
+| `MULTI_AGENT_ALLOWED_TARGETS` | `mail,supplier,pricing,inventory,promotion,returns,customer,forecast,approvals,outcomes,negotiation,catalog,autonomy,store_builder,design,copy_seo,store_qa,workflow_supervisor,admin` | Allowed agent keys |
 | `MULTI_AGENT_LLM_ROUTING` | `false` | Enable LLM single-agent router |
 | `MULTI_AGENT_LLM_ROUTING_MIN_CONFIDENCE` | `0.65` | Min confidence for LLM route |
 | `MULTI_AGENT_LLM_COLLABORATION_PLANNING` | on in dev; prod requires `true` | LLM multi-agent collaboration planner |
@@ -287,8 +268,55 @@ Tools accept optional `scope: 'run' | 'merchant'` (default `run`). Merchant read
 | Approvals Agent | `approvals` | `PENDING_APPROVALS`, `APPROVE_CHANGES`, `APPROVAL_SUMMARY` |
 | Outcomes Agent | `outcomes` | `OUTCOMES_REPORT`, `OUTCOME_VERIFY`, `ATTRIBUTION_SUMMARY` |
 | Negotiation Agent | `negotiation` | `NEGOTIATION_STATUS`, `NEGOTIATION_RESPOND`, `NEGOTIATION_LIST` |
-| Promotion Agent | `promotion` | `PROMOTION_SUGGEST`, `CLEARANCE_PRICING`, `PROMOTION_LIST` |
-| Workflow Supervisor | `workflow_supervisor` | `COMPOUND_WORKFLOW`, `PLAN_AND_DELEGATE` |
+| Marketing & Promotion Agent | `promotion` | `PROMOTION_SUGGEST`, `CLEARANCE_PRICING`, `PROMOTION_LIST`, `MARKETING_OPPORTUNITY`, `CAMPAIGN_SUGGEST`, `BUNDLE_SUGGEST` |
+| Returns & Quality Agent | `returns` | `RETURNS_ANALYSIS`, `QUALITY_SIGNALS`, `RETURNS_REDUCE` |
+| Product Catalog Agent | `catalog` | `CREATE_PRODUCT`, `PRODUCT_LIST`, `PRODUCT_SEARCH` |
+| Autonomy Agent | `autonomy` | `AUTONOMY_METRICS`, `AUTONOMY_TRACE`, `DECISION_REVIEW`, `AUTONOMOUS_ROUTE` |
+| Store Builder / Design / CopySEO / Store QA | `store_builder`, `design`, `copy_seo`, `store_qa` | storefront intents |
+| Workflow Supervisor (Lead) | `workflow_supervisor` | `COMPOUND_WORKFLOW`, `PLAN_AND_DELEGATE` |
+
+## Returns & Quality Agent
+
+Runtime specialist for retour/kwaliteit workflows (`agents/ReturnsAgent.ts`, tools in `returnsTools.ts`).
+
+| Tool | Kind | Purpose |
+|------|------|---------|
+| `analyzeReturnPatterns` | read | Retourpercentages / pattern summary |
+| `signalSupplierQualityIssues` | read | Leveranciers-kwaliteitssignalen |
+| `suggestReturnReduction` | propose | Reductie-suggesties (approval path) |
+
+Collaboration: `returns-to-supplier`, `returns-to-inventory`, `cross-domain-returns-supplier` in `collaboration/returnsQualityRules.ts`. Peer scope keys for `returns → supplier|inventory` include `returnRatePct`, `qualitySignals`, `suggestedActions`.
+
+Status: `returns-quality-agent` in [`feature-status.json`](../../../../../docs/feature-status.json) — **partial** (tools + routing + tests; not a full RMA system).
+
+## Marketing tools (Promotion Agent)
+
+`PromotionAgent` is the Marketing & Promotion specialist. Extra marketing tools (beyond clearance/promo list):
+
+| Tool | Purpose |
+|------|---------|
+| `detectMarketingOpportunities` | Opportunity scan (`MARKETING_OPPORTUNITY`) |
+| `suggestBundle` | Bundle proposals (`BUNDLE_SUGGEST`) |
+| `suggestCampaignChannel` | E-mail / social channel suggestions (`CAMPAIGN_SUGGEST`) |
+| `suggestPromotion` / `suggestClearancePricing` / `createPromotion` | Promo / clearance path |
+
+Handoffs: `low-stock-to-promotion`, `promotion-to-pricing`, `marketing-to-inventory` (see `pricingInventoryPromoRules.ts`). Can delegate to `pricing`, `inventory`, `mail`, `copy_seo`.
+
+Status: `marketing-promotion-agent` — **partial**.
+
+## Lead Workflow Supervisor — planGoalSubtasks & HITL
+
+`workflow_supervisor` tools (`supervisorTools.ts`, registered in `wireOrchestrationStack.ts`):
+
+| Tool | Kind | Runtime behavior |
+|------|------|------------------|
+| `planGoalSubtasks` | read | Heuristic (deterministic) goal → ordered `{ agentKey, intent, objective }` subtasks; sets `requiresHitl` for high-impact goals/constraints |
+| `synthesizeAgentResults` | read | Combines specialist summaries into a coherent plan string |
+| `requestHitlGate` | propose | High-risk proposal; merchant approval before autonomous execution (`executeConfirmed` records gate only) |
+
+Also uses `delegateToAgent` / `delegateToAgentAsync`, run-memory tools. Compound routing still gated by `MULTI_AGENT_SUPERVISOR_MODE`.
+
+Status: `lead-workflow-supervisor` — **partial** (heuristic planner + HITL propose tool; not an LLM planner).
 
 ## Dev quick-start
 
@@ -320,6 +348,15 @@ Example commands:
 
 "Attribution uplift en prijsoptimalisatie"
   → sequential [outcomes → pricing]
+
+"Analyseer retourpatronen en leverancierskwaliteit"
+  → sequential [returns → supplier]
+
+"Detecteer marketingkansen en toets marge"
+  → sequential [promotion → pricing]
+
+"Orkestreer workflow: voorraad, promotie en prijzen"
+  → workflow_supervisor (planGoalSubtasks → specialists; HITL if high-impact)
 ```
 
 ### Examples

@@ -27,6 +27,7 @@ import type {
   MemoryRecallResult,
   ScoredMemoryEntry,
 } from './types';
+import type { StrategicMemoryService } from './StrategicMemoryService';
 
 export interface MemoryRecallPipelineDeps {
   longTerm: LongTermMemoryStore;
@@ -34,6 +35,7 @@ export interface MemoryRecallPipelineDeps {
   conversation: ConversationSessionStore;
   planMemory?: PlanMemoryService;
   adaptiveLearning?: BrainAdaptiveLearningService;
+  strategicMemory?: StrategicMemoryService;
 }
 
 export async function runRecallForCommand(
@@ -123,6 +125,26 @@ export async function runRecallForCommand(
     }
   }
 
+  let strategicScored: ScoredMemoryEntry[] = [];
+  if (deps.strategicMemory) {
+    const strategies = await deps.strategicMemory.recallStrategies(tenantId, command, 2, agentKey);
+    strategicScored = strategies.map((strat) => ({
+      entry: {
+        id: strat.id,
+        command,
+        intent: 'STRATEGIC',
+        outcome: `${strat.strategy} | ${strat.context} | ${strat.outcome}`,
+        timestamp: strat.timestamp ?? new Date().toISOString(),
+        success: strat.outcome.includes('success'),
+        kind: MEMORY_KIND_PLAN,
+      },
+      layer: 'long' as const,
+      kind: MEMORY_KIND_PLAN,
+      score: strat.score * 0.6,
+      ageLabel: 'strategie',
+    }));
+  }
+
   const merged = dedupeScored([
     ...longScored.filter((e) => e.kind === MEMORY_KIND_SEMANTIC),
     ...longScored.filter((e) => e.kind === MEMORY_KIND_REFLECTION),
@@ -130,6 +152,7 @@ export async function runRecallForCommand(
     ...shortScored,
     ...planScored,
     ...adaptiveScored,
+    ...strategicScored,
   ]).sort((a, b) => b.score - a.score);
 
   const conversationTurns = await deps.conversation.getRecentTurns(tenantId);

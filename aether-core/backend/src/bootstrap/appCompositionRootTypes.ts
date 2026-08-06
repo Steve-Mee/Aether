@@ -258,6 +258,7 @@ export interface AppCompositionRoot {
   reflectionExperimentService?: ReflectionExperimentService;
   reflectionMetricsRecorder?: ReflectionMetricsRecorder;
   memoryConsolidationJob: import('../ai/intelligence/personal-brain/memory/jobs/MemoryConsolidationJob').MemoryConsolidationJob;
+  strategicReflectionJob: import('../ai/intelligence/personal-brain/reflection/jobs/StrategicReflectionJob').StrategicReflectionJob;
   runMemoryGcJob?: import('../ai/intelligence/multi-agent/memory/jobs/RunMemoryGcJob').RunMemoryGcJob;
   runWorkingMemory?: import('../ai/intelligence/multi-agent/memory/RunWorkingMemoryPort').RunWorkingMemoryPort;
   bilateralExchangeService: BilateralExchangeService;

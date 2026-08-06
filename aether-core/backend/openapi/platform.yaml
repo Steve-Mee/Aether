@@ -270,6 +270,45 @@ paths:
           description: Bad request
         '401':
           description: Unauthorized
+  /auth/oidc/login:
+    get:
+      tags:
+        - Auth
+      summary: GET /auth/oidc/login
+      operationId: get_auth_oidc_login
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /auth/oidc/callback:
+    get:
+      tags:
+        - Auth
+      summary: GET /auth/oidc/callback
+      operationId: get_auth_oidc_callback
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+  /auth/oidc/metadata:
+    get:
+      tags:
+        - Auth
+      summary: GET /auth/oidc/metadata
+      operationId: get_auth_oidc_metadata
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
   /emails/metrics:
     get:
       tags:

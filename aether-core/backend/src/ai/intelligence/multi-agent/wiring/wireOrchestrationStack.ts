@@ -17,6 +17,11 @@ import { AgentPeerMesh } from '../peer/AgentPeerMesh';
 import { delegateToAgentTool } from '../peer/delegateToAgentTool';
 import { delegateToAgentAsyncTool } from '../peer/delegateToAgentAsyncTool';
 import { sendAgentMessageTool } from '../peer/sendAgentMessageTool';
+import {
+  planGoalSubtasksTool,
+  synthesizeAgentResultsTool,
+  requestHitlGateTool,
+} from '../agents/supervisorTools';
 import { SharedMemoryBridge } from '../memory/SharedMemoryBridge';
 import type { RunWorkingMemoryPort } from '../memory/RunWorkingMemoryPort';
 import { FederatedPeerPort } from '../peer/FederatedPeerPort';
@@ -166,6 +171,9 @@ export function wireOrchestrationStack(input: WireOrchestrationStackInput): Orch
     agentRegistry
   );
 
+  toolRegistry.register(planGoalSubtasksTool());
+  toolRegistry.register(synthesizeAgentResultsTool());
+  toolRegistry.register(requestHitlGateTool());
   toolRegistry.register(delegateToAgentTool({ peerBus: agentPeerBus }));
   toolRegistry.register(sendAgentMessageTool({ peerBus: agentPeerBus }));
   toolRegistry.register(delegateToAgentAsyncTool({ peerBus: agentPeerBus, jobPort: peerJobPort }));

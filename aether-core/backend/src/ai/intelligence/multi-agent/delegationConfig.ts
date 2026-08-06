@@ -1,6 +1,6 @@
 import { DEFAULT_BRAIN_AGENT_KEY } from '../global-knowledge/constants';
 
-const MAIL_INTENTS = new Set(['EMAIL_SUMMARY']);
+const MAIL_INTENTS = new Set(['EMAIL_SUMMARY', 'EMAIL_CONTENT_SUMMARY', 'DRAFT_REPLY']);
 const SUPPLIER_INTENTS = new Set(['SUPPLIER_MONITOR', 'SUPPLIER_CREATE', 'SUPPLIER_PRICE_INTEL']);
 const PRICING_INTENTS = new Set(['PRICE_UPDATE', 'LOW_MARGIN_REPORT', 'PRICING_OPTIMIZE']);
 const INVENTORY_INTENTS = new Set(['INVENTORY_STATUS', 'RESTOCK_SUGGEST']);
@@ -15,7 +15,15 @@ const APPROVAL_INTENTS = new Set(['PENDING_APPROVALS', 'APPROVE_CHANGES', 'APPRO
 const OUTCOMES_INTENTS = new Set(['OUTCOMES_REPORT', 'OUTCOME_VERIFY', 'ATTRIBUTION_SUMMARY']);
 const NEGOTIATION_INTENTS = new Set(['NEGOTIATION_STATUS', 'NEGOTIATION_RESPOND', 'NEGOTIATION_LIST']);
 const CATALOG_INTENTS = new Set(['CREATE_PRODUCT', 'PRODUCT_LIST', 'PRODUCT_SEARCH']);
-const PROMOTION_INTENTS = new Set(['PROMOTION_SUGGEST', 'CLEARANCE_PRICING', 'PROMOTION_LIST']);
+const PROMOTION_INTENTS = new Set([
+  'PROMOTION_SUGGEST',
+  'CLEARANCE_PRICING',
+  'PROMOTION_LIST',
+  'MARKETING_OPPORTUNITY',
+  'CAMPAIGN_SUGGEST',
+  'BUNDLE_SUGGEST',
+]);
+const RETURNS_INTENTS = new Set(['RETURNS_ANALYSIS', 'QUALITY_SIGNALS', 'RETURNS_REDUCE']);
 const SUPERVISOR_INTENTS = new Set(['COMPOUND_WORKFLOW', 'PLAN_AND_DELEGATE']);
 const AUTONOMY_INTENTS = new Set(['AUTONOMY_METRICS', 'AUTONOMY_TRACE', 'DECISION_REVIEW', 'AUTONOMOUS_ROUTE']);
 const STORE_BUILDER_INTENTS = new Set(['STORE_BUILD', 'STORE_ITERATE', 'STORE_PUBLISH', 'STORE_STATUS']);
@@ -33,6 +41,8 @@ export const SPECIALIST_HANDLED_INTENTS = new Set([
   'INVENTORY_STATUS',
   'RESTOCK_SUGGEST',
   'EMAIL_SUMMARY',
+  'EMAIL_CONTENT_SUMMARY',
+  'DRAFT_REPLY',
   'CUSTOMER_SEGMENT',
   'CUSTOMER_ORDER_TRENDS',
   'CUSTOMER_CHURN_SIGNALS',
@@ -52,6 +62,12 @@ export const SPECIALIST_HANDLED_INTENTS = new Set([
   'PROMOTION_SUGGEST',
   'CLEARANCE_PRICING',
   'PROMOTION_LIST',
+  'MARKETING_OPPORTUNITY',
+  'CAMPAIGN_SUGGEST',
+  'BUNDLE_SUGGEST',
+  'RETURNS_ANALYSIS',
+  'QUALITY_SIGNALS',
+  'RETURNS_REDUCE',
   'CREATE_PRODUCT',
   'PRODUCT_LIST',
   'PRODUCT_SEARCH',
@@ -60,6 +76,7 @@ export const SPECIALIST_HANDLED_INTENTS = new Set([
   'DECISION_REVIEW',
   'AUTONOMOUS_ROUTE',
   'PLAN_AND_DELEGATE',
+  'COMPOUND_WORKFLOW',
   'STORE_BUILD',
   'STORE_ITERATE',
   'STORE_PUBLISH',
@@ -80,7 +97,7 @@ export function isMultiAgentDelegationEnabled(): boolean {
 export function getAllowedDelegationTargets(): Set<string> {
   const raw =
     process.env.MULTI_AGENT_ALLOWED_TARGETS ??
-    'mail,supplier,pricing,inventory,promotion,customer,forecast,approvals,outcomes,negotiation,catalog,autonomy,store_builder,design,copy_seo,store_qa,workflow_supervisor,admin';
+    'mail,supplier,pricing,inventory,promotion,returns,customer,forecast,approvals,outcomes,negotiation,catalog,autonomy,store_builder,design,copy_seo,store_qa,workflow_supervisor,admin';
   return new Set(raw.split(',').map((s) => s.trim()).filter(Boolean));
 }
 
@@ -96,6 +113,10 @@ const PEER_PAYLOAD_SCOPE: Record<string, Record<string, readonly string[]>> = {
   promotion: {
     pricing: ['promotionProposals', 'clearanceCandidates', 'productId', 'discountPct', 'markdownPct'],
     inventory: ['productId', 'lowStockSkus'],
+  },
+  returns: {
+    supplier: ['returnRatePct', 'qualitySignals', 'suggestedActions', 'focus'],
+    inventory: ['returnRatePct', 'suggestedActions', 'productId', 'focus'],
   },
   negotiation: {
     pricing: ['negotiationId', 'decision', 'offer', 'counterOffer', 'round'],
@@ -157,6 +178,7 @@ export function resolveDelegationTarget(intent: string): string | null {
   if (OUTCOMES_INTENTS.has(intent) && allowed.has('outcomes')) return 'outcomes';
   if (NEGOTIATION_INTENTS.has(intent) && allowed.has('negotiation')) return 'negotiation';
   if (PROMOTION_INTENTS.has(intent) && allowed.has('promotion')) return 'promotion';
+  if (RETURNS_INTENTS.has(intent) && allowed.has('returns')) return 'returns';
   if (CATALOG_INTENTS.has(intent) && allowed.has('catalog')) return 'catalog';
   if (AUTONOMY_INTENTS.has(intent) && allowed.has('autonomy')) return 'autonomy';
   if (STORE_BUILDER_INTENTS.has(intent) && allowed.has('store_builder')) return 'store_builder';

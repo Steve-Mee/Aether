@@ -42,6 +42,7 @@ import { AuthProvider } from './lib/auth/AuthProvider';
 import { GuestOnlyRoute } from './lib/auth/GuestOnlyRoute';
 
 import { ProtectedRoute } from './lib/auth/ProtectedRoute';
+import { RequireOnboardingComplete } from './lib/auth/RequireOnboardingComplete';
 
 import { LOGIN_PATH } from './lib/auth/adapters/stubAuthAdapter';
 
@@ -66,6 +67,8 @@ import { Toaster } from '@/components/ui';
 import React from 'react';
 
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const OidcCallbackPage = React.lazy(() => import('./pages/OidcCallbackPage'));
+const OnboardingPage = React.lazy(() => import('./pages/OnboardingPage'));
 
 const ReactQueryDevtools = React.lazy(() =>
   import('@tanstack/react-query-devtools').then((m) => ({
@@ -111,25 +114,44 @@ function AppRoutes() {
               </ErrorBoundary>
             }
           />
+          <Route
+            path="/auth/callback"
+            element={
+              <ErrorBoundary name="oidc-callback">
+                <OidcCallbackPage />
+              </ErrorBoundary>
+            }
+          />
         </Route>
 
         <Route element={<ProtectedRoute />}>
-          <Route element={<AppShell />}>
-            <Route element={<OverviewLayout />}>{renderLayoutRoutes('overview')}</Route>
+          <Route
+            path="/onboarding"
+            element={
+              <ErrorBoundary name="onboarding">
+                <OnboardingPage />
+              </ErrorBoundary>
+            }
+          />
 
-            <Route element={<DeepModuleLayout />}>{renderLayoutRoutes('deep')}</Route>
+          <Route element={<RequireOnboardingComplete />}>
+            <Route element={<AppShell />}>
+              <Route element={<OverviewLayout />}>{renderLayoutRoutes('overview')}</Route>
 
-            <Route element={<SettingsLayout />}>{renderLayoutRoutes('settings')}</Route>
+              <Route element={<DeepModuleLayout />}>{renderLayoutRoutes('deep')}</Route>
 
-            {redirects.map((route) => (
-              <Route
-                key={route.path}
-                path={route.path}
-                element={<Navigate to={route.redirectTo!} replace />}
-              />
-            ))}
+              <Route element={<SettingsLayout />}>{renderLayoutRoutes('settings')}</Route>
 
-            <Route path="*" element={<NotFound />} />
+              {redirects.map((route) => (
+                <Route
+                  key={route.path}
+                  path={route.path}
+                  element={<Navigate to={route.redirectTo!} replace />}
+                />
+              ))}
+
+              <Route path="*" element={<NotFound />} />
+            </Route>
           </Route>
         </Route>
       </Routes>

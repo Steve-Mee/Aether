@@ -9,6 +9,7 @@ import { approvalsAgentDefinition } from './ApprovalsAgent';
 import { outcomesAgentDefinition } from './OutcomesAgent';
 import { negotiationAgentDefinition } from './NegotiationAgent';
 import { promotionAgentDefinition } from './PromotionAgent';
+import { returnsAgentDefinition } from './ReturnsAgent';
 import { catalogAgentDefinition } from './CatalogAgent';
 import { autonomyAgentDefinition } from './AutonomyAgent';
 import { storeBuilderAgentDefinition } from './StoreBuilderAgent';
@@ -81,8 +82,21 @@ export {
   suggestPromotionTool,
   suggestClearancePricingTool,
   createPromotionTool,
+  detectMarketingOpportunitiesTool,
+  suggestBundleTool,
+  suggestCampaignChannelTool,
 } from './promotionTools';
 export { promotionAgentDefinition, PROMOTION_AGENT_KEY } from './PromotionAgent';
+export {
+  returnsAgentDefinition,
+  RETURNS_AGENT_KEY,
+  RETURNS_SUPPORTED_INTENTS,
+} from './ReturnsAgent';
+export {
+  analyzeReturnPatternsTool,
+  signalSupplierQualityIssuesTool,
+  suggestReturnReductionTool,
+} from './returnsTools';
 export {
   listProductsTool,
   searchCatalogProductsTool,
@@ -94,7 +108,7 @@ export {
   evaluateDecisionTool,
   routeAutonomousDecisionTool,
 } from './autonomyTools';
-export { getEmailSummaryTool } from './mailTools';
+export { getEmailSummaryTool, getEmailContentSummaryTool, draftEmailReplyTool } from './mailTools';
 export {
   createSiteProjectTool,
   createRevisionFromBriefTool,
@@ -111,6 +125,11 @@ export {
   buildFallbackTokens,
 } from './storefrontPlanFallback';
 export { workflowSupervisorDefinition, WORKFLOW_SUPERVISOR_KEY } from './WorkflowSupervisorAgent';
+export {
+  planGoalSubtasksTool,
+  synthesizeAgentResultsTool,
+  requestHitlGateTool,
+} from './supervisorTools';
 
 export const DEFAULT_SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
   pricingAgentDefinition,
@@ -123,6 +142,7 @@ export const DEFAULT_SPECIALIST_AGENTS: SpecialistAgentDefinition[] = [
   outcomesAgentDefinition,
   negotiationAgentDefinition,
   promotionAgentDefinition,
+  returnsAgentDefinition,
   catalogAgentDefinition,
   autonomyAgentDefinition,
   storeBuilderAgentDefinition,

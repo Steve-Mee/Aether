@@ -68,6 +68,7 @@ export const mockMerchantSettings = {
   status: 'live',
   settings: {
     ...DEFAULT_MERCHANT_SETTINGS,
+    onboardingCompleted: true,
     notificationPrefs: {
       ...DEFAULT_MERCHANT_SETTINGS.notificationPrefs,
       autonomousLowRisk: { inApp: true, email: false, push: false },

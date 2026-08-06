@@ -33,4 +33,12 @@ export const authApi = {
 
   logout: (accessToken: string | null) =>
     authFetch<void>(apiRoutes.auth.logout, { method: 'POST' }, accessToken, true),
+
+  oidcMetadata: () =>
+    authFetch<{ enabled: boolean; issuer: string | null }>(
+      apiRoutes.auth.oidcMetadata,
+      { method: 'GET' },
+      null,
+      true,
+    ),
 };

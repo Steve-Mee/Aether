@@ -8,6 +8,8 @@ import type {
   KnowledgeUpdatesResult,
   SubmitInsightsResult,
 } from './KnowledgeTransferPort';
+import { isKnowledgeTransferEnabledForCategory } from './categoryPreferences';
+import type { ContributionCategory } from './contribution/contributionTaxonomy';
 
 const HIVE_CATEGORIES = new Set([
   'pricing',
@@ -38,6 +40,12 @@ export class HiveMindKnowledgeTransferAdapter implements KnowledgeTransferPort {
 
     const updates: KnowledgeUpdatesResult['updates'] = [];
     for (const category of HIVE_CATEGORIES) {
+      const categoryEnabled = await isKnowledgeTransferEnabledForCategory(
+        merchantId,
+        category as ContributionCategory
+      );
+      if (!categoryEnabled) continue;
+
       for (const metric of DEFAULT_METRICS) {
         try {
           const result = await this.queryInsights.execute(category, metric, merchantId);
@@ -72,6 +80,19 @@ export class HiveMindKnowledgeTransferAdapter implements KnowledgeTransferPort {
         logger.warn('knowledge_transfer_invalid_category', { category: item.category });
         continue;
       }
+
+      const categoryEnabled = await isKnowledgeTransferEnabledForCategory(
+        merchantId,
+        item.category
+      );
+      if (!categoryEnabled) {
+        logger.debug('knowledge_transfer_category_opted_out', {
+          merchantId,
+          category: item.category,
+        });
+        continue;
+      }
+
       try {
         const insight: Insight = {
           id: '',

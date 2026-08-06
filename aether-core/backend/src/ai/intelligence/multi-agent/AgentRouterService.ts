@@ -16,9 +16,30 @@ import type { AgentPerformancePort } from './routing/AgentPerformancePort';
 import { AdaptiveRoutingScorer } from './routing/AdaptiveRoutingScorer';
 import type { ExecutionPlan, ExecutionMode, RouteDecision, SpecialistAgentDefinition } from './types';
 import { getAllowedDelegationTargets } from './delegationConfig';
+import {
+  createPlanCacheKey,
+  createRoutingCacheKey,
+  getOrCreateRoutingCache,
+  isRoutingCacheEnabled,
+} from './performance/routingCache';
+import { isAgentPaused } from '../../../shared/settings/agentPause';
 
 function isLlmRoutingEnabled(): boolean {
   return process.env.MULTI_AGENT_LLM_ROUTING === 'true';
+}
+
+async function filterPausedAgents(
+  tenantId: string | undefined,
+  agentKeys: string[]
+): Promise<Set<string>> {
+  if (!tenantId || agentKeys.length === 0) return new Set();
+  const paused = new Set<string>();
+  await Promise.all(
+    agentKeys.map(async (key) => {
+      if (await isAgentPaused(tenantId, key)) paused.add(key);
+    })
+  );
+  return paused;
 }
 
 function llmMinConfidence(): number {
@@ -44,27 +65,60 @@ export class AgentRouterService {
     command: string;
     confidence?: number;
   }): Promise<RouteDecision> {
+    const applyPause = async (decision: RouteDecision): Promise<RouteDecision> => {
+      if (!decision.agentKey || !input.tenantId) return decision;
+      if (await isAgentPaused(input.tenantId, decision.agentKey)) {
+        return {
+          agent: null,
+          agentKey: null,
+          confidence: 0,
+          reason: `agent_paused:${decision.agentKey}`,
+          source: 'none',
+        };
+      }
+      return decision;
+    };
+
+    if (isRoutingCacheEnabled()) {
+      const cache = getOrCreateRoutingCache();
+      const cacheKey = createRoutingCacheKey(input.intent, input.command);
+      const cached = cache.get(cacheKey);
+      if (cached) {
+        return applyPause(cached);
+      }
+    }
+
     const intentMatch = this.registry.resolveByIntent(input.intent);
     if (intentMatch) {
-      return {
+      const decision: RouteDecision = {
         agent: intentMatch,
         agentKey: intentMatch.agentKey,
         confidence: 1,
         reason: `intent:${input.intent}`,
         source: 'intent',
       };
+      if (isRoutingCacheEnabled()) {
+        const cache = getOrCreateRoutingCache();
+        cache.set(createRoutingCacheKey(input.intent, input.command), decision);
+      }
+      return applyPause(decision);
     }
 
     const keywordMatches = this.registry.resolveKeywordMatches(input.command);
     if (keywordMatches.length === 1) {
       const agent = keywordMatches[0];
-      return {
+      const decision: RouteDecision = {
         agent,
         agentKey: agent.agentKey,
         confidence: 0.85,
         reason: 'keyword match',
         source: 'keyword',
       };
+      if (isRoutingCacheEnabled()) {
+        const cache = getOrCreateRoutingCache();
+        cache.set(createRoutingCacheKey(input.intent, input.command), decision);
+      }
+      return applyPause(decision);
     }
 
     if (
@@ -79,13 +133,14 @@ export class AgentRouterService {
       );
       const picked = this.routingScorer.breakTieAmongAgents(keywordMatches, performance);
       if (picked) {
-        return {
+        const decision: RouteDecision = {
           agent: picked,
           agentKey: picked.agentKey,
           confidence: 0.8,
           reason: 'keyword match (adaptive tie-break)',
           source: 'keyword',
         };
+        return applyPause(decision);
       }
     }
 
@@ -99,17 +154,28 @@ export class AgentRouterService {
     if (needsLlm) {
       const llmDecision = await this.routeWithLlm(input.command, keywordMatches);
       if (llmDecision.agentKey && llmDecision.confidence >= llmMinConfidence()) {
-        return llmDecision;
+        if (isRoutingCacheEnabled()) {
+          const cache = getOrCreateRoutingCache();
+          cache.set(createRoutingCacheKey(input.intent, input.command), llmDecision);
+        }
+        return applyPause(llmDecision);
       }
     }
 
-    return {
+    const finalDecision: RouteDecision = {
       agent: null,
       agentKey: null,
       confidence: 0,
       reason: 'no specialist match',
       source: 'none',
     };
+    
+    if (isRoutingCacheEnabled()) {
+      const cache = getOrCreateRoutingCache();
+      cache.set(createRoutingCacheKey(input.intent, input.command), finalDecision, 60_000);
+    }
+    
+    return finalDecision;
   }
 
   async routePlan(input: {
@@ -120,12 +186,30 @@ export class AgentRouterService {
   }): Promise<ExecutionPlan> {
     const finalize = async (plan: ExecutionPlan) => {
       let weighted = plan;
+      if (input.tenantId && weighted.agents.length > 0) {
+        const paused = await filterPausedAgents(
+          input.tenantId,
+          weighted.agents.map((a) => a.agentKey)
+        );
+        if (paused.size > 0) {
+          const agents = weighted.agents.filter((a) => !paused.has(a.agentKey));
+          weighted = {
+            ...weighted,
+            agents,
+            routingReason: agents.length
+              ? `${weighted.routingReason ?? 'plan'};filtered_paused`
+              : `all_agents_paused:${[...paused].join(',')}`,
+          };
+        }
+      }
       if (isAdaptiveRoutingEnabled() && this.performancePort && input.tenantId) {
         weighted = await this.applyPerformanceWeights(weighted, input.tenantId);
       }
       return this.attachGraphDefinition(weighted, input.command);
     };
 
+    // Multi-domain collaboration / keywords take precedence over a single intent match
+    // (e.g. EMAIL_SUMMARY + "inventory status en email samenvatting" → parallel mail+inventory).
     const collaborationChain = resolveCollaborationChain(
       input.command,
       input.intent,

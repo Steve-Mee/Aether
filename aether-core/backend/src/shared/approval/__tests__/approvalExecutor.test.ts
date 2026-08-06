@@ -52,4 +52,36 @@ describe('ApprovalExecutor', () => {
     const { smtpMailSender } = require('../../../modules/aether-mail/infrastructure/smtp/SmtpMailSenderAdapter');
     expect(smtpMailSender.send).toHaveBeenCalled();
   });
+
+  it('executeApprovedAction sends stored draft body when provided', async () => {
+    const { prisma } = require('../../prisma/client');
+    prisma.emailMessage.findFirst.mockResolvedValueOnce({
+      id: 'em_1',
+      from: 'buyer@example.com',
+      subject: 'Help',
+      category: 'order_status',
+      draftReply: 'Stored draft reply',
+    });
+
+    await executeApprovedAction({
+      tenantId: 'tenant_a',
+      approvalId: 'appr_2',
+      module: 'aether-mail',
+      actionType: 'email_response',
+      payload: {
+        emailId: 'em_1',
+        body: 'Merchant-approved draft',
+        subject: 'Re: Help',
+      },
+      resolvedBy: 'operator_1',
+    });
+
+    const { smtpMailSender } = require('../../../modules/aether-mail/infrastructure/smtp/SmtpMailSenderAdapter');
+    expect(smtpMailSender.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: 'Merchant-approved draft',
+        subject: 'Re: Help',
+      })
+    );
+  });
 });
