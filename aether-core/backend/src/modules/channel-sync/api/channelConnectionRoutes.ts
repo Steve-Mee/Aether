@@ -255,7 +255,7 @@ router.get('/:id/oauth/url', async (req: Request, res: Response) => {
     const adapter = service.getAdapter('shopify', async (tid) => {
       if (tid !== tenantId) return null;
       return connection.config;
-    }) as ChannelOAuthPort;
+    }) as unknown as ChannelOAuthPort;
 
     const url = await adapter.getAuthUrl({
       tenantId,
@@ -297,7 +297,7 @@ router.post('/:id/oauth/callback', async (req: Request, res: Response) => {
     const adapter = service.getAdapter('shopify', async (tid) => {
       if (tid !== tenantId) return null;
       return connection.config;
-    }) as ChannelOAuthPort;
+    }) as unknown as ChannelOAuthPort;
 
     const tokenResult = await adapter.exchangeCodeForToken({
       tenantId,
